@@ -1,0 +1,48 @@
+@model Webstore.Models.Order
+@{
+    ViewData["Title"] = "Thêm Đơn Hàng";
+    var accounts = ViewBag.Accounts as List<Webstore.Models.Account> ?? new List<Webstore.Models.Account>();
+}
+
+<h2>Thêm Đơn Hàng</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label asp-for="AccountId" class="form-label">Tài khoản</label>
+        <select asp-for="AccountId" class="form-select">
+            <option value="">-- Chọn tài khoản --</option>
+            @foreach (var a in accounts)
+            {
+                <option value="@a.AccountId">@a.Username (@a.FullName)</option>
+            }
+        </select>
+        <span asp-validation-for="AccountId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="OrderDate" class="form-label">Ngày đặt hàng</label>
+        <input asp-for="OrderDate" class="form-control" type="datetime-local" />
+        <span asp-validation-for="OrderDate" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="TotalAmount" class="form-label">Tổng tiền</label>
+        <input asp-for="TotalAmount" class="form-control" type="number" step="0.01" />
+        <span asp-validation-for="TotalAmount" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Status" class="form-label">Trạng thái</label>
+        <select asp-for="Status" class="form-select">
+            <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+        <span asp-validation-for="Status" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-success">Lưu</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts{
+    <partial name="_ValidationScriptsPartial" />
+}

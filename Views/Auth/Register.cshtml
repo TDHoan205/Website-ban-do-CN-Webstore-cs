@@ -1,0 +1,231 @@
+@model Webstore.Models.Account
+@{
+    ViewData["Title"] = "Đăng ký";
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                <h2 class="auth-title">Tạo tài khoản mới</h2>
+                <p class="auth-subtitle">Đăng ký để bắt đầu sử dụng Webstore</p>
+            </div>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Vui lòng kiểm tra lại thông tin:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <form method="post" asp-action="Register" class="auth-form">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <input asp-for="Username" class="form-control" id="username" placeholder="Tên đăng nhập" required minlength="3" maxlength="50" />
+                        <label for="username">
+                            <i class="fas fa-user me-2"></i>Tên đăng nhập
+                        </label>
+                        <span asp-validation-for="Username" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <input name="password" type="password" class="form-control" id="password" placeholder="Mật khẩu" required minlength="6" />
+                        <label for="password">
+                            <i class="fas fa-lock me-2"></i>Mật khẩu
+                        </label>
+                        <small class="text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="FullName" class="form-control" id="fullName" placeholder="Họ và tên" />
+                <label for="fullName">
+                    <i class="fas fa-id-card me-2"></i>Họ và tên
+                </label>
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <input asp-for="Email" type="email" class="form-control" id="email" placeholder="Email" />
+                        <label for="email">
+                            <i class="fas fa-envelope me-2"></i>Email
+                        </label>
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <input asp-for="Phone" class="form-control" id="phone" placeholder="Số điện thoại" />
+                        <label for="phone">
+                            <i class="fas fa-phone me-2"></i>Số điện thoại
+                        </label>
+                        <span asp-validation-for="Phone" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Address" class="form-control" id="address" placeholder="Địa chỉ" />
+                <label for="address">
+                    <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ
+                </label>
+                <span asp-validation-for="Address" class="text-danger"></span>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                <label class="form-check-label" for="agreeTerms">
+                    Tôi đồng ý với <a href="#" class="text-primary">Điều khoản sử dụng</a> và <a href="#" class="text-primary">Chính sách bảo mật</a>
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-success btn-lg w-100 mb-3">
+                <i class="fas fa-user-plus me-2"></i>Tạo tài khoản
+            </button>
+
+            <div class="text-center">
+                <p class="mb-0">Đã có tài khoản? 
+                    <a asp-action="Login" class="text-primary fw-bold text-decoration-none">
+                        Đăng nhập ngay
+                    </a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .auth-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        padding: 40px;
+        width: 100%;
+        max-width: 600px;
+        animation: slideUp 0.6s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .auth-title {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .auth-subtitle {
+        color: #666;
+        margin-bottom: 0;
+    }
+
+    .form-floating > .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 1rem 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-floating > .form-control:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    .form-floating > label {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+    }
+
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
+
+    .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
+    .form-check-label {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .text-danger {
+        font-size: 0.875rem;
+        margin-top: 5px;
+    }
+</style>
+
+@section Scripts{
+    <partial name="_ValidationScriptsPartial" />
+}
+

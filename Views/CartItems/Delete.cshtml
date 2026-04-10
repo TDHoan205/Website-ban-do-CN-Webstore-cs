@@ -1,0 +1,27 @@
+@model Webstore.Models.CartItem
+@{
+    ViewData["Title"] = "Xóa Giỏ Hàng";
+}
+
+<h2>Xóa Giỏ Hàng</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa giỏ hàng này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID Giỏ Hàng</dt>
+    <dd class="col-sm-10">@Model.CartItemId</dd>
+    <dt class="col-sm-2">Tài khoản</dt>
+    <dd class="col-sm-10">@Model.Account?.Username</dd>
+    <dt class="col-sm-2">Sản phẩm</dt>
+    <dd class="col-sm-10">@Model.Product?.Name</dd>
+    <dt class="col-sm-2">Số lượng</dt>
+    <dd class="col-sm-10">@Model.Quantity</dd>
+    <dt class="col-sm-2">Ngày thêm</dt>
+    <dd class="col-sm-10">@Model.AddedDate.ToString("dd/MM/yyyy HH:mm")</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="CartItemId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

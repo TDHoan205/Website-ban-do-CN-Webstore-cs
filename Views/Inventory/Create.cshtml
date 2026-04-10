@@ -1,0 +1,37 @@
+@model Webstore.Models.Inventory
+@{
+    ViewData["Title"] = "Thêm Tồn Kho";
+    var products = ViewBag.Products as List<Webstore.Models.Product> ?? new List<Webstore.Models.Product>();
+}
+
+<h2>Thêm Tồn Kho</h2>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="ProductId" class="form-label">Sản phẩm</label>
+        <select asp-for="ProductId" class="form-select">
+            <option value="">-- Chọn sản phẩm --</option>
+            @foreach (var product in products)
+            {
+                <option value="@product.ProductId">@product.Name - @product.Price.ToString("N2") VNĐ</option>
+            }
+        </select>
+        <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="QuantityInStock" class="form-label">Số lượng tồn kho</label>
+        <input asp-for="QuantityInStock" class="form-control" type="number" min="0" />
+        <span asp-validation-for="QuantityInStock" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-success">Lưu</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,36 @@
+@model Webstore.Models.Inventory
+@{
+    ViewData["Title"] = "Sửa Tồn Kho";
+}
+
+<h2>Sửa Tồn Kho</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="Edit" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="InventoryId" />
+    <input type="hidden" asp-for="ProductId" />
+
+    <div class="mb-3">
+        <label class="form-label">Sản phẩm</label>
+        <input type="text" class="form-control" value="@Model.Product?.Name" readonly />
+        <small class="form-text text-muted">Không thể thay đổi sản phẩm sau khi đã tạo tồn kho</small>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="QuantityInStock" class="form-label">Số lượng tồn kho</label>
+        <input asp-for="QuantityInStock" class="form-control" type="number" min="0" />
+        <span asp-validation-for="QuantityInStock" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Cập nhật</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

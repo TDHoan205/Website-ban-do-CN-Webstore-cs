@@ -1,0 +1,29 @@
+@model Webstore.Models.Inventory
+@{
+    ViewData["Title"] = "Xóa Tồn Kho";
+}
+
+<h2>Xóa Tồn Kho</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa tồn kho này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID</dt>
+    <dd class="col-sm-10">@Model.InventoryId</dd>
+    <dt class="col-sm-2">Sản phẩm</dt>
+    <dd class="col-sm-10">@Model.Product?.Name</dd>
+    <dt class="col-sm-2">Số lượng tồn</dt>
+    <dd class="col-sm-10">
+        <span class="badge @(Model.QuantityInStock > 10 ? "bg-success" : Model.QuantityInStock > 0 ? "bg-warning" : "bg-danger")">
+            @Model.QuantityInStock
+        </span>
+    </dd>
+    <dt class="col-sm-2">Cập nhật lần cuối</dt>
+    <dd class="col-sm-10">@Model.LastUpdatedDate.ToString("dd/MM/yyyy HH:mm")</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="InventoryId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

@@ -1,0 +1,33 @@
+@model Webstore.Models.ReceiptShipment
+@{
+    ViewData["Title"] = "Xóa Nhật Ký Nhập/Xuất Kho";
+}
+
+<h2>Xóa Nhật Ký Nhập/Xuất Kho</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa nhật ký này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID Nhật Ký</dt>
+    <dd class="col-sm-10">@Model.MovementId</dd>
+    <dt class="col-sm-2">Sản phẩm</dt>
+    <dd class="col-sm-10">@Model.Product?.Name</dd>
+    <dt class="col-sm-2">Loại</dt>
+    <dd class="col-sm-10">
+        <span class="badge @(Model.MovementType == "IN" ? "bg-success" : "bg-danger")">
+            @(Model.MovementType == "IN" ? "NHẬP" : "XUẤT")
+        </span>
+    </dd>
+    <dt class="col-sm-2">Số lượng</dt>
+    <dd class="col-sm-10">@Model.Quantity</dd>
+    <dt class="col-sm-2">Ngày</dt>
+    <dd class="col-sm-10">@Model.MovementDate.ToString("dd/MM/yyyy HH:mm")</dd>
+    <dt class="col-sm-2">Đơn hàng liên quan</dt>
+    <dd class="col-sm-10">@(Model.RelatedOrder?.OrderId != null ? "#" + Model.RelatedOrder.OrderId : "Không")</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="MovementId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

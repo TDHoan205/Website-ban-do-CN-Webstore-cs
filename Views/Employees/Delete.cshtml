@@ -1,0 +1,27 @@
+@model Webstore.Models.Employee
+@{
+    ViewData["Title"] = "Xóa Nhân Viên";
+}
+
+<h2>Xóa Nhân Viên</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa nhân viên này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID</dt>
+    <dd class="col-sm-10">@Model.EmployeeId</dd>
+    <dt class="col-sm-2">Mã NV</dt>
+    <dd class="col-sm-10">@Model.EmployeeCode</dd>
+    <dt class="col-sm-2">Tài khoản</dt>
+    <dd class="col-sm-10">@(Model.Account?.Username ?? "N/A")</dd>
+    <dt class="col-sm-2">Chức vụ</dt>
+    <dd class="col-sm-10">@Model.Position</dd>
+    <dt class="col-sm-2">Phòng ban</dt>
+    <dd class="col-sm-10">@Model.Department</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="EmployeeId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

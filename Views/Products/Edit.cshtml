@@ -1,0 +1,71 @@
+@model Webstore.Models.Product
+@{
+    ViewData["Title"] = "Sửa Sản Phẩm";
+    var categories = ViewBag.Categories as List<Webstore.Models.Category> ?? new List<Webstore.Models.Category>();
+    var suppliers = ViewBag.Suppliers as List<Webstore.Models.Supplier> ?? new List<Webstore.Models.Supplier>();
+}
+
+<h2>Sửa Sản Phẩm</h2>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="ProductId" />
+    <input type="hidden" asp-for="ImageUrl" />
+    
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Price" class="form-label"></label>
+        <input asp-for="Price" class="form-control" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="CategoryId" class="form-label">Danh mục</label>
+        <select asp-for="CategoryId" class="form-select">
+            <option value="">-- Không chọn --</option>
+            @foreach (var c in categories)
+            {
+                <option value="@c.CategoryId" selected="@(Model.CategoryId == c.CategoryId)">@c.Name</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="SupplierId" class="form-label">Nhà cung cấp</label>
+        <select asp-for="SupplierId" class="form-select">
+            <option value="">-- Không chọn --</option>
+            @foreach (var s in suppliers)
+            {
+                <option value="@s.SupplierId" selected="@(Model.SupplierId == s.SupplierId)">@s.Name</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Ảnh sản phẩm</label>
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <div class="mb-2">
+                <img src="@Model.ImageUrl" alt="@Model.Name" style="max-width: 200px; max-height: 200px; border-radius: 8px;" />
+                <p class="text-muted small mt-1">Ảnh hiện tại</p>
+            </div>
+        }
+        <input type="file" name="imageFile" class="form-control" accept="image/*" />
+        <small class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Kích thước tối ưu: <strong>800x800px</strong> (vuông) hoặc <strong>1200x1200px</strong> (chất lượng cao). 
+            Định dạng: JPG, PNG, WebP. Tỷ lệ khung hình: <strong>1:1</strong> (vuông) để hiển thị tốt nhất.
+        </small>
+    </div>
+    <button type="submit" class="btn btn-primary">Cập nhật</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts{
+    <partial name="_ValidationScriptsPartial" />
+}
+

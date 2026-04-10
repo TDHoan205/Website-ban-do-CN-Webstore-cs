@@ -1,0 +1,326 @@
+@{
+    ViewData["Title"] = "Hỗ Trợ";
+    Layout = "_ShopLayout";
+}
+
+<div class="container py-5">
+    <!-- Header Section -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="fas fa-headset text-primary me-2"></i>Trung Tâm Hỗ Trợ
+        </h1>
+        <p class="lead text-muted">Chúng tôi luôn sẵn sàng hỗ trợ bạn mọi lúc, mọi nơi</p>
+    </div>
+
+    <!-- Quick Help Section -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="bg-primary bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-shipping-fast text-white fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Giao Hàng</h5>
+                    <p class="card-text text-muted small">Thông tin về vận chuyển và giao hàng</p>
+                    <a href="#shipping" class="btn btn-outline-primary btn-sm">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="bg-success bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-undo text-white fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Đổi Trả</h5>
+                    <p class="card-text text-muted small">Chính sách đổi trả và hoàn tiền</p>
+                    <a href="#returns" class="btn btn-outline-success btn-sm">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="bg-warning bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-credit-card text-white fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Thanh Toán</h5>
+                    <p class="card-text text-muted small">Các phương thức thanh toán</p>
+                    <a href="#payment" class="btn btn-outline-warning btn-sm">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="bg-info bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="fas fa-question-circle text-white fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Câu Hỏi</h5>
+                    <p class="card-text text-muted small">Câu hỏi thường gặp (FAQ)</p>
+                    <a href="#faq" class="btn btn-outline-info btn-sm">Xem thêm</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <h3 class="text-center mb-4">
+                        <i class="fas fa-envelope text-primary me-2"></i>Liên Hệ Với Chúng Tôi
+                    </h3>
+                    <div class="row g-4">
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-phone fa-2x text-primary mb-2"></i>
+                                <h6>Hotline</h6>
+                                <p class="text-muted mb-0">0123 456 789</p>
+                                <small class="text-muted">24/7</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-envelope fa-2x text-primary mb-2"></i>
+                                <h6>Email</h6>
+                                <p class="text-muted mb-0">support@webstore.com</p>
+                                <small class="text-muted">Phản hồi trong 24h</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-map-marker-alt fa-2x text-primary mb-2"></i>
+                                <h6>Địa Chỉ</h6>
+                                <p class="text-muted mb-0">123 Đường ABC</p>
+                                <small class="text-muted">Quận XYZ, TP.HCM</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div id="faq" class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <h2 class="text-center mb-4">
+                <i class="fas fa-question-circle text-primary me-2"></i>Câu Hỏi Thường Gặp
+            </h2>
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            <i class="fas fa-shipping-fast me-2"></i>Thời gian giao hàng là bao lâu?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <p>Thời gian giao hàng phụ thuộc vào địa điểm nhận hàng:</p>
+                            <ul>
+                                <li><strong>Nội thành:</strong> 1-2 ngày làm việc</li>
+                                <li><strong>Tỉnh/thành khác:</strong> 3-5 ngày làm việc</li>
+                                <li><strong>Vùng sâu, vùng xa:</strong> 5-7 ngày làm việc</li>
+                            </ul>
+                            <p class="mb-0">Chúng tôi sẽ thông báo cho bạn khi đơn hàng được giao.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            <i class="fas fa-undo me-2"></i>Chính sách đổi trả như thế nào?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <p>Bạn có thể đổi trả sản phẩm trong vòng <strong>7 ngày</strong> kể từ ngày nhận hàng với các điều kiện:</p>
+                            <ul>
+                                <li>Sản phẩm còn nguyên vẹn, chưa sử dụng</li>
+                                <li>Còn đầy đủ hộp, tem mác, phụ kiện đi kèm</li>
+                                <li>Có hóa đơn mua hàng</li>
+                            </ul>
+                            <p class="mb-0">Chi phí vận chuyển đổi trả sẽ được chúng tôi hỗ trợ.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            <i class="fas fa-credit-card me-2"></i>Các phương thức thanh toán nào được chấp nhận?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <p>Chúng tôi chấp nhận các phương thức thanh toán sau:</p>
+                            <ul>
+                                <li><strong>Thanh toán khi nhận hàng (COD):</strong> Thanh toán bằng tiền mặt khi nhận hàng</li>
+                                <li><strong>Chuyển khoản ngân hàng:</strong> Chuyển khoản qua tài khoản ngân hàng</li>
+                                <li><strong>Ví điện tử:</strong> Momo, ZaloPay, ShopeePay</li>
+                                <li><strong>Thẻ tín dụng/ghi nợ:</strong> Visa, Mastercard</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            <i class="fas fa-shield-alt me-2"></i>Sản phẩm có được bảo hành không?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <p>Tất cả sản phẩm đều được bảo hành chính hãng:</p>
+                            <ul>
+                                <li><strong>Điện tử:</strong> 12-24 tháng tùy sản phẩm</li>
+                                <li><strong>Thời trang:</strong> Bảo hành lỗi sản xuất</li>
+                                <li><strong>Khác:</strong> Theo chính sách của nhà sản xuất</li>
+                            </ul>
+                            <p class="mb-0">Vui lòng giữ hóa đơn để được bảo hành.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            <i class="fas fa-truck me-2"></i>Phí vận chuyển được tính như thế nào?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <p>Phí vận chuyển được tính dựa trên:</p>
+                            <ul>
+                                <li><strong>Đơn hàng trên 500.000đ:</strong> Miễn phí vận chuyển</li>
+                                <li><strong>Nội thành:</strong> 30.000đ</li>
+                                <li><strong>Tỉnh/thành khác:</strong> 50.000đ</li>
+                                <li><strong>Vùng sâu, vùng xa:</strong> 80.000đ</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipping Info -->
+    <div id="shipping" class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <h3 class="mb-4">
+                        <i class="fas fa-shipping-fast text-primary me-2"></i>Thông Tin Giao Hàng
+                    </h3>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-clock text-success me-2"></i>Thời Gian Giao Hàng</h5>
+                            <ul>
+                                <li>Nội thành: 1-2 ngày</li>
+                                <li>Tỉnh/thành khác: 3-5 ngày</li>
+                                <li>Vùng sâu, vùng xa: 5-7 ngày</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-money-bill-wave text-success me-2"></i>Phí Vận Chuyển</h5>
+                            <ul>
+                                <li>Miễn phí cho đơn hàng trên 500.000đ</li>
+                                <li>Nội thành: 30.000đ</li>
+                                <li>Tỉnh/thành khác: 50.000đ</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Returns Info -->
+    <div id="returns" class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <h3 class="mb-4">
+                        <i class="fas fa-undo text-primary me-2"></i>Chính Sách Đổi Trả
+                    </h3>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-check-circle text-success me-2"></i>Điều Kiện Đổi Trả</h5>
+                            <ul>
+                                <li>Sản phẩm còn nguyên vẹn, chưa sử dụng</li>
+                                <li>Còn đầy đủ hộp, tem mác</li>
+                                <li>Có hóa đơn mua hàng</li>
+                                <li>Trong vòng 7 ngày kể từ ngày nhận hàng</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-times-circle text-danger me-2"></i>Không Được Đổi Trả</h5>
+                            <ul>
+                                <li>Sản phẩm đã qua sử dụng</li>
+                                <li>Thiếu hộp, tem mác, phụ kiện</li>
+                                <li>Hết thời hạn đổi trả</li>
+                                <li>Sản phẩm đặc biệt (theo quy định)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div id="payment" class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <h3 class="mb-4">
+                        <i class="fas fa-credit-card text-primary me-2"></i>Phương Thức Thanh Toán
+                    </h3>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-money-bill-wave fa-3x text-success mb-3"></i>
+                                <h6>COD</h6>
+                                <p class="small text-muted mb-0">Thanh toán khi nhận hàng</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-university fa-3x text-primary mb-3"></i>
+                                <h6>Chuyển Khoản</h6>
+                                <p class="small text-muted mb-0">Qua ngân hàng</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-mobile-alt fa-3x text-warning mb-3"></i>
+                                <h6>Ví Điện Tử</h6>
+                                <p class="small text-muted mb-0">Momo, ZaloPay, ShopeePay</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .accordion-button {
+        font-weight: 600;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .card {
+        transition: transform 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+

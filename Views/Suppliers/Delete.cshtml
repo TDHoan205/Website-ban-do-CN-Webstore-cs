@@ -1,0 +1,30 @@
+@model Webstore.Models.Supplier
+@{
+    ViewData["Title"] = "Xóa Nhà Cung Cấp";
+}
+
+<h2>Xóa Nhà Cung Cấp</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa nhà cung cấp này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID</dt>
+    <dd class="col-sm-10">@Model.SupplierId</dd>
+    <dt class="col-sm-2">Tên</dt>
+    <dd class="col-sm-10">@Model.Name</dd>
+    <dt class="col-sm-2">Liên hệ</dt>
+    <dd class="col-sm-10">@Model.ContactPerson</dd>
+    <dt class="col-sm-2">Điện thoại</dt>
+    <dd class="col-sm-10">@Model.Phone</dd>
+    <dt class="col-sm-2">Email</dt>
+    <dd class="col-sm-10">@Model.Email</dd>
+    <dt class="col-sm-2">Địa chỉ</dt>
+    <dd class="col-sm-10">@Model.Address</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="SupplierId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>
+

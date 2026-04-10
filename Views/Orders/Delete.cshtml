@@ -1,0 +1,36 @@
+@model Webstore.Models.Order
+@{
+    ViewData["Title"] = "Xóa Đơn Hàng";
+}
+
+<h2>Xóa Đơn Hàng</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa đơn hàng này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID Đơn Hàng</dt>
+    <dd class="col-sm-10">@Model.OrderId</dd>
+    <dt class="col-sm-2">Tài khoản</dt>
+    <dd class="col-sm-10">@Model.Account?.Username</dd>
+    <dt class="col-sm-2">Ngày đặt</dt>
+    <dd class="col-sm-10">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</dd>
+    <dt class="col-sm-2">Tổng tiền</dt>
+    <dd class="col-sm-10">@Model.TotalAmount.ToString("N2")</dd>
+    <dt class="col-sm-2">Trạng thái</dt>
+    <dd class="col-sm-10">
+        <span class="badge @(Model.Status switch {
+            "Pending" => "bg-warning",
+            "Processing" => "bg-info", 
+            "Shipped" => "bg-primary",
+            "Completed" => "bg-success",
+            "Cancelled" => "bg-danger",
+            _ => "bg-secondary"
+        })">@Model.Status</span>
+    </dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="OrderId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

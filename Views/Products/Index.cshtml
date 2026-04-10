@@ -1,0 +1,207 @@
+@model Webstore.Models.PagedList<Webstore.Models.Product>
+@{
+    ViewData["Title"] = "Quản lý Sản Phẩm";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">
+        <i class="fas fa-box me-2 text-primary"></i>Quản lý Sản Phẩm
+    </h2>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <form method="get" asp-action="Index" class="d-flex">
+                    <input type="text" name="search" value="@ViewBag.Search" class="form-control me-2"
+                        placeholder="Tìm theo tên, mô tả, danh mục, nhà cung cấp..." />
+                    <input type="hidden" name="sortOrder" value="@ViewBag.SortOrder" />
+                    <input type="hidden" name="pageSize" value="@ViewBag.PageSize" />
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Tìm kiếm
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-4 text-end">
+                <a asp-action="Create" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>Thêm mới
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+            <span class="text-muted">
+                <i class="fas fa-list me-1"></i>
+                Hiển thị @Model.Count() trong tổng số @Model.TotalCount sản phẩm
+            </span>
+            <form method="get" asp-action="Index" class="d-inline">
+                <input type="hidden" name="search" value="@ViewBag.Search" />
+                <input type="hidden" name="sortOrder" value="@ViewBag.SortOrder" />
+                <label class="me-2">Số dòng/trang:</label>
+                <select name="pageSize" onchange="this.form.submit()" class="form-select d-inline-block w-auto">
+                    <option value="5" selected="@(ViewBag.PageSize == 5)">5</option>
+                    <option value="10" selected="@(ViewBag.PageSize == 10)">10</option>
+                    <option value="20" selected="@(ViewBag.PageSize == 20)">20</option>
+                    <option value="50" selected="@(ViewBag.PageSize == 50)">50</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Ảnh</th>
+                        <th>
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.NameSortParm" asp-route-search="@ViewBag.Search"
+                                asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
+                                Tên sản phẩm <i class="fas fa-sort ms-1"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.PriceSortParm" asp-route-search="@ViewBag.Search"
+                                asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
+                                Giá <i class="fas fa-sort ms-1"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.CategorySortParm" asp-route-search="@ViewBag.Search"
+                                asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
+                                Danh mục <i class="fas fa-sort ms-1"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.SupplierSortParm" asp-route-search="@ViewBag.Search"
+                                asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
+                                Nhà cung cấp <i class="fas fa-sort ms-1"></i>
+                            </a>
+                        </th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.ProductId</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" alt="@item.Name"
+                                        style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" class="shadow-sm" />
+                                }
+                                else
+                                {
+                                    <div class="bg-light rounded d-flex align-items-center justify-content-center"
+                                        style="width: 50px; height: 50px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <strong>@item.Name</strong>
+                                @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 50)
+                                {
+                                    <br /><small class="text-muted" title="@item.Description">@item.Description.Substring(0, 50)...</small>
+                                }
+                            </td>
+                            <td class="fw-bold text-danger">@item.Price.ToString("N0") ₫</td>
+                            <td>
+                                @if (item.Category != null)
+                                {
+                                    <span class="badge bg-primary">@item.Category.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Supplier != null)
+                                {
+                                    <span class="badge bg-info">@item.Supplier.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn btn-sm btn-primary" title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.ProductId" class="btn btn-sm btn-danger" title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Page navigation mt-4">
+        <ul class="pagination justify-content-center mt-4">
+            @if (Model.HasPrevious)
+            {
+                <li class="page-item">
+                    <a class="page-link" asp-action="Index" asp-route-pageNumber="1" asp-route-search="@ViewBag.Search"
+                        asp-route-sortOrder="@ViewBag.SortOrder" asp-route-pageSize="@ViewBag.PageSize">
+                        <i class="fas fa-angle-double-left"></i> Đầu
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                        asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+                        asp-route-pageSize="@ViewBag.PageSize">
+                        <i class="fas fa-angle-left"></i> Trước
+                    </a>
+                </li>
+            }
+
+            @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@i" asp-route-search="@ViewBag.Search"
+                        asp-route-sortOrder="@ViewBag.SortOrder" asp-route-pageSize="@ViewBag.PageSize">@i</a>
+                </li>
+            }
+
+            @if (Model.HasNext)
+            {
+                <li class="page-item">
+                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                        asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+                        asp-route-pageSize="@ViewBag.PageSize">
+                        Sau <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@Model.TotalPages"
+                        asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+                        asp-route-pageSize="@ViewBag.PageSize">
+                        Cuối <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

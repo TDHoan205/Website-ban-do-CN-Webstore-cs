@@ -1,0 +1,378 @@
+@model List<Webstore.Models.CartItem>
+@{
+    ViewData["Title"] = "Thanh toán";
+    Layout = "_ShopLayout";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Cart">Giỏ hàng</a></li>
+            <li class="breadcrumb-item active">Thanh toán</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Checkout Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>Thông tin thanh toán
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="checkoutForm">
+                        <!-- Customer Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="mb-3">Thông tin khách hàng</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="customerName" class="form-label">Họ và tên <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="customerName" name="customerName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="customerPhone" class="form-label">Số điện thoại <span
+                                        class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="customerPhone" name="customerPhone" required>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="customerAddress" class="form-label">Địa chỉ giao hàng <span
+                                        class="text-danger">*</span></label>
+                                <textarea class="form-control" id="customerAddress" name="customerAddress" rows="3"
+                                    required></textarea>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="notes" class="form-label">Ghi chú đơn hàng</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="2"
+                                    placeholder="Ghi chú thêm cho đơn hàng (không bắt buộc)"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="mb-3">Phương thức thanh toán</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="payment-method">
+                                    <input type="radio" class="btn-check" name="paymentMethod" id="cod" value="cod"
+                                        checked>
+                                    <label class="btn btn-outline-primary w-100" for="cod">
+                                        <i class="fas fa-money-bill-wave me-2"></i>Thanh toán khi nhận hàng (COD)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="payment-method">
+                                    <input type="radio" class="btn-check" name="paymentMethod" id="bank" value="bank">
+                                    <label class="btn btn-outline-primary w-100" for="bank">
+                                        <i class="fas fa-credit-card me-2"></i>Chuyển khoản ngân hàng
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="mb-3">Thông tin giao hàng</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="deliveryDate" class="form-label">Ngày giao hàng mong muốn</label>
+                                <input type="date" class="form-control" id="deliveryDate" name="deliveryDate">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="deliveryTime" class="form-label">Khung giờ giao hàng</label>
+                                <select class="form-select" id="deliveryTime" name="deliveryTime">
+                                    <option value="">Chọn khung giờ</option>
+                                    <option value="morning">Sáng (8:00 - 12:00)</option>
+                                    <option value="afternoon">Chiều (12:00 - 17:00)</option>
+                                    <option value="evening">Tối (17:00 - 20:00)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Đơn hàng của bạn</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Order Items -->
+                    <div class="order-items">
+                        @foreach (var item in Model)
+                        {
+                            <div class="order-item mb-3">
+                                <div class="d-flex align-items-center">
+                                            <div class="product-image-small me-3">
+                                                @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
+                                                {
+                                                    <img src="@item.Product.ImageUrl" alt="@item.Product.Name" style="width:100%;height:100%;object-fit:contain;border-radius:8px;" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-box"></i>
+                                                }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">@item.Product?.Name</h6>
+                                                <small class="text-muted">Số lượng: @item.Quantity</small>
+                                            </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">@(((item.Product?.Price ?? 0m) * item.Quantity).ToString("N0")) ₫</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <hr>
+
+                    <!-- Order Summary -->
+                    <div class="order-summary">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tạm tính:</span>
+                            <span>@Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity).ToString("N0") ₫</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Phí vận chuyển:</span>
+                            <span class="text-success">Miễn phí</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Giảm giá:</span>
+                            <span class="text-danger">-0 ₫</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-3">
+                            <strong>Tổng cộng:</strong>
+                            <strong class="text-primary">@Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity).ToString("N0") ₫</strong>
+                        </div>
+                    </div>
+
+                    <!-- Place Order Button -->
+                    <button type="button" class="btn btn-primary btn-lg w-100 mb-3" onclick="placeOrder()">
+                        <i class="fas fa-check me-2"></i>Đặt hàng
+                    </button>
+
+                    <!-- Security Notice -->
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Thông tin của bạn được bảo mật tuyệt đối
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="mb-3">Cần hỗ trợ?</h6>
+                    <div class="contact-info">
+                        <div class="contact-item mb-2">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            <small>0123 456 789</small>
+                        </div>
+                        <div class="contact-item mb-2">
+                            <i class="fas fa-envelope text-primary me-2"></i>
+                            <small>support@webstore.com</small>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            <small>Hỗ trợ 24/7</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0 !important;
+        border: none;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .payment-method .btn {
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: left;
+        transition: all 0.3s ease;
+    }
+
+    .payment-method .btn-check:checked+.btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+    }
+
+    .product-image-small {
+        width: 50px;
+        height: 50px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #666;
+    }
+
+    .order-item {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+    }
+
+    .order-item:last-child {
+        border-bottom: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .text-danger {
+        color: #e74c3c !important;
+    }
+</style>
+
+<script>
+    function placeOrder() {
+        // Get form data
+        const form = document.getElementById('checkoutForm');
+        const formData = new FormData(form);
+
+        // Validate required fields
+        const customerName = document.getElementById('customerName').value;
+        const customerPhone = document.getElementById('customerPhone').value;
+        const customerAddress = document.getElementById('customerAddress').value;
+
+        if (!customerName || !customerPhone || !customerAddress) {
+            showAlert('danger', 'Vui lòng điền đầy đủ thông tin bắt buộc');
+            return;
+        }
+
+        // Show loading state
+        const button = document.querySelector('button[onclick="placeOrder()"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+        button.disabled = true;
+
+        // Prepare data
+        const orderData = {
+            customerName: customerName,
+            customerPhone: customerPhone,
+            customerAddress: customerAddress,
+            notes: document.getElementById('notes').value,
+            paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value,
+            deliveryDate: document.getElementById('deliveryDate').value,
+            deliveryTime: document.getElementById('deliveryTime').value
+        };
+
+        // Submit order
+        fetch('@Url.Action("PlaceOrder", "Shop")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Redirect back to cart page
+                    setTimeout(() => {
+                        window.location.href = '@Url.Action("Cart", "Shop")';
+                    }, 1500);
+                } else {
+                    showAlert('danger', data.message);
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'Có lỗi xảy ra, vui lòng thử lại');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+    }
+
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        // Remove existing alerts
+        document.querySelectorAll('.alert').forEach(alert => alert.remove());
+
+        // Add new alert
+        document.querySelector('main').insertAdjacentHTML('afterbegin', alertHtml);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+
+    // Set minimum date for delivery
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('deliveryDate').min = tomorrow.toISOString().split('T')[0];
+    });
+</script>

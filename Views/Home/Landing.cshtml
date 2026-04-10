@@ -1,0 +1,187 @@
+@{
+    ViewData["Title"] = "Webstore - Hệ thống quản lý cửa hàng";
+    Layout = "_LandingLayout";
+}
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-6">
+                <h1 class="display-3 fw-bold text-white mb-4">
+                    Quản lý cửa hàng thông minh với <span class="text-warning">Webstore</span>
+                </h1>
+                <p class="lead text-white mb-5">
+                    Hệ thống quản lý cửa hàng toàn diện với đầy đủ tính năng từ quản lý sản phẩm, đơn hàng đến báo cáo thống kê. 
+                    Dễ sử dụng, hiệu quả và tiết kiệm thời gian.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a asp-controller="Auth" asp-action="Register" class="btn btn-warning btn-lg px-4">
+                        <i class="fas fa-rocket me-2"></i>Bắt đầu miễn phí
+                    </a>
+                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <div class="hero-image">
+                    <i class="fas fa-store fa-10x text-white opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="features-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Tại sao chọn Webstore?</h2>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4>Báo cáo thống kê</h4>
+                    <p>Theo dõi doanh thu, sản phẩm bán chạy và xu hướng kinh doanh với các báo cáo chi tiết.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>Responsive Design</h4>
+                    <p>Giao diện tối ưu cho mọi thiết bị từ desktop đến mobile, quản lý mọi lúc mọi nơi.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4>Bảo mật cao</h4>
+                    <p>Hệ thống bảo mật đa lớp với phân quyền người dùng, bảo vệ dữ liệu tuyệt đối.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h4>Đồng bộ thời gian thực</h4>
+                    <p>Cập nhật dữ liệu ngay lập tức trên toàn hệ thống, đảm bảo tính nhất quán.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h4>Tìm kiếm thông minh</h4>
+                    <p>Tìm kiếm nhanh chóng với bộ lọc đa tiêu chí, tiết kiệm thời gian tìm kiếm.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="feature-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h4>Dễ sử dụng</h4>
+                    <p>Giao diện trực quan, dễ dàng sử dụng cho mọi người, không cần đào tạo phức tạp.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="cta-section py-5">
+    <div class="container text-center">
+        <h2 class="text-white mb-4">Sẵn sàng bắt đầu?</h2>
+        <p class="lead text-white mb-4">Tham gia cùng hàng nghìn khách hàng đã tin tưởng Webstore</p>
+        <a asp-controller="Auth" asp-action="Register" class="btn btn-warning btn-lg px-5">
+            <i class="fas fa-rocket me-2"></i>Tạo tài khoản ngay
+        </a>
+    </div>
+</div>
+
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.1)" points="0,1000 1000,0 1000,1000"/></svg>');
+        background-size: cover;
+    }
+
+    .hero-section .container {
+        position: relative;
+        z-index: 2;
+    }
+
+    .features-section {
+        background: #f8f9fa;
+    }
+
+    .feature-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    }
+
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        transition: transform 0.3s ease;
+    }
+
+    .feature-icon i {
+        font-size: 2rem;
+        color: white;
+    }
+
+    .feature-card:hover .feature-icon {
+        transform: scale(1.1);
+    }
+
+    .cta-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(255, 193, 7, 0.3);
+    }
+</style>

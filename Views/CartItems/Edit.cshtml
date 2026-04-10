@@ -1,0 +1,50 @@
+@model Webstore.Models.CartItem
+@{
+    ViewData["Title"] = "Sửa Giỏ Hàng";
+    var accounts = ViewBag.Accounts as List<Webstore.Models.Account> ?? new List<Webstore.Models.Account>();
+    var products = ViewBag.Products as List<Webstore.Models.Product> ?? new List<Webstore.Models.Product>();
+}
+
+<h2>Sửa Giỏ Hàng</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="CartItemId" />
+    <div class="mb-3">
+        <label asp-for="AccountId" class="form-label">Tài khoản</label>
+        <select asp-for="AccountId" class="form-select">
+            <option value="">-- Chọn tài khoản --</option>
+            @foreach (var a in accounts)
+            {
+                <option value="@a.AccountId" selected="@(Model.AccountId == a.AccountId)">@a.Username (@a.FullName)</option>
+            }
+        </select>
+        <span asp-validation-for="AccountId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="ProductId" class="form-label">Sản phẩm</label>
+        <select asp-for="ProductId" class="form-select">
+            <option value="">-- Chọn sản phẩm --</option>
+            @foreach (var p in products)
+            {
+                <option value="@p.ProductId" selected="@(Model.ProductId == p.ProductId)">@p.Name - @p.Price.ToString("N2")</option>
+            }
+        </select>
+        <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Quantity" class="form-label">Số lượng</label>
+        <input asp-for="Quantity" class="form-control" type="number" min="1" />
+        <span asp-validation-for="Quantity" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="AddedDate" class="form-label">Ngày thêm</label>
+        <input asp-for="AddedDate" class="form-control" type="datetime-local" />
+        <span asp-validation-for="AddedDate" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Cập nhật</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts{
+    <partial name="_ValidationScriptsPartial" />
+}

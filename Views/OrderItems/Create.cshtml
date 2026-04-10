@@ -1,0 +1,49 @@
+@model Webstore.Models.OrderItem
+@{
+    ViewData["Title"] = "Thêm Chi Tiết Đơn Hàng";
+    var orders = ViewBag.Orders as List<Webstore.Models.Order> ?? new List<Webstore.Models.Order>();
+    var products = ViewBag.Products as List<Webstore.Models.Product> ?? new List<Webstore.Models.Product>();
+}
+
+<h2>Thêm Chi Tiết Đơn Hàng</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label asp-for="OrderId" class="form-label">Đơn hàng</label>
+        <select asp-for="OrderId" class="form-select">
+            <option value="">-- Chọn đơn hàng --</option>
+            @foreach (var o in orders)
+            {
+                <option value="@o.OrderId">Đơn hàng #@o.OrderId - @o.Account?.Username (@o.OrderDate.ToString("dd/MM/yyyy"))</option>
+            }
+        </select>
+        <span asp-validation-for="OrderId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="ProductId" class="form-label">Sản phẩm</label>
+        <select asp-for="ProductId" class="form-select">
+            <option value="">-- Chọn sản phẩm --</option>
+            @foreach (var p in products)
+            {
+                <option value="@p.ProductId">@p.Name - @p.Price.ToString("N2")</option>
+            }
+        </select>
+        <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Quantity" class="form-label">Số lượng</label>
+        <input asp-for="Quantity" class="form-control" type="number" min="1" />
+        <span asp-validation-for="Quantity" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="UnitPrice" class="form-label">Đơn giá</label>
+        <input asp-for="UnitPrice" class="form-control" type="number" step="0.01" />
+        <span asp-validation-for="UnitPrice" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-success">Lưu</button>
+    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+</form>
+
+@section Scripts{
+    <partial name="_ValidationScriptsPartial" />
+}

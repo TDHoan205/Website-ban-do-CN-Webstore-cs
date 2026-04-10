@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Webstore Shop</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        /* Header Styles */
+        .shop-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .shop-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+        }
+
+        .shop-logo:hover {
+            color: #ffc107;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 500px;
+        }
+
+        .search-box input {
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .search-box .btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+        }
+
+        .cart-icon {
+            position: relative;
+            color: white;
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .cart-icon:hover {
+            color: #ffc107;
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Navigation */
+        .shop-nav {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 0.5rem 0;
+        }
+
+        .nav-link {
+            color: #333;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 5px;
+        }
+
+        /* Product Cards */
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #dee2e6;
+        }
+
+        .product-info {
+            padding: 1.5rem;
+        }
+
+        .product-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #e74c3c;
+            margin-bottom: 1rem;
+        }
+
+        .product-rating {
+            color: #ffc107;
+            margin-bottom: 1rem;
+        }
+
+        .btn-add-cart {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add-cart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        /* Category Cards */
+        .category-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            color: inherit;
+        }
+
+        .category-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        /* Footer */
+        .shop-footer {
+            background: #2c3e50;
+            color: white;
+            padding: 3rem 0 1rem;
+            margin-top: 3rem;
+        }
+
+        .footer-section h5 {
+            color: #ecf0f1;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section a {
+            color: #bdc3c7;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: #3498db;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .search-box {
+                margin: 1rem 0;
+            }
+            
+            .product-card {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alert Styles */
+        .alert-shop {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="shop-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-3 col-md-6">
+                    <a asp-controller="Shop" asp-action="Index" class="shop-logo">
+                        <i class="fas fa-store me-2"></i>Webstore Shop
+                    </a>
+                </div>
+                <div class="col-lg-6 col-md-12">
+                    <form asp-controller="Shop" asp-action="Products" method="get" class="search-box">
+                        <input type="text" name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." value="@ViewBag.Search">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="col-lg-3 col-md-6 text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-3">
+                        <a asp-controller="Shop" asp-action="Cart" class="cart-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="cart-badge" id="cartCount">0</span>
+                        </a>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="dropdown">
+                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user me-1"></i>@User.Identity.Name
+                                </button>
+                                <ul class="dropdown-menu">
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Employee"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="fas fa-cog me-2"></i>Quản trị</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Thông tin cá nhân</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Shop" asp-action="Cart"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-shopping-bag me-2"></i>Đơn hàng</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="dropdown">
+                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user me-1"></i>Tài khoản
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="Auth" asp-action="Login"><i class="fas fa-sign-in-alt me-2"></i>Đăng nhập</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Auth" asp-action="Register"><i class="fas fa-user-plus me-2"></i>Đăng ký</a></li>
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="shop-nav">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Shop" asp-action="Index">
+                                <i class="fas fa-home me-1"></i>Trang chủ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Shop" asp-action="Products">
+                                <i class="fas fa-th-large me-1"></i>Tất cả sản phẩm
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i class="fas fa-fire me-1"></i>Khuyến mãi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i class="fas fa-star me-1"></i>Sản phẩm hot
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Shop" asp-action="Support">
+                                <i class="fas fa-headset me-1"></i>Hỗ trợ
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="shop-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h5><i class="fas fa-store me-2"></i>Webstore Shop</h5>
+                        <p>Hệ thống bán hàng trực tuyến hiện đại với đầy đủ tính năng từ quản lý sản phẩm đến thanh toán.</p>
+                        <div class="d-flex gap-3">
+                            <a href="#"><i class="fab fa-facebook fa-lg"></i></a>
+                            <a href="#"><i class="fab fa-twitter fa-lg"></i></a>
+                            <a href="#"><i class="fab fa-instagram fa-lg"></i></a>
+                            <a href="#"><i class="fab fa-youtube fa-lg"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h5>Mua sắm</h5>
+                        <ul class="list-unstyled">
+                            <li><a href="#">Sản phẩm mới</a></li>
+                            <li><a href="#">Khuyến mãi</a></li>
+                            <li><a href="#">Thương hiệu</a></li>
+                            <li><a href="#">Danh mục</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h5>Hỗ trợ</h5>
+                        <ul class="list-unstyled">
+                            <li><a href="#">Trung tâm trợ giúp</a></li>
+                            <li><a href="#">Liên hệ</a></li>
+                            <li><a href="#">Chính sách</a></li>
+                            <li><a href="#">Bảo mật</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h5>Tài khoản</h5>
+                        <ul class="list-unstyled">
+                            <li><a href="#">Đăng nhập</a></li>
+                            <li><a href="#">Đăng ký</a></li>
+                            <li><a href="#">Đơn hàng</a></li>
+                            <li><a href="#">Yêu thích</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h5>Liên hệ</h5>
+                        <p><i class="fas fa-phone me-2"></i>0123 456 789</p>
+                        <p><i class="fas fa-envelope me-2"></i>support@webstore.com</p>
+                        <p><i class="fas fa-map-marker-alt me-2"></i>123 Đường ABC, Quận XYZ, TP.HCM</p>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2025 Webstore Shop. Tất cả quyền được bảo lưu.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Được phát triển với <i class="fas fa-heart text-danger"></i> bởi Webstore Team</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // Update cart count
+        function updateCartCount() {
+            $.get('@Url.Action("GetCartCount", "Shop")', function(data) {
+                $('#cartCount').text(data);
+            });
+        }
+
+        // Add to cart with AJAX
+        function addToCart(productId, quantity = 1) {
+            $.ajax({
+                url: '@Url.Action("AddToCart", "Shop")',
+                type: 'POST',
+                data: { productId: productId, quantity: quantity },
+                success: function(response) {
+                    if (response.success) {
+                        updateCartCount();
+                        // Show success message
+                        showAlert('success', response.message);
+                    } else {
+                        showAlert('danger', response.message);
+                    }
+                },
+                error: function() {
+                    showAlert('danger', 'Có lỗi xảy ra, vui lòng thử lại');
+                }
+            });
+        }
+
+        // Show alert
+        function showAlert(type, message) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show alert-shop" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Remove existing alerts
+            $('.alert-shop').remove();
+            
+            // Add new alert
+            $('main').prepend(alertHtml);
+            
+            // Auto remove after 3 seconds
+            setTimeout(function() {
+                $('.alert-shop').fadeOut();
+            }, 3000);
+        }
+
+        // Initialize
+        $(document).ready(function() {
+            updateCartCount();
+        });
+    </script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

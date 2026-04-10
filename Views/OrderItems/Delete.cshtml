@@ -1,0 +1,30 @@
+@model Webstore.Models.OrderItem
+@{
+    ViewData["Title"] = "Xóa Chi Tiết Đơn Hàng";
+}
+
+<h2>Xóa Chi Tiết Đơn Hàng</h2>
+
+<div class="alert alert-warning">Bạn có chắc chắn muốn xóa chi tiết đơn hàng này?</div>
+
+<dl class="row">
+    <dt class="col-sm-2">ID Chi Tiết</dt>
+    <dd class="col-sm-10">@Model.OrderId-@Model.ProductId</dd>
+    <dt class="col-sm-2">Đơn hàng</dt>
+    <dd class="col-sm-10">#@Model.Order?.OrderId</dd>
+    <dt class="col-sm-2">Sản phẩm</dt>
+    <dd class="col-sm-10">@Model.Product?.Name</dd>
+    <dt class="col-sm-2">Số lượng</dt>
+    <dd class="col-sm-10">@Model.Quantity</dd>
+    <dt class="col-sm-2">Đơn giá</dt>
+    <dd class="col-sm-10">@Model.UnitPrice.ToString("N2")</dd>
+    <dt class="col-sm-2">Thành tiền</dt>
+    <dd class="col-sm-10">@((Model.Quantity * Model.UnitPrice).ToString("N2"))</dd>
+</dl>
+
+<form asp-action="Delete" asp-route-orderId="@Model.OrderId" asp-route-productId="@Model.ProductId" method="post">
+    <input type="hidden" asp-for="OrderId" />
+    <input type="hidden" asp-for="ProductId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

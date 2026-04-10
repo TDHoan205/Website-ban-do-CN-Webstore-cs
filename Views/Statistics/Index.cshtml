@@ -1,0 +1,82 @@
+@model Webstore.Models.StatisticsViewModel
+
+@{
+    ViewData["Title"] = "Thống Kê";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold"><i class="fas fa-chart-line me-2"></i>Thống Kê Hệ Thống</h2>
+            <p class="text-muted">Tổng quan nhanh các số liệu trong hệ thống.</p>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 display-6 text-primary"><i class="fas fa-box"></i></div>
+                    <div>
+                        <div class="text-muted">Sản phẩm</div>
+                        <div class="fs-4 fw-bold">@Model.ProductCount</div>
+                        <a asp-controller="Products" asp-action="Index" class="small">Quản lý Sản phẩm</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 display-6 text-success"><i class="fas fa-shopping-bag"></i></div>
+                    <div>
+                        <div class="text-muted">Đơn hàng</div>
+                        <div class="fs-4 fw-bold">@Model.OrderCount</div>
+                        <a asp-controller="Orders" asp-action="Index" class="small">Quản lý Đơn hàng</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 display-6 text-warning"><i class="fas fa-warehouse"></i></div>
+                    <div>
+                        <div class="text-muted">Bản ghi tồn kho</div>
+                        <div class="fs-4 fw-bold">@Model.InventoryEntries</div>
+                        <div class="text-muted small">Tổng số lượng: @Model.TotalStock</div>
+                        <a asp-controller="Inventory" asp-action="Index" class="small">Xem tồn kho</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 display-6 text-info"><i class="fas fa-truck"></i></div>
+                    <div>
+                        <div class="text-muted">Nhà cung cấp</div>
+                        <div class="fs-4 fw-bold">@Model.SupplierCount</div>
+                        <a asp-controller="Suppliers" asp-action="Index" class="small">Quản lý Nhà cung cấp</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3 display-6 text-secondary"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="text-muted">Tài khoản</div>
+                        <div class="fs-4 fw-bold">@Model.AccountCount</div>
+                        <a asp-controller="Accounts" asp-action="Index" class="small">Quản lý Tài khoản</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

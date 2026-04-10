@@ -1,0 +1,502 @@
+@model Webstore.Models.Product
+@{
+    ViewData["Title"] = Model.Name;
+    Layout = "_ShopLayout";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products">Sản phẩm</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@Model.CategoryId">@(Model.Category?.Name ?? "Danh mục")</a></li>
+            <li class="breadcrumb-item active">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-lg-6 mb-4">
+            <div class="product-image-main">
+                <div class="main-image">
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <img src="@Model.ImageUrl" alt="@Model.Name" style="width: 100%; height: 400px; max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 10px; background: #f8f9fa;" />
+                    }
+                    else
+                    {
+                        <i class="fas fa-box fa-10x text-muted"></i>
+                    }
+                </div>
+                <div class="thumbnail-images mt-3">
+                    <div class="row g-2">
+                        <div class="col-3">
+                            <div class="thumbnail active">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="thumbnail">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="thumbnail">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="thumbnail">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="col-lg-6">
+            <div class="product-details">
+                <h1 class="product-title">@Model.Name</h1>
+                
+                <div class="product-rating mb-3">
+                    <div class="stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <span class="rating-text">4.5 (128 đánh giá)</span>
+                </div>
+
+                <div class="product-price mb-4">
+                    <span class="current-price">@Model.Price.ToString("N0") ₫</span>
+                    <span class="original-price">@((Model.Price * 1.2m).ToString("N0")) ₫</span>
+                    <span class="discount">-20%</span>
+                </div>
+
+                <div class="product-description mb-4">
+                    <h6>Mô tả sản phẩm</h6>
+                    <p>@(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng." : Model.Description)</p>
+                </div>
+
+                <div class="product-options mb-4">
+                    <div class="row mb-3">
+                        <div class="col-sm-4">
+                            <label class="form-label">Số lượng</label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" onclick="decreaseQuantity()">-</button>
+                                <input type="number" class="form-control text-center" id="quantity" value="1" min="1" max="10">
+                                <button class="btn btn-outline-secondary" type="button" onclick="increaseQuantity()">+</button>
+                            </div>
+                        </div>
+                        <div class="col-sm-8">
+                            <label class="form-label">Kích thước</label>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="size" id="size-s" value="S">
+                                <label class="btn btn-outline-primary" for="size-s">S</label>
+                                
+                                <input type="radio" class="btn-check" name="size" id="size-m" value="M" checked>
+                                <label class="btn btn-outline-primary" for="size-m">M</label>
+                                
+                                <input type="radio" class="btn-check" name="size" id="size-l" value="L">
+                                <label class="btn btn-outline-primary" for="size-l">L</label>
+                                
+                                <input type="radio" class="btn-check" name="size" id="size-xl" value="XL">
+                                <label class="btn btn-outline-primary" for="size-xl">XL</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-actions mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <button class="btn btn-primary btn-lg w-100" onclick="addToCart(@Model.ProductId)">
+                                <i class="fas fa-cart-plus me-2"></i>Thêm vào giỏ hàng
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-danger btn-lg w-100" onclick="buyNow(@Model.ProductId)">
+                                <i class="fas fa-bolt me-2"></i>Mua ngay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-features">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="feature-item">
+                                <i class="fas fa-shipping-fast text-primary me-2"></i>
+                                <span>Giao hàng miễn phí</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="feature-item">
+                                <i class="fas fa-undo text-primary me-2"></i>
+                                <span>Đổi trả 7 ngày</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="feature-item">
+                                <i class="fas fa-shield-alt text-primary me-2"></i>
+                                <span>Bảo hành 12 tháng</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="feature-item">
+                                <i class="fas fa-headset text-primary me-2"></i>
+                                <span>Hỗ trợ 24/7</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Tabs -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="productTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab">
+                        <i class="fas fa-info-circle me-2"></i>Mô tả
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab">
+                        <i class="fas fa-cogs me-2"></i>Thông số
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
+                        <i class="fas fa-star me-2"></i>Đánh giá (128)
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content" id="productTabsContent">
+                <div class="tab-pane fade show active" id="description" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Mô tả chi tiết</h5>
+                            <p>@(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
+                            <ul>
+                                <li>Chất liệu cao cấp, bền đẹp</li>
+                                <li>Thiết kế hiện đại, sang trọng</li>
+                                <li>Dễ dàng sử dụng và bảo quản</li>
+                                <li>Phù hợp cho mọi lứa tuổi</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="specifications" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Thông số kỹ thuật</h5>
+                            <table class="table table-striped">
+                                <tr>
+                                    <td><strong>Danh mục</strong></td>
+                                    <td>@(Model.Category?.Name ?? "Không có")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Nhà cung cấp</strong></td>
+                                    <td>@(Model.Supplier?.Name ?? "Không có")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Trọng lượng</strong></td>
+                                    <td>500g</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kích thước</strong></td>
+                                    <td>20 x 15 x 10 cm</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Màu sắc</strong></td>
+                                    <td>Đa dạng</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="reviews" role="tabpanel">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Đánh giá sản phẩm</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <div class="display-4 text-warning">4.5</div>
+                                        <div class="stars mb-2">
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <p class="text-muted">128 đánh giá</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="review-item mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Nguyễn Văn A</strong>
+                                            <div class="stars">
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-muted">Sản phẩm rất tốt, chất lượng cao. Giao hàng nhanh, đóng gói cẩn thận.</p>
+                                        <small class="text-muted">2 ngày trước</small>
+                                    </div>
+                                    <div class="review-item mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Trần Thị B</strong>
+                                            <div class="stars">
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="fas fa-star text-warning"></i>
+                                                <i class="far fa-star text-warning"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-muted">Tốt, đúng như mô tả. Sẽ mua lại lần sau.</p>
+                                        <small class="text-muted">1 tuần trước</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    @if (ViewBag.RelatedProducts != null && ((List<Webstore.Models.Product>)ViewBag.RelatedProducts).Any())
+    {
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3 class="mb-4">Sản phẩm liên quan</h3>
+                <div class="row g-4">
+                    @foreach (var product in ViewBag.RelatedProducts)
+                    {
+                        <div class="col-lg-3 col-md-6">
+                            <div class="product-card">
+                                <div class="product-image">
+                                    @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                    {
+                                        <img src="@product.ImageUrl" alt="@product.Name" style="width: 100%; height: 200px; max-width: 100%; max-height: 200px; object-fit: contain; background: #f8f9fa;" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-box"></i>
+                                    }
+                                </div>
+                                <div class="product-info">
+                                    <h5 class="product-title">@product.Name</h5>
+                                    <div class="product-price">@product.Price.ToString("N0") ₫</div>
+                                    <div class="d-flex gap-2">
+                                        <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId" 
+                                           class="btn btn-outline-primary btn-sm flex-fill">
+                                            <i class="fas fa-eye me-1"></i>Xem
+                                        </a>
+                                        <button class="btn btn-primary btn-sm flex-fill" onclick="addToCart(@product.ProductId)">
+                                            <i class="fas fa-cart-plus me-1"></i>Mua
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .product-image-main {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .main-image {
+        width: 100%;
+        height: 400px;
+        max-width: 100%;
+        background: #f8f9fa;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .main-image img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        background: #f8f9fa;
+    }
+
+    .thumbnail {
+        width: 100%;
+        height: 80px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .thumbnail:hover,
+    .thumbnail.active {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+    }
+
+    .product-details {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        height: fit-content;
+    }
+
+    .product-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 1rem;
+    }
+
+    .product-rating {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stars {
+        color: #ffc107;
+    }
+
+    .rating-text {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .product-price {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .current-price {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #e74c3c;
+    }
+
+    .original-price {
+        font-size: 1.2rem;
+        color: #999;
+        text-decoration: line-through;
+    }
+
+    .discount {
+        background: #e74c3c;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .nav-tabs .nav-link {
+        border-radius: 10px 10px 0 0;
+        border: none;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .review-item {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+    }
+
+    .review-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<script>
+    function increaseQuantity() {
+        const quantityInput = document.getElementById('quantity');
+        const currentValue = parseInt(quantityInput.value);
+        if (currentValue < 10) {
+            quantityInput.value = currentValue + 1;
+        }
+    }
+
+    function decreaseQuantity() {
+        const quantityInput = document.getElementById('quantity');
+        const currentValue = parseInt(quantityInput.value);
+        if (currentValue > 1) {
+            quantityInput.value = currentValue - 1;
+        }
+    }
+
+    function buyNow(productId) {
+        const quantity = document.getElementById('quantity').value;
+        addToCart(productId, quantity);
+        // Redirect to checkout
+        setTimeout(() => {
+            window.location.href = '@Url.Action("Checkout", "Shop")';
+        }, 1000);
+    }
+</script>
