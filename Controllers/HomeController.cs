@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Webstore.Data;
 using Webstore.Models;
 
 namespace Webstore.Controllers
@@ -7,14 +9,20 @@ namespace Webstore.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         public IActionResult Index()
         {
+            ViewBag.ProductCount = _context.Products.Count();
+            ViewBag.OrderCount = _context.Orders.Count();
+            ViewBag.AccountCount = _context.Accounts.Count();
+            ViewBag.SupplierCount = _context.Suppliers.Count();
             return View();
         }
 

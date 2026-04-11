@@ -1,262 +1,200 @@
-﻿@{
-    ViewData["Title"] = "Trang Chủ - Webstore";
+@{
+    ViewData["Title"] = "Dashboard";
 }
 
-<!-- Hero Section -->
-<div class="hero-section bg-gradient-primary text-white py-5 mb-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="display-4 fw-bold mb-4">Chào mừng đến với Webstore</h1>
-                <p class="lead mb-4">Hệ thống quản lý cửa hàng trực tuyến hiện đại với đầy đủ tính năng quản lý sản phẩm, đơn hàng và kho hàng.</p>
-                <div class="d-flex gap-3">
-                    <a href="#features" class="btn btn-light btn-lg">Khám phá</a>
-                    <a href="#dashboard" class="btn btn-outline-light btn-lg">Bảng điều khiển</a>
-                </div>
-            </div>
-            <div class="col-lg-6 text-center">
-                <i class="fas fa-store fa-10x opacity-75"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Dashboard Cards -->
-<div id="dashboard" class="container mb-5">
-    <h2 class="text-center mb-5">Bảng Điều Khiển</h2>
-    <div class="row g-4">
-        <!-- Products Card -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4 d-flex flex-column">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-box text-white fa-2x"></i>
-                        </div>
-                    </div>
-                    <h5 class="card-title">Sản Phẩm</h5>
-                    <p class="card-text text-muted flex-grow-1">Quản lý danh mục sản phẩm, giá cả và thông tin chi tiết</p>
-                    <a asp-controller="Products" asp-action="Index" class="btn btn-primary mt-auto">Quản lý</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Orders Card -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4 d-flex flex-column">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="bg-success bg-gradient rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-shopping-cart text-white fa-2x"></i>
-                        </div>
-                    </div>
-                    <h5 class="card-title">Đơn Hàng</h5>
-                    <p class="card-text text-muted flex-grow-1">Theo dõi và xử lý đơn hàng từ khách hàng</p>
-                    <a asp-controller="Orders" asp-action="Index" class="btn btn-success mt-auto">Quản lý</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Inventory Card -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4 d-flex flex-column">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="bg-warning bg-gradient rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-warehouse text-white fa-2x"></i>
-                        </div>
-                    </div>
-                    <h5 class="card-title">Kho Hàng</h5>
-                    <p class="card-text text-muted flex-grow-1">Quản lý tồn kho và nhập/xuất hàng</p>
-                    <a asp-controller="Inventory" asp-action="Index" class="btn btn-warning mt-auto">Quản lý</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Customers Card -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body text-center p-4 d-flex flex-column">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="bg-info bg-gradient rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-users text-white fa-2x"></i>
-                        </div>
-                    </div>
-                    <h5 class="card-title">Khách Hàng</h5>
-                    <p class="card-text text-muted flex-grow-1">Quản lý tài khoản và thông tin khách hàng</p>
-                    <a asp-controller="Accounts" asp-action="Index" class="btn btn-info mt-auto">Quản lý</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Features Section -->
-<div id="features" class="bg-light py-5">
-    <div class="container">
-        <h2 class="text-center mb-5">Tính Năng Nổi Bật</h2>
-        <div class="row g-4">
-            <div class="col-lg-4 col-md-6">
-                <div class="text-center">
-                    <div class="bg-primary bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-chart-line text-white fa-3x"></i>
-                    </div>
-                    <h4>Báo Cáo Thống Kê</h4>
-                    <p class="text-muted">Theo dõi doanh thu, sản phẩm bán chạy và xu hướng kinh doanh</p>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="text-center">
-                    <div class="bg-success bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-mobile-alt text-white fa-3x"></i>
-                    </div>
-                    <h4>Responsive Design</h4>
-                    <p class="text-muted">Giao diện tối ưu cho mọi thiết bị từ desktop đến mobile</p>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="text-center">
-                    <div class="bg-warning bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-shield-alt text-white fa-3x"></i>
-                    </div>
-                    <h4>Bảo Mật Cao</h4>
-                    <p class="text-muted">Hệ thống bảo mật đa lớp với phân quyền người dùng</p>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="text-center">
-                    <div class="bg-info bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-sync-alt text-white fa-3x"></i>
-                    </div>
-                    <h4>Đồng Bộ Thời Gian Thực</h4>
-                    <p class="text-muted">Cập nhật dữ liệu ngay lập tức trên toàn hệ thống</p>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="text-center">
-                    <div class="bg-danger bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-search text-white fa-3x"></i>
-                    </div>
-                    <h4>Tìm Kiếm Thông Minh</h4>
-                    <p class="text-muted">Tìm kiếm nhanh chóng với bộ lọc đa tiêu chí</p>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-<div class="text-center">
-                    <div class="bg-secondary bg-gradient rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="fas fa-cogs text-white fa-3x"></i>
-                    </div>
-                    <h4>Dễ Sử Dụng</h4>
-                    <p class="text-muted">Giao diện trực quan, dễ dàng sử dụng cho mọi người</p>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Page Header -->
+<div class="admin-page-header">
+    <h1 class="admin-page-title"><i class="fas fa-tachometer-alt me-2" style="color:var(--primary);"></i>Dashboard</h1>
+    <p class="admin-page-subtitle">Chào mừng bạn quay trở lại! Dưới đây là tổng quan hệ thống.</p>
 </div>
 
 <!-- Quick Actions -->
-<div class="container py-5">
-    <h2 class="text-center mb-5">Thao Tác Nhanh</h2>
-    <div class="row g-3">
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a asp-controller="Products" asp-action="Create" class="btn btn-outline-primary w-100 py-3">
-                <i class="fas fa-plus d-block mb-2"></i>
-                Thêm Sản Phẩm
-            </a>
+<div class="row g-3 mb-4">
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <a asp-controller="Products" asp-action="Create" class="quick-action-card">
+            <div class="qa-icon" style="background:linear-gradient(135deg,#0077B6,#00B4D8);"><i class="fas fa-plus"></i></div>
+            <div class="qa-label">Thêm sản phẩm</div>
+        </a>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <a asp-controller="Orders" asp-action="Create" class="quick-action-card">
+            <div class="qa-icon" style="background:linear-gradient(135deg,#10B981,#34D399);"><i class="fas fa-shopping-bag"></i></div>
+            <div class="qa-label">Tạo đơn hàng</div>
+        </a>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <a asp-controller="Categories" asp-action="Create" class="quick-action-card">
+            <div class="qa-icon" style="background:linear-gradient(135deg,#3B82F6,#60A5FA);"><i class="fas fa-tags"></i></div>
+            <div class="qa-label">Thêm danh mục</div>
+        </a>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <a asp-controller="Accounts" asp-action="Create" class="quick-action-card">
+            <div class="qa-icon" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);"><i class="fas fa-user-plus"></i></div>
+            <div class="qa-label">Thêm tài khoản</div>
+        </a>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <a asp-controller="Suppliers" asp-action="Create" class="quick-action-card">
+            <div class="qa-icon" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);"><i class="fas fa-truck"></i></div>
+            <div class="qa-label">Thêm nhà cung cấp</div>
+        </a>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <a asp-controller="Statistics" asp-action="Index" class="quick-action-card">
+            <div class="qa-icon" style="background:linear-gradient(135deg,#EF4444,#F87171);"><i class="fas fa-chart-line"></i></div>
+            <div class="qa-label">Xem thống kê</div>
+        </a>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+            <div class="stats-icon" style="background:linear-gradient(135deg,#0077B6,#00B4D8);color:white;">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stats-info">
+                <strong>@ViewBag.ProductCount</strong>
+                <span>Sản phẩm</span>
+            </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a asp-controller="Orders" asp-action="Create" class="btn btn-outline-success w-100 py-3">
-                <i class="fas fa-shopping-cart d-block mb-2"></i>
-                Tạo Đơn Hàng
-            </a>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+            <div class="stats-icon" style="background:linear-gradient(135deg,#10B981,#34D399);color:white;">
+                <i class="fas fa-shopping-bag"></i>
+            </div>
+            <div class="stats-info">
+                <strong>@ViewBag.OrderCount</strong>
+                <span>Đơn hàng</span>
+            </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a asp-controller="Inventory" asp-action="Create" class="btn btn-outline-warning w-100 py-3">
-                <i class="fas fa-warehouse d-block mb-2"></i>
-                Nhập Kho
-            </a>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+            <div class="stats-icon" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);color:white;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stats-info">
+                <strong>@ViewBag.AccountCount</strong>
+                <span>Tài khoản</span>
+            </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a asp-controller="Accounts" asp-action="Create" class="btn btn-outline-info w-100 py-3">
-                <i class="fas fa-user-plus d-block mb-2"></i>
-                Thêm Khách Hàng
-            </a>
-        </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a asp-controller="Categories" asp-action="Create" class="btn btn-outline-secondary w-100 py-3">
-                <i class="fas fa-tags d-block mb-2"></i>
-                Thêm Danh Mục
-            </a>
-        </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a asp-controller="Suppliers" asp-action="Create" class="btn btn-outline-dark w-100 py-3">
-                <i class="fas fa-truck d-block mb-2"></i>
-                Thêm Nhà Cung Cấp
-            </a>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+            <div class="stats-icon" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);color:white;">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stats-info">
+                <strong>@ViewBag.SupplierCount</strong>
+                <span>Nhà cung cấp</span>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Statistics Section -->
-<div class="bg-primary text-white py-5">
-    <div class="container">
-        <h2 class="text-center mb-5">Thống Kê Tổng Quan</h2>
-        <div class="row text-center">
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="h1 fw-bold">150+</div>
-                <div class="h5">Sản Phẩm</div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="h1 fw-bold">500+</div>
-                <div class="h5">Đơn Hàng</div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="h1 fw-bold">1000+</div>
-                <div class="h5">Khách Hàng</div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <div class="h1 fw-bold">99%</div>
-                <div class="h5">Hài Lòng</div>
+<!-- Features -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-bolt me-2"></i>Thao tác nhanh</div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary"><i class="fas fa-box me-2"></i>Quản lý sản phẩm</a>
+                    <a asp-controller="Orders" asp-action="Index" class="btn btn-outline-success"><i class="fas fa-shopping-bag me-2"></i>Quản lý đơn hàng</a>
+                    <a asp-controller="Categories" asp-action="Index" class="btn btn-outline-info"><i class="fas fa-tags me-2"></i>Quản lý danh mục</a>
+                    <a asp-controller="Suppliers" asp-action="Index" class="btn btn-outline-warning"><i class="fas fa-truck me-2"></i>Quản lý nhà cung cấp</a>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Auth Section -->
-<div class="container py-5">
-    <div class="row align-items-center">
-        <div class="col-lg-6">
-            <h2 class="fw-bold mb-4">Bắt đầu ngay hôm nay!</h2>
-            <p class="lead mb-4">Tham gia cùng hàng nghìn khách hàng đã tin tưởng sử dụng Webstore để quản lý cửa hàng của họ.</p>
-            <div class="d-flex gap-3 flex-wrap">
-                <a asp-controller="Auth" asp-action="Register" class="btn btn-primary btn-lg">
-                    <i class="fas fa-user-plus me-2"></i>Tạo tài khoản miễn phí
-                </a>
-                <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-primary btn-lg">
-                    <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
-                </a>
-            </div>
-        </div>
-        <div class="col-lg-6 text-center">
-            <div class="auth-preview">
-                <div class="card shadow-lg border-0" style="max-width: 400px; margin: 0 auto;">
-                    <div class="card-body p-4">
-                        <div class="text-center mb-3">
-                            <i class="fas fa-store fa-2x text-primary"></i>
-                        </div>
-                        <h5 class="card-title text-center">Webstore</h5>
-                        <p class="text-muted text-center small">Hệ thống quản lý cửa hàng hiện đại</p>
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary btn-sm" disabled>
-                                <i class="fas fa-user-plus me-1"></i>Đăng ký
-                            </button>
-                            <button class="btn btn-outline-primary btn-sm" disabled>
-                                <i class="fas fa-sign-in-alt me-1"></i>Đăng nhập
-                            </button>
-                        </div>
+    <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-star me-2"></i>Tính năng nổi bật</div>
+            <div class="card-body">
+                <div class="feature-mini-list">
+                    <div class="fmini-item">
+                        <div class="fmini-icon"><i class="fas fa-chart-line"></i></div>
+                        <div><strong>Báo cáo thống kê</strong><br><small class="text-muted">Theo dõi doanh thu, sản phẩm bán chạy</small></div>
+                    </div>
+                    <div class="fmini-item">
+                        <div class="fmini-icon"><i class="fas fa-mobile-alt"></i></div>
+                        <div><strong>Responsive Design</strong><br><small class="text-muted">Giao diện tối ưu mọi thiết bị</small></div>
+                    </div>
+                    <div class="fmini-item">
+                        <div class="fmini-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div><strong>Bảo mật cao</strong><br><small class="text-muted">Phân quyền người dùng đa cấp</small></div>
+                    </div>
+                    <div class="fmini-item">
+                        <div class="fmini-icon"><i class="fas fa-sync-alt"></i></div>
+                        <div><strong>Đồng bộ thời gian thực</strong><br><small class="text-muted">Cập nhật dữ liệu ngay lập tức</small></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <div class="col-lg-4 col-md-12">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-store me-2"></i>Cửa hàng</div>
+            <div class="card-body d-flex flex-column justify-content-center text-center">
+                <div style="font-size:3rem; color:var(--primary); margin-bottom:12px;">
+                    <i class="fas fa-store"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Truy cập cửa hàng</h5>
+                <p class="text-muted mb-3">Xem và quản lý giao diện cửa hàng của bạn</p>
+                <a asp-controller="Shop" asp-action="Index" class="btn btn-primary mt-auto">
+                    <i class="fas fa-external-link-alt me-2"></i>Mở cửa hàng
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .quick-action-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        text-align: center;
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: var(--transition);
+    }
+    .quick-action-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-lighter);
+        color: var(--primary);
+    }
+    .qa-icon {
+        width: 44px; height: 44px;
+        border-radius: var(--radius-md);
+        display: flex; align-items: center; justify-content: center;
+        color: white;
+        font-size: 1rem;
+    }
+    .qa-label { font-size: 0.78rem; font-weight: 700; }
+
+    .feature-mini-list { display: flex; flex-direction: column; gap: 12px; }
+    .fmini-item { display: flex; align-items: flex-start; gap: 12px; }
+    .fmini-icon {
+        width: 36px; height: 36px;
+        background: var(--primary-lightest);
+        border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--primary);
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    .fmini-item strong { font-size: 0.85rem; }
+    .fmini-item small { font-size: 0.75rem; }
+</style>

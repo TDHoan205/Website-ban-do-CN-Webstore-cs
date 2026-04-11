@@ -1,82 +1,456 @@
 @model Webstore.Models.StatisticsViewModel
 
 @{
-    ViewData["Title"] = "Thống Kê";
+    ViewData["Title"] = "Thống Kê Doanh Thu";
 }
 
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold"><i class="fas fa-chart-line me-2"></i>Thống Kê Hệ Thống</h2>
-            <p class="text-muted">Tổng quan nhanh các số liệu trong hệ thống.</p>
+<!-- Page Header -->
+<div class="admin-page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="admin-page-title">
+                <i class="fas fa-chart-line me-2" style="color:var(--primary);"></i>Thống Kê Doanh Thu
+            </h1>
+            <p class="admin-page-subtitle">Cập nhật: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+</div>
+
+<!-- Revenue Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="rev-card">
+            <div class="rev-icon" style="background:linear-gradient(135deg,#10B981,#34D399);">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="rev-info">
+                <div class="rev-label">Doanh thu hôm nay</div>
+                <div class="rev-value text-success">@Model.TodayRevenue.ToString("N0") ₫</div>
+                <div class="rev-sub"><i class="fas fa-shopping-bag me-1"></i>@Model.TodayOrders đơn hàng</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="rev-card">
+            <div class="rev-icon" style="background:linear-gradient(135deg,#0077B6,#00B4D8);">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="rev-info">
+                <div class="rev-label">Doanh thu tháng này</div>
+                <div class="rev-value" style="color:var(--primary);">@Model.MonthRevenue.ToString("N0") ₫</div>
+                <div class="rev-sub"><i class="fas fa-shopping-bag me-1"></i>@Model.MonthOrders đơn hàng</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="rev-card">
+            <div class="rev-icon" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);">
+                <i class="fas fa-calendar"></i>
+            </div>
+            <div class="rev-info">
+                <div class="rev-label">Doanh thu năm @DateTime.Now.Year</div>
+                <div class="rev-value text-warning">@Model.YearRevenue.ToString("N0") ₫</div>
+                <div class="rev-sub"><i class="fas fa-chart-bar me-1"></i>Tổng năm</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="rev-card">
+            <div class="rev-icon" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="rev-info">
+                <div class="rev-label">Tổng doanh thu</div>
+                <div class="rev-value" style="color:#8B5CF6;">@Model.TotalRevenue.ToString("N0") ₫</div>
+                <div class="rev-sub"><i class="fas fa-history me-1"></i>Tất cả thời gian</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Status Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="status-card" style="border-left:4px solid #007bff;">
+            <div class="sc-number">@Model.NewOrders</div>
+            <div class="sc-label">Đơn mới</div>
+            <i class="fas fa-inbox sc-icon" style="color:#007bff;"></i>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="status-card" style="border-left:4px solid #ff9500;">
+            <div class="sc-number">@Model.ProcessingOrders</div>
+            <div class="sc-label">Đang xử lý</div>
+            <i class="fas fa-cog sc-icon" style="color:#ff9500;"></i>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="status-card" style="border-left:4px solid #9b59b6;">
+            <div class="sc-number">@Model.ShippedOrders</div>
+            <div class="sc-label">Đã giao shipper</div>
+            <i class="fas fa-truck sc-icon" style="color:#9b59b6;"></i>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="status-card" style="border-left:4px solid #10B981;">
+            <div class="sc-number">@Model.DeliveredOrders</div>
+            <div class="sc-label">Đã giao</div>
+            <i class="fas fa-check-circle sc-icon" style="color:#10B981;"></i>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="status-card" style="border-left:4px solid #3B82F6;">
+            <div class="sc-number">@Model.CompletedOrders</div>
+            <div class="sc-label">Hoàn thành</div>
+            <i class="fas fa-check-double sc-icon" style="color:#3B82F6;"></i>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="status-card" style="border-left:4px solid #EF4444;">
+            <div class="sc-number">@Model.CanceledOrders</div>
+            <div class="sc-label">Đã hủy</div>
+            <i class="fas fa-times-circle sc-icon" style="color:#EF4444;"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <!-- Revenue by Day -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-chart-bar me-2"></i>Doanh thu 7 ngày gần nhất</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th class="text-center">Số đơn</th>
+                                <th class="text-end">Doanh thu</th>
+                                <th class="text-end">%</th>
+                                <th style="width:30%;">Biểu đồ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var maxDayRev = Model.RevenueByDay.Count > 0 ? Model.RevenueByDay.Max(d => d.Revenue) : 0m;
+                            }
+                            @foreach (var day in Model.RevenueByDay)
+                            {
+                                var pct = maxDayRev > 0 ? (double)(day.Revenue / maxDayRev * 100) : 0;
+                                var isToday = day.Date.Date == DateTime.Today;
+                                <tr @(isToday ? "style=background:rgba(0,119,182,0.05);font-weight:600;" : "")>
+                                    <td>
+                                        @day.Date.ToString("EEE, dd/MM")
+                                        @if (isToday)
+                                        {
+                                            <span class="badge ms-2" style="background:var(--primary);">Hôm nay</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">@day.OrderCount</td>
+                                    <td class="text-end text-success fw-bold">@day.Revenue.ToString("N0") ₫</td>
+                                    <td class="text-end text-muted">@pct.ToString("F1")%</td>
+                                    <td>
+                                        <div style="background:#E1E8ED;border-radius:10px;height:18px;overflow:hidden;">
+                                            <div style="background:linear-gradient(90deg,#0077B6,#00B4D8);height:100%;width:@pct.ToString("F0")%;border-radius:10px;"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot style="border-top:2px solid #E1E8ED; background:var(--surface-alt);">
+                            <tr>
+                                <td class="fw-bold">Tổng cộng</td>
+                                <td class="text-center fw-bold">@Model.RevenueByDay.Sum(d => d.OrderCount)</td>
+                                <td class="text-end fw-bold text-success">@Model.RevenueByDay.Sum(d => d.Revenue).ToString("N0") ₫</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="card p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 display-6 text-primary"><i class="fas fa-box"></i></div>
-                    <div>
-                        <div class="text-muted">Sản phẩm</div>
-                        <div class="fs-4 fw-bold">@Model.ProductCount</div>
-                        <a asp-controller="Products" asp-action="Index" class="small">Quản lý Sản phẩm</a>
-                    </div>
+    <!-- Order Status -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-pie-chart me-2"></i>Tổng quan đơn hàng</div>
+            <div class="card-body">
+                <div class="status-list">
+                    <div class="status-row"><div class="sr-dot" style="background:#007bff;"></div><span>Đơn mới</span><span class="fw-bold">@Model.NewOrders</span></div>
+                    <div class="status-row"><div class="sr-dot" style="background:#ff9500;"></div><span>Đang xử lý</span><span class="fw-bold">@Model.ProcessingOrders</span></div>
+                    <div class="status-row"><div class="sr-dot" style="background:#9b59b6;"></div><span>Đã giao shipper</span><span class="fw-bold">@Model.ShippedOrders</span></div>
+                    <div class="status-row"><div class="sr-dot" style="background:#10B981;"></div><span>Đã giao</span><span class="fw-bold">@Model.DeliveredOrders</span></div>
+                    <div class="status-row"><div class="sr-dot" style="background:#3B82F6;"></div><span>Hoàn thành</span><span class="fw-bold">@Model.CompletedOrders</span></div>
+                    <div class="status-row"><div class="sr-dot" style="background:#EF4444;"></div><span>Đã hủy</span><span class="fw-bold">@Model.CanceledOrders</span></div>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 display-6 text-success"><i class="fas fa-shopping-bag"></i></div>
-                    <div>
-                        <div class="text-muted">Đơn hàng</div>
-                        <div class="fs-4 fw-bold">@Model.OrderCount</div>
-                        <a asp-controller="Orders" asp-action="Index" class="small">Quản lý Đơn hàng</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 display-6 text-warning"><i class="fas fa-warehouse"></i></div>
-                    <div>
-                        <div class="text-muted">Bản ghi tồn kho</div>
-                        <div class="fs-4 fw-bold">@Model.InventoryEntries</div>
-                        <div class="text-muted small">Tổng số lượng: @Model.TotalStock</div>
-                        <a asp-controller="Inventory" asp-action="Index" class="small">Xem tồn kho</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 display-6 text-info"><i class="fas fa-truck"></i></div>
-                    <div>
-                        <div class="text-muted">Nhà cung cấp</div>
-                        <div class="fs-4 fw-bold">@Model.SupplierCount</div>
-                        <a asp-controller="Suppliers" asp-action="Index" class="small">Quản lý Nhà cung cấp</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card p-3">
-                <div class="d-flex align-items-center">
-                    <div class="me-3 display-6 text-secondary"><i class="fas fa-users"></i></div>
-                    <div>
-                        <div class="text-muted">Tài khoản</div>
-                        <div class="fs-4 fw-bold">@Model.AccountCount</div>
-                        <a asp-controller="Accounts" asp-action="Index" class="small">Quản lý Tài khoản</a>
-                    </div>
+                <hr>
+                <div class="text-center">
+                    <div class="text-muted small">Tổng đơn hàng</div>
+                    <div class="fs-2 fw-bold" style="color:var(--primary);">@Model.OrderCount</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Monthly + Top Products -->
+<div class="row g-3 mb-4">
+    <!-- Monthly Revenue -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-chart-area me-2"></i>Doanh thu 6 tháng gần nhất</div>
+            <div class="card-body p-0">
+                @if (Model.RevenueByMonth.Any())
+                {
+                    var maxMonthRev = Model.RevenueByMonth.Max(m => m.Revenue);
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tháng</th>
+                                    <th class="text-center">Số đơn</th>
+                                    <th class="text-end">Doanh thu</th>
+                                    <th style="width:35%;">Biểu đồ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var month in Model.RevenueByMonth)
+                                {
+                                    var pct = maxMonthRev > 0 ? (double)(month.Revenue / maxMonthRev * 100) : 0;
+                                    <tr>
+                                        <td class="fw-bold">@month.MonthName</td>
+                                        <td class="text-center">@month.OrderCount</td>
+                                        <td class="text-end text-success fw-bold">@month.Revenue.ToString("N0") ₫</td>
+                                        <td>
+                                            <div style="background:#E1E8ED;border-radius:10px;height:14px;overflow:hidden;">
+                                                <div style="background:linear-gradient(90deg,#0077B6,#00B4D8);height:100%;width:@pct.ToString("F0")%;border-radius:10px;"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot style="border-top:2px solid #E1E8ED; background:var(--surface-alt);">
+                                <tr>
+                                    <td class="fw-bold">Tổng</td>
+                                    <td class="text-center fw-bold">@Model.RevenueByMonth.Sum(m => m.OrderCount)</td>
+                                    <td class="text-end fw-bold text-success">@Model.RevenueByMonth.Sum(m => m.Revenue).ToString("N0") ₫</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-area fa-3x mb-3 opacity-25"></i>
+                        <p>Chưa có dữ liệu doanh thu</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header"><i class="fas fa-fire me-2" style="color:#FF6B6B;"></i>Top sản phẩm bán chạy</div>
+            <div class="card-body p-0">
+                @if (Model.TopProducts.Any())
+                {
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Sản phẩm</th>
+                                <th class="text-center">Đã bán</th>
+                                <th class="text-end">Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var product in Model.TopProducts.Take(10))
+                            {
+                                var rank = Model.TopProducts.ToList().IndexOf(product);
+                                <tr>
+                                    <td>
+                                        @if (rank == 0)
+                                        {
+                                            <span class="badge" style="background:linear-gradient(135deg,#FFD700,#FF8C00);color:#333;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:0.8rem;"><i class="fas fa-trophy"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark">@(rank + 1)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                            {
+                                                <img src="@product.ImageUrl" style="width:36px;height:36px;object-fit:contain;border-radius:8px;background:#F0F8FF;" />
+                                            }
+                                            else
+                                            {
+                                                <div style="width:36px;height:36px;background:#F0F8FF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9CA8B3;"><i class="fas fa-box"></i></div>
+                                            }
+                                            <span class="fw-bold" style="font-size:0.88rem;">@product.ProductName</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center"><span class="badge" style="background:var(--primary);">@product.TotalSold</span></td>
+                                    <td class="text-end text-success fw-bold">@product.TotalRevenue.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-box fa-3x mb-3 opacity-25"></i>
+                        <p>Chưa có dữ liệu sản phẩm bán chạy</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-history me-2"></i>Đơn hàng gần đây</div>
+            <div class="card-body p-0">
+                @if (Model.RecentOrders.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã ĐH</th>
+                                    <th>Khách hàng</th>
+                                    <th class="text-center">Ngày đặt</th>
+                                    <th class="text-end">Tổng tiền</th>
+                                    <th class="text-center">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.RecentOrders)
+                                {
+                                    var stClass = order.Status switch {
+                                        "New" => "bg-primary",
+                                        "Pending" => "bg-warning text-dark",
+                                        "Processing" => "bg-info",
+                                        "Shipped" => "bg-secondary",
+                                        "Delivered" => "bg-success",
+                                        "Completed" => "bg-success",
+                                        "Canceled" => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                    var stText = order.Status switch {
+                                        "New" => "Mới",
+                                        "Pending" => "Chờ xác nhận",
+                                        "Processing" => "Đang xử lý",
+                                        "Shipped" => "Đã giao shipper",
+                                        "Delivered" => "Đã giao",
+                                        "Completed" => "Hoàn thành",
+                                        "Canceled" => "Đã hủy",
+                                        _ => order.Status
+                                    };
+                                    <tr>
+                                        <td><span class="fw-bold">#@order.OrderId</span></td>
+                                        <td>
+                                            <div class="fw-bold">@order.CustomerName</div>
+                                            <small class="text-muted">@order.CustomerPhone</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <div>@order.OrderDate.ToString("dd/MM/yyyy")</div>
+                                            <small class="text-muted">@order.OrderDate.ToString("HH:mm")</small>
+                                        </td>
+                                        <td class="text-end text-success fw-bold">@order.TotalAmount.ToString("N0") ₫</td>
+                                        <td class="text-center">
+                                            <span class="badge @stClass">@stText</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-4x mb-3 opacity-25"></i>
+                        <p>Chưa có đơn hàng nào</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Revenue Card */
+    .rev-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        transition: var(--transition);
+    }
+    .rev-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--primary-lighter); }
+    .rev-icon {
+        width: 52px; height: 52px;
+        border-radius: var(--radius-md);
+        display: flex; align-items: center; justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .rev-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+    .rev-value { font-size: 1.2rem; font-weight: 800; }
+    .rev-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* Status Card */
+    .status-card {
+        background: white;
+        border-radius: var(--radius-md);
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .status-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .sc-number { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+    .sc-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+    .sc-icon {
+        position: absolute;
+        bottom: -4px;
+        right: 10px;
+        font-size: 2.5rem;
+        opacity: 0.08;
+    }
+
+    /* Status List */
+    .status-list { display: flex; flex-direction: column; gap: 10px; }
+    .status-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px;
+        background: var(--surface-alt);
+        border-radius: var(--radius-sm);
+    }
+    .sr-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .status-row span:first-of-type { flex: 1; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
+    .status-row span:last-of-type { font-size: 0.95rem; }
+</style>

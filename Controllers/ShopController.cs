@@ -18,15 +18,48 @@ namespace Webstore.Controllers
         // GET: /Shop - Trang chủ shop
         public IActionResult Index()
         {
+            // Sản phẩm nổi bật (mới nhất)
             var featuredProducts = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
+                .OrderByDescending(p => p.ProductId)
                 .Take(8)
                 .ToList();
+
+            // Sản phẩm hot (bán chạy nhất dựa trên số lượng đã order)
+            var hotProducts = _context.OrderItems
+                .GroupBy(oi => oi.ProductId)
+                .OrderByDescending(g => g.Sum(oi => oi.Quantity))
+                .Take(8)
+                .Select(g => g.Key)
+                .ToList();
+
+            var productsHot = _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Supplier)
+                .Where(p => hotProducts.Contains(p.ProductId))
+                .ToList();
+
+            // Sắp xếp theo thứ tự hot
+            productsHot = productsHot
+                .OrderBy(p => hotProducts.IndexOf(p.ProductId))
+                .ToList();
+
+            // Nếu chưa có đơn hàng nào, lấy sản phẩm ngẫu nhiên làm hot
+            if (!productsHot.Any())
+            {
+                productsHot = _context.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.Supplier)
+                    .OrderByDescending(p => p.ProductId)
+                    .Take(8)
+                    .ToList();
+            }
 
             var categories = _context.Categories.Take(6).ToList();
 
             ViewBag.FeaturedProducts = featuredProducts;
+            ViewBag.HotProducts = productsHot;
             ViewBag.Categories = categories;
 
             return View();
@@ -390,6 +423,32 @@ namespace Webstore.Controllers
         public IActionResult Support()
         {
             return View();
+        }
+
+        // GET: /Shop/Search - Tìm kiếm realtime (AJAX)
+        public IActionResult Search(string? q)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            {
+                return Json(new List<object>());
+            }
+
+            var results = _context.Products
+                .Include(p => p.Category)
+                .Where(p => p.Name.ToLower().Contains(q.ToLower())
+                         || (p.Description != null && p.Description.ToLower().Contains(q.ToLower())))
+                .Take(8)
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.Name,
+                    p.Price,
+                    p.ImageUrl,
+                    CategoryName = p.Category != null ? p.Category.Name : ""
+                })
+                .ToList();
+
+            return Json(results);
         }
     }
 }

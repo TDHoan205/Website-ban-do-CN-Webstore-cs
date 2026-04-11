@@ -9,351 +9,852 @@
     <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
+        :root {
+            /* Sky Blue Primary Palette */
+            --primary: #0077B6;
+            --primary-dark: #005f8a;
+            --primary-light: #00B4D8;
+            --primary-lighter: #90E0EF;
+            --primary-lightest: #CAF0F8;
+            --accent: #023E8A;
+            --accent-light: #0096C7;
+            --surface: #ffffff;
+            --surface-alt: #F0F8FF;
+            --text-primary: #1a1a2e;
+            --text-secondary: #5C6B7A;
+            --text-muted: #9CA8B3;
+            --border: #E1E8ED;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+            --shadow-sm: 0 1px 3px rgba(0, 119, 182, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 119, 182, 0.12);
+            --shadow-lg: 0 8px 30px rgba(0, 119, 182, 0.15);
+            --shadow-xl: 0 20px 60px rgba(0, 119, 182, 0.2);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: var(--surface-alt);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
         }
 
-        /* Header Styles */
-        .shop-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        a { text-decoration: none; color: inherit; transition: var(--transition); }
+        a:hover { color: var(--primary); }
+
+        /* =====================================================
+           TOP BAR
+        ===================================================== */
+        .top-bar {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 50%, var(--primary-light) 100%);
             color: white;
-            padding: 1rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 8px 0;
+            font-size: 0.82rem;
+        }
+        .top-bar a { color: rgba(255,255,255,0.9); font-weight: 500; }
+        .top-bar a:hover { color: white; }
+        .top-bar i { opacity: 0.8; }
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+        .main-header {
+            background: white;
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
         }
 
-        .shop-logo {
-            font-size: 1.8rem;
+        .header-inner {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+        .brand-text span { color: var(--primary-light); }
+
+        /* Search Bar */
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--surface-alt);
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .search-bar:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.12);
+            background: white;
+        }
+        .search-bar input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 10px 20px;
+            font-size: 0.92rem;
+            outline: none;
+        }
+        .search-bar input::placeholder { color: var(--text-muted); }
+        .search-bar button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            color: white;
+            padding: 10px 22px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+        .search-bar button:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+        }
+
+        #searchResults {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 20px;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border);
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: var(--surface-alt); }
+        .search-result-item img {
+            width: 52px; height: 52px;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            background: var(--surface-alt);
+            flex-shrink: 0;
+        }
+        .search-result-item .sr-info { flex: 1; min-width: 0; }
+        .search-result-item .sr-name {
+            font-weight: 600; font-size: 0.9rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .search-result-item .sr-price {
+            color: var(--primary); font-weight: 700; font-size: 0.88rem;
+        }
+        .search-result-all {
+            display: block;
+            padding: 14px;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-lightest) 0%, var(--surface-alt) 100%);
+            color: var(--primary); font-weight: 700;
+            font-size: 0.88rem;
+            transition: var(--transition);
+        }
+        .search-result-all:hover { color: var(--primary-dark); background: var(--primary-lightest); }
+
+        /* Header Actions */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .header-action-btn {
+            position: relative;
+            width: 44px; height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--surface-alt);
+            border: none;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .header-action-btn:hover {
+            background: var(--primary-lightest);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        .header-action-btn .badge-count {
+            position: absolute;
+            top: -4px; right: -4px;
+            background: linear-gradient(135deg, var(--danger) 0%, #f87171 100%);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 18px; height: 18px;
+            border-radius: 50px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 4px;
+            border: 2px solid white;
+        }
+
+        .user-dropdown .dropdown-toggle {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 14px;
+            border-radius: 50px;
+            background: var(--surface-alt);
+            border: none;
+            font-size: 0.88rem; font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .user-dropdown .dropdown-toggle:hover {
+            background: var(--primary-lightest);
+            color: var(--primary);
+        }
+        .user-dropdown .dropdown-toggle::after { display: none; }
+        .user-avatar {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 0.8rem; font-weight: 700;
+        }
+
+        .dropdown-menu {
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 8px;
+            min-width: 220px;
+            animation: dropIn 0.2s ease;
+        }
+        @@keyframes dropIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-menu .dropdown-item {
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        .dropdown-menu .dropdown-item i { width: 18px; color: var(--text-muted); }
+        .dropdown-menu .dropdown-item:hover {
+            background: var(--primary-lightest);
+            color: var(--primary);
+        }
+        .dropdown-menu .dropdown-item:hover i { color: var(--primary); }
+        .dropdown-divider { margin: 6px 0; }
+
+        /* =====================================================
+           NAVIGATION
+        ===================================================== */
+        .main-nav {
+            background: white;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-list {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            gap: 4px;
+            padding: 0; margin: 0;
+        }
+        .nav-item {
+            position: relative;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            background: var(--primary-lightest);
+        }
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 30px; height: 3px;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .nav-categories {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0; margin: 0;
+            list-style: none;
+        }
+        .nav-category-link {
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-radius: 50px;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .nav-category-link:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* =====================================================
+           MAIN CONTENT
+        ===================================================== */
+        main {
+            min-height: 60vh;
+        }
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+        .main-footer {
+            background: linear-gradient(180deg, var(--accent) 0%, #012a4a 100%);
+            color: white;
+            padding: 60px 0 0;
+            margin-top: 80px;
+        }
+        .footer-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 12px;
+        }
+        .footer-brand span { color: var(--primary-lighter); }
+        .footer-desc {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.88rem;
+            line-height: 1.7;
+        }
+        .footer-title {
+            font-size: 1rem;
             font-weight: 700;
             color: white;
-            text-decoration: none;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-
-        .shop-logo:hover {
-            color: #ffc107;
+        .footer-links {
+            list-style: none;
+            padding: 0; margin: 0;
         }
-
-        .search-box {
-            position: relative;
-            max-width: 500px;
+        .footer-links li { margin-bottom: 8px; }
+        .footer-links a {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.88rem;
+            transition: var(--transition);
         }
-
-        .search-box input {
-            border-radius: 25px;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .search-box .btn {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            border-radius: 20px;
-            padding: 0.5rem 1rem;
-        }
-
-        .cart-icon {
-            position: relative;
-            color: white;
-            font-size: 1.5rem;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .cart-icon:hover {
-            color: #ffc107;
-        }
-
-        .cart-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #ff4757;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 0.75rem;
+        .footer-links a:hover { color: var(--primary-lighter); padding-left: 4px; }
+        .footer-contact-item {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.88rem;
         }
-
-        /* Navigation */
-        .shop-nav {
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 0.5rem 0;
+        .footer-contact-item i {
+            width: 20px;
+            color: var(--primary-lighter);
         }
-
-        .nav-link {
-            color: #333;
-            font-weight: 500;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
+        .footer-social {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
         }
-
-        .nav-link:hover {
-            color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 5px;
+        .footer-social a {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            font-size: 0.95rem;
+            transition: var(--transition);
         }
+        .footer-social a:hover {
+            background: var(--primary-light);
+            transform: translateY(-3px);
+        }
+        .footer-bottom {
+            margin-top: 40px;
+            padding: 20px 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .footer-bottom p { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin: 0; }
+        .footer-bottom a { color: var(--primary-lighter); }
 
-        /* Product Cards */
+        /* =====================================================
+           PRODUCT CARD
+        ===================================================== */
         .product-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
+            transition: var(--transition);
             height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid transparent;
         }
-
         .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-lighter);
         }
-
-        .product-image {
+        .product-card-img {
             width: 100%;
             height: 200px;
-            object-fit: cover;
-            background: #f8f9fa;
+            background: var(--surface-alt);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
-            color: #dee2e6;
+            position: relative;
+            overflow: hidden;
         }
-
-        .product-info {
-            padding: 1.5rem;
+        .product-card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.4s ease;
         }
-
-        .product-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.5rem;
+        .product-card:hover .product-card-img img { transform: scale(1.08); }
+        .product-card-img .product-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 119, 182, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: var(--transition);
+        }
+        .product-card:hover .product-overlay { opacity: 1; }
+        .product-card-img .product-overlay i { color: white; font-size: 2.5rem; }
+        .product-card-body {
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            line-height: 1.4;
         }
-
-        .product-price {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #e74c3c;
-            margin-bottom: 1rem;
+        .product-card-cat {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 8px;
         }
-
-        .product-rating {
-            color: #ffc107;
-            margin-bottom: 1rem;
+        .product-card-price {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 10px;
         }
-
-        .btn-add-cart {
+        .product-card-rating {
+            color: #F59E0B;
+            font-size: 0.78rem;
+            margin-bottom: auto;
+        }
+        .product-card .btn-add-cart {
             width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             border: none;
             color: white;
-            padding: 0.75rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
         }
-
-        .btn-add-cart:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        .product-card .btn-add-cart:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 119, 182, 0.3);
             color: white;
         }
 
-        /* Category Cards */
+        /* =====================================================
+           BUTTONS
+        ===================================================== */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            color: white;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn-outline-primary {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* =====================================================
+           CARD
+        ===================================================== */
+        .card {
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+            padding: 16px 20px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .card-header i { opacity: 0.85; }
+
+        /* =====================================================
+           ALERT TOAST
+        ===================================================== */
+        .alert-toast {
+            position: fixed;
+            top: 20px; right: 20px;
+            z-index: 99999;
+            max-width: 380px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.35s ease;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        @@keyframes slideInRight {
+            from { opacity: 0; transform: translateX(80px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .alert-toast-success { background: linear-gradient(135deg, #10B981, #34D399); color: white; }
+        .alert-toast-error { background: linear-gradient(135deg, #EF4444, #F87171); color: white; }
+        .alert-toast-warning { background: linear-gradient(135deg, #F59E0B, #FBBF24); color: #1a1a2e; }
+        .alert-toast-info { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; }
+        .alert-toast .btn-close { color: inherit; opacity: 0.8; }
+
+        /* =====================================================
+           BREADCRUMB
+        ===================================================== */
+        .breadcrumb-nav {
+            padding: 16px 0;
+        }
+        .breadcrumb-nav .breadcrumb {
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            font-size: 0.85rem;
+        }
+        .breadcrumb-nav .breadcrumb-item a { color: var(--primary); font-weight: 600; }
+        .breadcrumb-nav .breadcrumb-item.active { color: var(--text-muted); }
+        .breadcrumb-nav .breadcrumb-item + .breadcrumb-item::before { color: var(--text-muted); }
+
+        /* =====================================================
+           SECTION HEADERS
+        ===================================================== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title i { color: var(--primary); }
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* =====================================================
+           CATEGORY CARD
+        ===================================================== */
         .category-card {
             background: white;
-            border-radius: 15px;
-            padding: 2rem;
+            border-radius: var(--radius-lg);
+            padding: 20px 16px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            border: 2px solid transparent;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             text-decoration: none;
-            color: inherit;
+            color: var(--text-primary);
+            cursor: pointer;
         }
-
         .category-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-            color: inherit;
+            border-color: var(--primary-lighter);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            color: var(--primary);
         }
-
-        .category-icon {
-            font-size: 3rem;
-            color: #667eea;
-            margin-bottom: 1rem;
+        .category-card-icon {
+            width: 56px; height: 56px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--primary-lightest) 0%, white 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            transition: var(--transition);
         }
-
-        /* Footer */
-        .shop-footer {
-            background: #2c3e50;
+        .category-card:hover .category-card-icon {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             color: white;
-            padding: 3rem 0 1rem;
-            margin-top: 3rem;
+        }
+        .category-card-title {
+            font-size: 0.88rem;
+            font-weight: 700;
         }
 
-        .footer-section h5 {
-            color: #ecf0f1;
-            margin-bottom: 1rem;
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+        @@media (max-width: 991px) {
+            .top-bar .d-none.d-md-block { display: none !important; }
+            .brand-text { font-size: 1.2rem; }
+            .search-container { max-width: 300px; }
+            .main-nav { overflow-x: auto; }
+            .nav-list { flex-wrap: nowrap; }
+            .nav-link { padding: 10px 12px; font-size: 0.82rem; }
         }
-
-        .footer-section a {
-            color: #bdc3c7;
-            text-decoration: none;
-            transition: color 0.3s ease;
+        @@media (max-width: 767px) {
+            .search-container { max-width: 200px; }
+            .user-dropdown .dropdown-toggle span { display: none; }
         }
-
-        .footer-section a:hover {
-            color: #3498db;
-        }
-
-        /* Responsive */
-        @@media (max-width: 768px) {
-            .search-box {
-                margin: 1rem 0;
-            }
-            
-            .product-card {
-                margin-bottom: 1rem;
-            }
-        }
-
-        /* Loading Animation */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @@keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Alert Styles */
-        .alert-shop {
-            border-radius: 10px;
-            border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        @@media (max-width: 575px) {
+            .top-bar { display: none; }
+            .header-inner { gap: 10px; }
+            .brand-text { display: none; }
+            .search-container { max-width: none; }
+            .header-actions .d-none.d-sm-inline { display: none !important; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="shop-header">
+    <!-- Top Bar -->
+    <div class="top-bar">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-lg-3 col-md-6">
-                    <a asp-controller="Shop" asp-action="Index" class="shop-logo">
-                        <i class="fas fa-store me-2"></i>Webstore Shop
-                    </a>
+                <div class="col-md-6 d-flex gap-4">
+                    <span><i class="fas fa-phone-alt me-1"></i> 0123 456 789</span>
+                    <span class="d-none d-md-block"><i class="fas fa-envelope me-1"></i> support&#64;webstore.com</span>
                 </div>
-                <div class="col-lg-6 col-md-12">
-                    <form asp-controller="Shop" asp-action="Products" method="get" class="search-box">
-                        <input type="text" name="search" class="form-control" placeholder="Tìm kiếm sản phẩm..." value="@ViewBag.Search">
-                        <button type="submit" class="btn btn-warning">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </form>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="me-3"><i class="fas fa-truck me-1"></i> Miễn phí vận chuyển</a>
+                    <a href="#" class="d-none d-md-inline"><i class="fas fa-shield-alt me-1"></i> Bảo hành 12 tháng</a>
                 </div>
-                <div class="col-lg-3 col-md-6 text-end">
-                    <div class="d-flex align-items-center justify-content-end gap-3">
-                        <a asp-controller="Shop" asp-action="Cart" class="cart-icon">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span class="cart-badge" id="cartCount">0</span>
-                        </a>
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <div class="dropdown">
-                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user me-1"></i>@User.Identity.Name
-                                </button>
-                                <ul class="dropdown-menu">
-                                    @if (User.IsInRole("Admin") || User.IsInRole("Employee"))
-                                    {
-                                        <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="fas fa-cog me-2"></i>Quản trị</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                    }
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Thông tin cá nhân</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Shop" asp-action="Cart"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-shopping-bag me-2"></i>Đơn hàng</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
-                                            <button type="submit" class="dropdown-item">
-                                                <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="dropdown">
-                                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-user me-1"></i>Tài khoản
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" asp-controller="Auth" asp-action="Login"><i class="fas fa-sign-in-alt me-2"></i>Đăng nhập</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Auth" asp-action="Register"><i class="fas fa-user-plus me-2"></i>Đăng ký</a></li>
-                                </ul>
-                            </div>
-                        }
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header class="main-header">
+        <div class="container">
+            <div class="header-inner">
+                <!-- Brand -->
+                <a asp-controller="Shop" asp-action="Index" class="brand">
+                    <div class="brand-icon">
+                        <i class="fas fa-store"></i>
                     </div>
+                    <span class="brand-text">Web<span>Store</span></span>
+                </a>
+
+                <!-- Search -->
+                <div class="search-container">
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm..." autocomplete="off">
+                        <button type="button" onclick="goSearch()"><i class="fas fa-search"></i></button>
+                    </div>
+                    <div id="searchResults"></div>
+                </div>
+
+                <!-- Actions -->
+                <div class="header-actions">
+                    <a asp-controller="Shop" asp-action="Cart" class="header-action-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="badge-count" id="cartCount">0</span>
+                    </a>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="user-dropdown dropdown">
+                            <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <div class="user-avatar">@(User.Identity.Name?.Substring(0,1).ToUpper())</div>
+                                <span class="d-none d-sm-inline">@(User.Identity.Name)</span>
+                                <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                @if (User.IsInRole("Admin") || User.IsInRole("Employee"))
+                                {
+                                    <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="fas fa-tachometer-alt"></i>Quản trị</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                }
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i>Thông tin cá nhân</a></li>
+                                <li><a class="dropdown-item" asp-controller="Shop" asp-action="Cart"><i class="fas fa-shopping-cart"></i>Giỏ hàng</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0">
+                                        <button type="submit" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt"></i>Đăng xuất</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a asp-controller="Auth" asp-action="Login" class="btn btn-primary d-none d-sm-inline" style="padding: 8px 20px; border-radius: 50px;">
+                            <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
+                        </a>
+                    }
                 </div>
             </div>
         </div>
     </header>
 
     <!-- Navigation -->
-    <nav class="shop-nav">
+    <nav class="main-nav">
         <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <ul class="nav nav-pills">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Shop" asp-action="Index">
-                                <i class="fas fa-home me-1"></i>Trang chủ
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Shop" asp-action="Products">
-                                <i class="fas fa-th-large me-1"></i>Tất cả sản phẩm
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-fire me-1"></i>Khuyến mãi
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="fas fa-star me-1"></i>Sản phẩm hot
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Shop" asp-action="Support">
-                                <i class="fas fa-headset me-1"></i>Hỗ trợ
-                            </a>
-                        </li>
-                    </ul>
+            <div class="d-flex align-items-center justify-content-between py-2">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Shop" asp-action="Index">
+                            <i class="fas fa-home"></i> Trang chủ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Products" ? "active" : "")" asp-controller="Shop" asp-action="Products">
+                            <i class="fas fa-th-large"></i> Sản phẩm
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Cart" ? "active" : "")" asp-controller="Shop" asp-action="Cart">
+                            <i class="fas fa-shopping-cart"></i> Giỏ hàng
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Support" ? "active" : "")" asp-controller="Shop" asp-action="Support">
+                            <i class="fas fa-headset"></i> Hỗ trợ
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-2">
+                    <a href="#" class="nav-category-link"><i class="fas fa-bolt me-1"></i> Sản phẩm mới</a>
+                    <a href="#" class="nav-category-link"><i class="fas fa-fire me-1"></i> Hot deals</a>
                 </div>
             </div>
         </div>
@@ -365,71 +866,59 @@
     </main>
 
     <!-- Footer -->
-    <footer class="shop-footer">
+    <footer class="main-footer">
         <div class="container">
-            <div class="row">
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h5><i class="fas fa-store me-2"></i>Webstore Shop</h5>
-                        <p>Hệ thống bán hàng trực tuyến hiện đại với đầy đủ tính năng từ quản lý sản phẩm đến thanh toán.</p>
-                        <div class="d-flex gap-3">
-                            <a href="#"><i class="fab fa-facebook fa-lg"></i></a>
-                            <a href="#"><i class="fab fa-twitter fa-lg"></i></a>
-                            <a href="#"><i class="fab fa-instagram fa-lg"></i></a>
-                            <a href="#"><i class="fab fa-youtube fa-lg"></i></a>
-                        </div>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="footer-brand"><i class="fas fa-store me-2"></i>Web<span>Store</span></div>
+                    <p class="footer-desc">Hệ thống bán hàng trực tuyến hiện đại, uy tín với hàng ngàn sản phẩm chất lượng. Mua sắm dễ dàng, giao hàng nhanh chóng.</p>
+                    <div class="footer-social">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h5>Mua sắm</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#">Sản phẩm mới</a></li>
-                            <li><a href="#">Khuyến mãi</a></li>
-                            <li><a href="#">Thương hiệu</a></li>
-                            <li><a href="#">Danh mục</a></li>
-                        </ul>
-                    </div>
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h5 class="footer-title">Mua sắm</h5>
+                    <ul class="footer-links">
+                        <li><a asp-controller="Shop" asp-action="Products">Sản phẩm mới</a></li>
+                        <li><a asp-controller="Shop" asp-action="Products">Danh mục</a></li>
+                        <li><a asp-controller="Shop" asp-action="Products">Thương hiệu</a></li>
+                        <li><a asp-controller="Shop" asp-action="Products">Bán chạy</a></li>
+                    </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h5>Hỗ trợ</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#">Trung tâm trợ giúp</a></li>
-                            <li><a href="#">Liên hệ</a></li>
-                            <li><a href="#">Chính sách</a></li>
-                            <li><a href="#">Bảo mật</a></li>
-                        </ul>
-                    </div>
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h5 class="footer-title">Hỗ trợ</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">Trung tâm trợ giúp</a></li>
+                        <li><a href="#">Chính sách đổi trả</a></li>
+                        <li><a href="#">Chính sách bảo hành</a></li>
+                        <li><a href="#">Bảo mật thông tin</a></li>
+                    </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h5>Tài khoản</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#">Đăng nhập</a></li>
-                            <li><a href="#">Đăng ký</a></li>
-                            <li><a href="#">Đơn hàng</a></li>
-                            <li><a href="#">Yêu thích</a></li>
-                        </ul>
+                <div class="col-lg-4 col-md-6">
+                    <h5 class="footer-title">Liên hệ</h5>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>123 Đường ABC, Quận XYZ, TP.HCM</span>
                     </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h5>Liên hệ</h5>
-                        <p><i class="fas fa-phone me-2"></i>0123 456 789</p>
-                        <p><i class="fas fa-envelope me-2"></i>support@webstore.com</p>
-                        <p><i class="fas fa-map-marker-alt me-2"></i>123 Đường ABC, Quận XYZ, TP.HCM</p>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-phone-alt"></i>
+                        <span>0123 456 789</span>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>support&#64;webstore.com</span>
+                    </div>
+                    <div class="footer-contact-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Hỗ trợ 24/7</span>
                     </div>
                 </div>
             </div>
-            <hr class="my-4">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <p class="mb-0">&copy; 2025 Webstore Shop. Tất cả quyền được bảo lưu.</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="mb-0">Được phát triển với <i class="fas fa-heart text-danger"></i> bởi Webstore Team</p>
-                </div>
+            <div class="footer-bottom text-center">
+                <p>&copy; @DateTime.Now.Year WebStore. Tất cả quyền được bảo lưu. | Phát triển với <i class="fas fa-heart" style="color:#EF4444;"></i></p>
             </div>
         </div>
     </footer>
@@ -437,16 +926,51 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    
+
     <script>
-        // Update cart count
+        // Cart count
         function updateCartCount() {
             $.get('@Url.Action("GetCartCount", "Shop")', function(data) {
-                $('#cartCount').text(data);
+                $('#cartCount').text(data || 0);
             });
         }
 
-        // Add to cart with AJAX
+        // Real-time search
+        let searchTimeout;
+        $('#searchInput').on('input', function () {
+            const q = $(this).val().trim();
+            clearTimeout(searchTimeout);
+            if (q.length < 2) { $('#searchResults').hide(); return; }
+            searchTimeout = setTimeout(function () {
+                $.get('@Url.Action("Search", "Shop")', { q: q }, function (data) {
+                    if (!data || data.length === 0) {
+                        $('#searchResults').html('<div style="padding:1.2rem; text-align:center; color:#9CA8B3;">Không tìm thấy sản phẩm nào</div>').show();
+                        return;
+                    }
+                    let html = '';
+                    data.forEach(function (p) {
+                        const price = new Intl.NumberFormat('vi-VN').format(p.price) + ' ₫';
+                        const img = p.imageUrl
+                            ? '<img src="' + p.imageUrl + '" />'
+                            : '<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:#F0F8FF;border-radius:8px;color:#9CA8B3;"><i class="fas fa-box"></i></div>';
+                        html += '<a href="@Url.Action("Product", "Shop")/' + p.productId + '" class="search-result-item">' +
+                            img +
+                            '<div class="sr-info"><div class="sr-name">' + p.name + '</div><div class="sr-price">' + price + '</div></div></a>';
+                    });
+                    html += '<a href="@Url.Action("Products", "Shop")?search=' + encodeURIComponent(q) + '" class="search-result-all">Xem tất cả kết quả cho "<strong>' + q + '</strong>"</a>';
+                    $('#searchResults').html(html).show();
+                });
+            }, 300);
+        });
+
+        $('#searchInput').on('keypress', function (e) { if (e.which === 13) goSearch(); });
+        function goSearch() {
+            const q = $('#searchInput').val().trim();
+            if (q.length > 0) window.location.href = '@Url.Action("Products", "Shop")?search=' + encodeURIComponent(q);
+        }
+        $(document).click(function (e) { if (!$(e.target).closest('.search-container').length) $('#searchResults').hide(); });
+
+        // Add to cart with animation
         function addToCart(productId, quantity = 1) {
             $.ajax({
                 url: '@Url.Action("AddToCart", "Shop")',
@@ -455,46 +979,41 @@
                 success: function(response) {
                     if (response.success) {
                         updateCartCount();
-                        // Show success message
-                        showAlert('success', response.message);
+                        showToast('success', '<i class="fas fa-check-circle me-2"></i>' + response.message);
+                        animateCartIcon();
                     } else {
-                        showAlert('danger', response.message);
+                        showToast('error', '<i class="fas fa-exclamation-circle me-2"></i>' + response.message);
                     }
                 },
-                error: function() {
-                    showAlert('danger', 'Có lỗi xảy ra, vui lòng thử lại');
-                }
+                error: function() { showToast('error', '<i class="fas fa-exclamation-circle me-2"></i>Có lỗi xảy ra!'); }
             });
         }
 
-        // Show alert
-        function showAlert(type, message) {
-            const alertHtml = `
-                <div class="alert alert-${type} alert-dismissible fade show alert-shop" role="alert">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            
-            // Remove existing alerts
-            $('.alert-shop').remove();
-            
-            // Add new alert
-            $('main').prepend(alertHtml);
-            
-            // Auto remove after 3 seconds
-            setTimeout(function() {
-                $('.alert-shop').fadeOut();
-            }, 3000);
+        function animateCartIcon() {
+            const badge = document.getElementById('cartCount');
+            if (badge) {
+                badge.style.transform = 'scale(1.8)';
+                setTimeout(function() { badge.style.transform = 'scale(1)'; badge.style.transition = 'transform 0.3s ease-out'; }, 150);
+            }
         }
 
-        // Initialize
-        $(document).ready(function() {
-            updateCartCount();
-        });
+        // Toast notification
+        function showToast(type, message) {
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            const existing = document.querySelectorAll('.alert-toast');
+            existing.forEach(function(el) { el.remove(); });
+            const toast = document.createElement('div');
+            toast.className = 'alert-toast alert-toast-' + type;
+            toast.innerHTML = '<i class="fas ' + (icons[type] || 'fa-info-circle') + '"></i><span style="flex:1">' + message + '</span><button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            document.body.appendChild(toast);
+            setTimeout(function() {
+                if (toast.parentElement) { toast.style.animation = 'slideInRight 0.3s ease reverse'; setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300); }
+            }, 3500);
+        }
+
+        $(document).ready(function() { updateCartCount(); });
     </script>
-    
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
