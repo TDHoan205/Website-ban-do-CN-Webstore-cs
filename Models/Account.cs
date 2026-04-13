@@ -35,6 +35,9 @@ namespace Webstore.Models
         [Column("address")]
         public string? Address { get; set; }
 
+        [Column("is_active")]
+        public bool? IsActive { get; set; } = true;
+
         [Required]
         [StringLength(20)]
         [Column("role")]

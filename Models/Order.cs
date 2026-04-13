@@ -27,19 +27,20 @@ namespace Webstore.Models
         [Column("status")]
         public string Status { get; set; } = "Pending";
 
-        // The following customer fields are not present in the current DB schema (Orders table)
-        // Mark them NotMapped so EF won't expect those columns. If you prefer to store them,
-        // add corresponding columns to the database or create a migration.
-        [NotMapped]
+        [StringLength(100)]
+        [Column("customer_name")]
         public string? CustomerName { get; set; }
 
-        [NotMapped]
+        [StringLength(20)]
+        [Column("customer_phone")]
         public string? CustomerPhone { get; set; }
 
-        [NotMapped]
+        [StringLength(255)]
+        [Column("customer_address")]
         public string? CustomerAddress { get; set; }
 
-        [NotMapped]
+        [StringLength(500)]
+        [Column("notes")]
         public string? Notes { get; set; }
 
         // Navigation properties

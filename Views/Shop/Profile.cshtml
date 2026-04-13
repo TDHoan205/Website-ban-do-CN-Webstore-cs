@@ -1,0 +1,311 @@
+@model Webstore.Models.Account
+@{
+    ViewData["Title"] = "Thông tin cá nhân";
+    Layout = "_ShopLayout";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container">
+        <h1 class="page-title"><i class="fas fa-user-circle me-2"></i>Thông tin cá nhân</h1>
+        <p class="page-subtitle mb-0">Quản lý thông tin tài khoản của bạn</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="profile-card">
+                <!-- Avatar Section -->
+                <div class="profile-avatar-section">
+                    <div class="profile-avatar">
+                        @(Model.FullName?.Substring(0, 1).ToUpper() ?? "U")
+                    </div>
+                    <div class="profile-info">
+                        <h4>@(string.IsNullOrEmpty(Model.FullName) ? Model.Username : Model.FullName)</h4>
+                        <span class="profile-role">
+                            <i class="fas @(Model.Role switch {
+                                "Admin" => "fa-crown text-warning",
+                                "Employee" => "fa-user-tie text-info",
+                                _ => "fa-user text-secondary"
+                            }) me-1"></i>
+                            @(Model.Role switch {
+                                "Admin" => "Quản trị viên",
+                                "Employee" => "Nhân viên",
+                                _ => "Khách hàng"
+                            })
+                        </span>
+                        <div class="profile-badges">
+                            @if (Model.IsActive == true)
+                            {
+                                <span class="badge-active"><i class="fas fa-check-circle me-1"></i>Đã xác thực</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Form -->
+                <div class="profile-form-section">
+                    <form id="profileForm">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Tên đăng nhập</label>
+                                <input type="text" class="form-control" value="@Model.Username" readonly />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Họ và tên</label>
+                                <input type="text" class="form-control" id="fullName" value="@(Model.FullName ?? "")" placeholder="Nhập họ và tên" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" value="@(Model.Email ?? "")" placeholder="Nhập email" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" id="phone" value="@(Model.Phone ?? "")" placeholder="0xxx xxx xxx" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Địa chỉ</label>
+                                <textarea class="form-control" id="address" rows="2" placeholder="Nhập địa chỉ của bạn">@(Model.Address ?? "")</textarea>
+                            </div>
+                        </div>
+
+                        <div class="profile-form-actions mt-4">
+                            <button type="submit" class="btn btn-save-profile" id="btnSaveProfile">
+                                <i class="fas fa-save me-2"></i>Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="profile-quick-links">
+                    <h5 class="ql-title"><i class="fas fa-link me-2"></i>Liên kết nhanh</h5>
+                    <div class="ql-items">
+                        <a asp-controller="Shop" asp-action="OrderHistory" class="ql-item">
+                            <i class="fas fa-receipt"></i>
+                            <div>
+                                <strong>Lịch sử đơn hàng</strong>
+                                <span>Xem và theo dõi đơn hàng</span>
+                            </div>
+                            <i class="fas fa-chevron-right ql-arrow"></i>
+                        </a>
+                        <a asp-controller="Shop" asp-action="Cart" class="ql-item">
+                            <i class="fas fa-shopping-cart"></i>
+                            <div>
+                                <strong>Giỏ hàng</strong>
+                                <span>Xem sản phẩm đã chọn</span>
+                            </div>
+                            <i class="fas fa-chevron-right ql-arrow"></i>
+                        </a>
+                        <a asp-controller="Auth" asp-action="Logout" method="post" class="ql-item text-danger">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <div>
+                                <strong>Đăng xuất</strong>
+                                <span>Đăng xuất khỏi tài khoản</span>
+                            </div>
+                            <i class="fas fa-chevron-right ql-arrow"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        padding: 28px 0;
+    }
+    .page-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: white;
+        margin: 0 0 4px;
+    }
+    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+
+    .profile-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    /* Avatar */
+    .profile-avatar-section {
+        background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 50%, var(--primary-light) 100%);
+        padding: 40px 30px 30px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+    .profile-avatar {
+        width: 90px; height: 90px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        border: 4px solid rgba(255,255,255,0.4);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: white;
+        flex-shrink: 0;
+    }
+    .profile-info h4 {
+        color: white;
+        font-weight: 800;
+        margin: 0 0 4px;
+        font-size: 1.3rem;
+    }
+    .profile-role {
+        font-size: 0.88rem;
+        color: rgba(255,255,255,0.8);
+        font-weight: 600;
+    }
+    .profile-badges { margin-top: 8px; }
+    .badge-active {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 3px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* Form */
+    .profile-form-section { padding: 30px; }
+    .form-label { font-weight: 600; font-size: 0.88rem; color: var(--text-primary); }
+    .form-control {
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 0.65rem 1rem;
+        font-size: 0.92rem;
+        transition: var(--transition);
+        background: var(--surface-alt);
+    }
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.12);
+        background: white;
+    }
+    .form-control[readonly] {
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+    .btn-save-profile {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 0.95rem;
+        padding: 12px 32px;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    .btn-save-profile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 119, 182, 0.3);
+    }
+    .profile-form-actions { display: flex; justify-content: flex-end; }
+
+    /* Quick Links */
+    .profile-quick-links {
+        padding: 24px 30px;
+        background: var(--surface-alt);
+        border-top: 1px solid var(--border);
+    }
+    .ql-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+    .ql-items { display: flex; flex-direction: column; gap: 8px; }
+    .ql-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        background: white;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        transition: var(--transition);
+        text-decoration: none;
+        color: var(--text-primary);
+    }
+    .ql-item:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+        transform: translateX(4px);
+        color: var(--primary);
+    }
+    .ql-item i:first-child {
+        width: 36px; height: 36px;
+        background: var(--primary-lightest);
+        color: var(--primary);
+        border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    .ql-item:hover i:first-child { background: var(--primary); color: white; }
+    .ql-item div { flex: 1; }
+    .ql-item strong { display: block; font-size: 0.88rem; }
+    .ql-item span { font-size: 0.75rem; color: var(--text-muted); }
+    .ql-arrow { color: var(--text-muted) !important; font-size: 0.75rem !important; width: auto !important; height: auto !important; background: none !important; }
+</style>
+
+<script>
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var btn = document.getElementById('btnSaveProfile');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...';
+
+        var data = {
+            fullName: document.getElementById('fullName').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            address: document.getElementById('address').value.trim()
+        };
+
+        fetch('@Url.Action("UpdateProfile", "Shop")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i>Lưu thay đổi';
+            if (data.success) {
+                showToast('success', data.message);
+            } else {
+                showToast('error', data.message);
+            }
+        })
+        .catch(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i>Lưu thay đổi';
+            showToast('error', 'Có lỗi xảy ra, vui lòng thử lại.');
+        });
+    });
+
+    function showToast(type, message) {
+        var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+        var existing = document.querySelectorAll('.alert-toast');
+        existing.forEach(function(el) { el.remove(); });
+        var toast = document.createElement('div');
+        toast.className = 'alert-toast alert-toast-' + type;
+        toast.innerHTML = '<i class="fas ' + (icons[type] || 'fa-info-circle') + '"></i><span style="flex:1">' + message + '</span><button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+        document.body.appendChild(toast);
+        setTimeout(function() {
+            if (toast.parentElement) { toast.style.animation = 'slideInRight 0.3s ease reverse'; setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300); }
+        }, 3500);
+    }
+</script>

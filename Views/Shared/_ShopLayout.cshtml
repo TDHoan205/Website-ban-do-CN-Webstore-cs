@@ -246,6 +246,11 @@
             border: 2px solid white;
         }
 
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
         .user-dropdown .dropdown-toggle {
             display: flex; align-items: center; gap: 8px;
             padding: 6px 14px;
@@ -270,13 +275,18 @@
             color: white; font-size: 0.8rem; font-weight: 700;
         }
 
-        .dropdown-menu {
+        .user-dropdown .dropdown-menu {
             border: none;
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-xl);
             padding: 8px;
             min-width: 220px;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            left: auto;
             animation: dropIn 0.2s ease;
+            z-index: 9999;
         }
         @@keyframes dropIn {
             from { opacity: 0; transform: translateY(-10px); }
@@ -378,7 +388,7 @@
             background: linear-gradient(180deg, var(--accent) 0%, #012a4a 100%);
             color: white;
             padding: 60px 0 0;
-            margin-top: 80px;
+            margin-top: 40px;
         }
         .footer-brand {
             font-size: 1.5rem;
@@ -742,6 +752,21 @@
             .search-container { max-width: none; }
             .header-actions .d-none.d-sm-inline { display: none !important; }
         }
+        @@media (max-width: 480px) {
+            .user-dropdown .dropdown-menu {
+                position: fixed !important;
+                top: auto !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100vw !important;
+                max-width: 100vw !important;
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+                max-height: 60vh;
+                overflow-y: auto;
+                box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.2);
+            }
+        }
     </style>
 </head>
 <body>
@@ -749,9 +774,9 @@
     <div class="top-bar">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6 d-flex gap-4">
+                <div class="col-md-6">
                     <span><i class="fas fa-phone-alt me-1"></i> 0123 456 789</span>
-                    <span class="d-none d-md-block"><i class="fas fa-envelope me-1"></i> support&#64;webstore.com</span>
+                    <span class="d-none d-md-inline ms-3"><i class="fas fa-envelope me-1"></i> support&#64;webstore.com</span>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="me-3"><i class="fas fa-truck me-1"></i> Miễn phí vận chuyển</a>
@@ -803,8 +828,8 @@
                                     <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="fas fa-tachometer-alt"></i>Quản trị</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                 }
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i>Thông tin cá nhân</a></li>
-                                <li><a class="dropdown-item" asp-controller="Shop" asp-action="Cart"><i class="fas fa-shopping-cart"></i>Giỏ hàng</a></li>
+                                <li><a class="dropdown-item" asp-controller="Shop" asp-action="Profile"><i class="fas fa-user"></i>Thông tin cá nhân</a></li>
+                                <li><a class="dropdown-item" asp-controller="Shop" asp-action="OrderHistory"><i class="fas fa-receipt"></i>Lịch sử đơn hàng</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0">
@@ -853,8 +878,8 @@
                 </ul>
 
                 <div class="d-flex align-items-center gap-2">
-                    <a href="#" class="nav-category-link"><i class="fas fa-bolt me-1"></i> Sản phẩm mới</a>
-                    <a href="#" class="nav-category-link"><i class="fas fa-fire me-1"></i> Hot deals</a>
+                    <a href="@Url.Action("Index", "Shop")#new-products" class="nav-category-link"><i class="fas fa-bolt me-1"></i> Sản phẩm mới</a>
+                    <a href="@Url.Action("Index", "Shop")#hot-products" class="nav-category-link"><i class="fas fa-fire me-1"></i> Hot deals</a>
                 </div>
             </div>
         </div>
@@ -879,8 +904,8 @@
                         <a href="#"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-6 col-6">
-                    <h5 class="footer-title">Mua sắm</h5>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <h5 class="footer-title">Mua hàng</h5>
                     <ul class="footer-links">
                         <li><a asp-controller="Shop" asp-action="Products">Sản phẩm mới</a></li>
                         <li><a asp-controller="Shop" asp-action="Products">Danh mục</a></li>
@@ -888,7 +913,7 @@
                         <li><a asp-controller="Shop" asp-action="Products">Bán chạy</a></li>
                     </ul>
                 </div>
-                <div class="col-lg-2 col-md-6 col-6">
+                <div class="col-lg-2 col-md-4 col-6">
                     <h5 class="footer-title">Hỗ trợ</h5>
                     <ul class="footer-links">
                         <li><a href="#">Trung tâm trợ giúp</a></li>
@@ -950,7 +975,7 @@
                     let html = '';
                     data.forEach(function (p) {
                         const price = new Intl.NumberFormat('vi-VN').format(p.price) + ' ₫';
-                        const img = p.imageUrl
+                        const img = p.imageUrl && p.imageUrl.trim()
                             ? '<img src="' + p.imageUrl + '" />'
                             : '<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:#F0F8FF;border-radius:8px;color:#9CA8B3;"><i class="fas fa-box"></i></div>';
                         html += '<a href="@Url.Action("Product", "Shop")/' + p.productId + '" class="search-result-item">' +

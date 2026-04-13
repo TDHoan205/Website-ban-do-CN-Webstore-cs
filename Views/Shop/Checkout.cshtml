@@ -3,11 +3,21 @@
     ViewData["Title"] = "Thanh toán";
     Layout = "_ShopLayout";
     var total = Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity);
+    var transferCode = "WEBSTORE" + DateTime.Now.ToString("yyyyMMddHHmmss");
 }
+
+<!-- Page Header -->
+<div class="checkout-header">
+    <div class="container">
+        <h1 class="checkout-title">
+            <i class="fas fa-credit-card me-2"></i>Thanh toán đơn hàng
+        </h1>
+    </div>
+</div>
 
 <div class="container py-4">
     <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
+    <nav aria-label="breadcrumb" class="breadcrumb-nav mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Trang chủ</a></li>
             <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Cart">Giỏ hàng</a></li>
@@ -15,214 +25,285 @@
         </ol>
     </nav>
 
+    <!-- Step Indicator -->
+    <div class="step-indicator mb-4">
+        <div class="step-item active" id="step1-indicator">
+            <div class="step-circle">1</div>
+            <span>Thông tin</span>
+        </div>
+        <div class="step-line" id="stepLine1"></div>
+        <div class="step-item" id="step2-indicator">
+            <div class="step-circle">2</div>
+            <span>QR Code</span>
+        </div>
+        <div class="step-line" id="stepLine2"></div>
+        <div class="step-item" id="step3-indicator">
+            <div class="step-circle">3</div>
+            <span>Thành công</span>
+        </div>
+    </div>
+
     <div class="row">
-        <!-- Checkout Form -->
-        <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-qrcode me-2"></i>Thông tin thanh toán
-                    </h5>
+        <!-- Left: Form & QR -->
+        <div class="col-lg-7">
+
+            <!-- Hidden data store for F5 resilience -->
+            <div id="checkoutStateData" style="display:none;"
+                 data-step="@ViewContext.RouteData.Values["action"]?.ToString()">
+            </div>
+
+            <!-- Step 1: Customer Info -->
+            <div class="checkout-card mb-4" id="step1-form">
+                <div class="checkout-card-header">
+                    <h5><i class="fas fa-user me-2"></i>Thông tin khách hàng</h5>
                 </div>
-                <div class="card-body">
-                    <form id="checkoutForm">
-                        <!-- Customer Information -->
-                        <div class="row mb-4">
+                <div class="checkout-card-body">
+                    <form id="customerForm" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="customerName" placeholder="Nhập họ và tên đầy đủ" required>
+                                <div class="invalid-feedback">Vui lòng nhập họ và tên.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="customerPhone" placeholder="0xxx xxx xxx" required>
+                                <div class="invalid-feedback">Số điện thoại không hợp lệ (phải là 10 số, bắt đầu bằng 0).</div>
+                            </div>
                             <div class="col-12">
-                                <h6 class="mb-3"><i class="fas fa-user me-2 text-primary"></i>Thông tin khách hàng</h6>
+                                <label class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="customerAddress" rows="2" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" required></textarea>
+                                <div class="invalid-feedback">Vui lòng nhập địa chỉ giao hàng.</div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="customerName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="customerName" name="customerName" required placeholder="Nhập họ và tên của bạn">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="customerPhone" class="form-label">Số điện thoại <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="customerPhone" name="customerPhone" required placeholder="Nhập số điện thoại">
-                            </div>
-                            <div class="col-12 mb-3">
-                                <label for="customerAddress" class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="customerAddress" name="customerAddress" rows="3" required placeholder="Nhập địa chỉ giao hàng đầy đủ"></textarea>
+                            <div class="col-12">
+                                <label class="form-label">Ghi chú đơn hàng <span class="text-muted">(không bắt buộc)</span></label>
+                                <textarea class="form-control" id="notes" rows="2" placeholder="Ghi chú thêm cho đơn hàng, ví dụ: giao giờ hành chính, gọi trước khi giao..."></textarea>
                             </div>
                         </div>
+                        <button type="button" class="btn btn-checkout-next mt-4 w-100" onclick="validateAndShowQR()">
+                            <i class="fas fa-qrcode me-2"></i>Tiếp tục thanh toán
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-                        <!-- QR Payment -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <h6 class="mb-3"><i class="fas fa-qrcode me-2 text-primary"></i>Phương thức thanh toán - QR Code</h6>
+            <!-- Step 2: QR Payment -->
+            <div class="checkout-card mb-4" id="step2-qr" style="display:none;">
+                <div class="checkout-card-header">
+                    <h5><i class="fas fa-qrcode me-2"></i>Quét mã QR để thanh toán</h5>
+                </div>
+                <div class="checkout-card-body text-center">
+
+                    <!-- QR Box -->
+                    <div class="qr-scan-container mb-4">
+                        <div class="qr-box-large">
+                            <div class="qr-scan-line"></div>
+                            <div class="qr-content">
+                                <i class="fas fa-mobile-alt fa-3x mb-2"></i>
+                                <p class="mb-1 fw-bold">Quét mã bằng ứng dụng ngân hàng</p>
+                                <p class="mb-0 text-muted small">Mở app ngân hàng &rarr; Quét mã QR bên dưới</p>
                             </div>
-                            <div class="col-12">
-                                <div class="qr-payment-container p-4 text-center">
-                                    <div class="qr-wrapper mb-3">
-                                        <div class="qr-box" id="qrBox">
-                                            <div class="qr-inner">
-                                                <div class="qr-scan-line"></div>
-                                                <div class="qr-content">
-                                                    <i class="fas fa-qrcode fa-4x text-primary mb-2"></i>
-                                                    <p class="mb-0 text-muted small">Quét mã QR để thanh toán</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                        </div>
+                    </div>
 
-                                    <div class="alert alert-info d-flex align-items-center justify-content-center gap-2 mb-3">
-                                        <i class="fas fa-info-circle"></i>
-                                        <span>Quý khách vui lòng quét mã QR bên dưới bằng ứng dụng ngân hàng để thanh toán. Đơn hàng sẽ được xác nhận sau khi thanh toán thành công.</span>
-                                    </div>
+                    <!-- Payment Amount -->
+                    <div class="payment-amount-display mb-4">
+                        <span class="payment-label">Số tiền thanh toán</span>
+                        <span class="payment-amount">@total.ToString("N0") ₫</span>
+                    </div>
 
-                                    <!-- Payment Account Info -->
-                                    <div class="payment-info p-3 rounded" style="background:#f8f9fa; border:2px dashed #dee2e6;">
-                                        <h6 class="mb-2"><i class="fas fa-university me-2"></i>Thông tin tài khoản</h6>
-                                        <p class="mb-1"><strong>Ngân hàng:</strong> Vietcombank</p>
-                                        <p class="mb-1"><strong>Số tài khoản:</strong> 1234567890</p>
-                                        <p class="mb-1"><strong>Tên tài khoản:</strong> WEBSTORE SHOP</p>
-                                        <p class="mb-0"><strong>Nội dung chuyển khoản:</strong> <code id="transferContent">WEBSTORE @DateTime.Now.ToString("yyyyMMddHHmmss")</code></p>
-                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="copyTransferContent()">
-                                            <i class="fas fa-copy me-1"></i>Sao chép nội dung
-                                        </button>
-                                    </div>
+                    <!-- Bank Info -->
+                    <div class="payment-account-info mb-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-university"></i>
+                            <strong>Thông tin tài khoản</strong>
+                        </div>
+                        <div class="payment-row">
+                            <span>Ngân hàng</span>
+                            <strong>Vietcombank</strong>
+                        </div>
+                        <div class="payment-row">
+                            <span>Số tài khoản</span>
+                            <strong>1234 5678 9012</strong>
+                        </div>
+                        <div class="payment-row">
+                            <span>Tên tài khoản</span>
+                            <strong>WEBSTORE SHOP</strong>
+                        </div>
+                        <div class="payment-row">
+                            <span>Nội dung CK</span>
+                            <strong class="text-primary" id="transferCodeDisplay">@transferCode</strong>
+                        </div>
+                    </div>
 
-                                    <!-- Hidden input for payment method -->
-                                    <input type="hidden" name="paymentMethod" value="qr" />
+                    <button class="btn btn-copy-transfer" onclick="copyTransferContent()">
+                        <i class="fas fa-copy me-1"></i>Sao chép nội dung chuyển khoản
+                    </button>
+
+                    <!-- Confirmation Checkbox -->
+                    <div class="confirm-checkbox-wrapper mt-4">
+                        <div class="form-check d-inline-flex align-items-start gap-2 p-3 rounded" style="background:var(--surface-alt);border:2px solid var(--border);">
+                            <input class="form-check-input mt-1" type="checkbox" id="confirmPaymentCheck" onchange="togglePaymentBtn()">
+                            <label class="form-check-label text-start" for="confirmPaymentCheck" style="font-size:0.88rem;line-height:1.5;cursor:pointer;">
+                                Tôi đã chuyển khoản thành công theo thông tin trên.<br>
+                                <span class="text-muted small">Vui lòng đảm bảo chuyển đúng số tiền và nội dung.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="step2-actions mt-4">
+                        <button class="btn btn-outline-secondary me-2" onclick="goBackToStep1()">
+                            <i class="fas fa-arrow-left me-1"></i>Quay lại
+                        </button>
+                        <button class="btn btn-confirm-payment" id="btnConfirmedPayment" onclick="confirmPayment()" disabled>
+                            <i class="fas fa-check-circle me-2"></i>Đã thanh toán
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Success + Tracking -->
+            <div id="step3-success" style="display:none;">
+                <!-- Order Success -->
+                <div class="checkout-card mb-4">
+                    <div class="checkout-card-header checkout-success-header">
+                        <h5 class="text-white"><i class="fas fa-check-circle me-2"></i>Đặt hàng thành công!</h5>
+                    </div>
+                    <div class="checkout-card-body text-center">
+                        <div class="success-icon mb-3">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h4 class="mb-2">Cảm ơn bạn đã đặt hàng!</h4>
+                        <p class="text-muted mb-1">Mã đơn hàng: <strong class="text-primary fs-5" id="orderCodeDisplay">#----</strong></p>
+                        <p class="text-muted small">Đơn hàng đang được xử lý và sẽ giao đến bạn trong thời gian sớm nhất.</p>
+                        <div class="d-flex gap-2 justify-content-center mt-3">
+                            <a asp-controller="Shop" asp-action="OrderHistory" class="btn btn-primary">
+                                <i class="fas fa-receipt me-1"></i>Xem lịch sử đơn hàng
+                            </a>
+                            <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-primary">
+                                <i class="fas fa-home me-1"></i>Tiếp tục mua hàng
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Tracking -->
+                <div class="checkout-card">
+                    <div class="checkout-card-header">
+                        <h5><i class="fas fa-truck me-2"></i>Theo dõi vận chuyển</h5>
+                    </div>
+                    <div class="checkout-card-body">
+                        <div class="tracking-timeline" id="trackingTimeline">
+                            <div class="tracking-step completed" data-step="1">
+                                <div class="tracking-icon"><i class="fas fa-check"></i></div>
+                                <div class="tracking-content">
+                                    <strong>Đã đặt hàng</strong>
+                                    <span class="tracking-time">@DateTime.Now.ToString("HH:mm dd/MM/yyyy")</span>
+                                    <p class="tracking-desc mb-0">Đơn hàng đã được tạo và chờ xác nhận thanh toán.</p>
+                                </div>
+                            </div>
+                            <div class="tracking-step pending" data-step="2">
+                                <div class="tracking-icon"><i class="fas fa-wallet"></i></div>
+                                <div class="tracking-content">
+                                    <strong>Xác nhận thanh toán</strong>
+                                    <span class="tracking-time" id="step2-time">--:--</span>
+                                    <p class="tracking-desc mb-0">Hệ thống đang xác nhận thanh toán của bạn.</p>
+                                </div>
+                            </div>
+                            <div class="tracking-step pending" data-step="3">
+                                <div class="tracking-icon"><i class="fas fa-boxes-packing"></i></div>
+                                <div class="tracking-content">
+                                    <strong>Đang chuẩn bị hàng</strong>
+                                    <span class="tracking-time" id="step3-time">--:--</span>
+                                    <p class="tracking-desc mb-0">Đơn hàng đang được đóng gói và chuẩn bị.</p>
+                                </div>
+                            </div>
+                            <div class="tracking-step pending" data-step="4">
+                                <div class="tracking-icon"><i class="fas fa-truck-fast"></i></div>
+                                <div class="tracking-content">
+                                    <strong>Đang vận chuyển</strong>
+                                    <span class="tracking-time" id="step4-time">--:--</span>
+                                    <p class="tracking-desc mb-0">Đơn hàng đang được vận chuyển đến bạn.</p>
+                                </div>
+                            </div>
+                            <div class="tracking-step pending" data-step="5">
+                                <div class="tracking-icon"><i class="fas fa-house-chimney"></i></div>
+                                <div class="tracking-content">
+                                    <strong>Đã giao hàng</strong>
+                                    <span class="tracking-time" id="step5-time">--:--</span>
+                                    <p class="tracking-desc mb-0">Đơn hàng đã được giao thành công.</p>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Notes -->
-                        <div class="row">
-                            <div class="col-12">
-                                <h6 class="mb-3"><i class="fas fa-sticky-note me-2 text-primary"></i>Ghi chú đơn hàng</h6>
-                                <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Ghi chú thêm cho đơn hàng (không bắt buộc)"></textarea>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Order Summary -->
-        <div class="col-lg-4">
-            <!-- Order Summary Card -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Đơn hàng của bạn</h5>
+        <!-- Right: Order Summary -->
+        <div class="col-lg-5">
+            <div class="checkout-summary-card">
+                <div class="checkout-summary-header">
+                    <h5><i class="fas fa-receipt me-2"></i>Đơn hàng của bạn (@Model.Count sản phẩm)</h5>
                 </div>
-                <div class="card-body p-0">
-                    <!-- Order Items -->
-                    <div class="order-items px-3 pt-3">
+                <div class="checkout-summary-body">
+                    <div class="summary-items-list">
                         @foreach (var item in Model)
                         {
-                            <div class="order-item mb-3 pb-3 border-bottom">
-                                <div class="d-flex align-items-center">
-                                    <div class="product-image-small me-3">
-                                        @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
-                                        {
-                                            <img src="@item.Product.ImageUrl" alt="@item.Product.Name" style="width:100%;height:100%;object-fit:contain;border-radius:8px;" />
-                                        }
-                                        else
-                                        {
-                                            <i class="fas fa-box"></i>
-                                        }
-                                    </div>
-                                    <div class="flex-grow-1" style="min-width:0;">
-                                        <h6 class="mb-1" style="font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@item.Product?.Name</h6>
-                                        <small class="text-muted">x @item.Quantity</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold" style="font-size:0.9rem;">@(((item.Product?.Price ?? 0m) * item.Quantity).ToString("N0")) ₫</div>
-                                    </div>
+                            <text>
+                            <div class="summary-item">
+                                <div class="summary-item-img">
+                                    @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
+                                    {
+                                        <img src="@item.Product.ImageUrl" alt="@item.Product.Name" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-box text-muted"></i>
+                                    }
+                                </div>
+                                <div class="summary-item-info">
+                                    <span class="summary-item-name">@item.Product?.Name</span>
+                                    <span class="summary-item-qty">x @item.Quantity</span>
+                                </div>
+                                <div class="summary-item-price">
+                                    @(((item.Product?.Price ?? 0m) * item.Quantity).ToString("N0")) ₫
                                 </div>
                             </div>
+                            </text>
                         }
                     </div>
-
-                    <div class="px-3 pb-3">
-                        <!-- Order Summary -->
-                        <div class="order-summary">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Tạm tính:</span>
-                                <span>@Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity).ToString("N0") ₫</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Phí vận chuyển:</span>
-                                <span class="text-success">Miễn phí</span>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between mb-3">
-                                <strong>Tổng cộng:</strong>
-                                <strong class="text-danger fs-5">@total.ToString("N0") ₫</strong>
-                            </div>
+                    <div class="summary-totals">
+                        <div class="summary-row">
+                            <span>Tạm tính</span>
+                            <span>@total.ToString("N0") ₫</span>
                         </div>
-
-                        <!-- Place Order Button -->
-                        <button type="button" class="btn btn-primary btn-lg w-100 mb-3" id="placeOrderBtn" onclick="placeOrder()">
-                            <i class="fas fa-check-circle me-2"></i>Xác nhận đặt hàng
-                        </button>
-
-                        <!-- Security Notice -->
-                        <div class="text-center">
-                            <small class="text-muted d-flex align-items-center justify-content-center gap-1">
-                                <i class="fas fa-shield-alt"></i>
-                                Thông tin của bạn được bảo mật tuyệt đối
-                            </small>
+                        <div class="summary-row">
+                            <span>Phí vận chuyển</span>
+                            <span class="text-success">Miễn phí</span>
+                        </div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-row summary-total-row">
+                            <span>Tổng cộng</span>
+                            <span class="summary-total-price">@total.ToString("N0") ₫</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Steps Guide -->
-            <div class="card">
-                <div class="card-header" style="background: #f8f9fa; color: #333;">
-                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Hướng dẫn thanh toán</h6>
+            <!-- Trust Badges -->
+            <div class="checkout-trust-badges mt-3">
+                <div class="trust-item">
+                    <i class="fas fa-shield-halved"></i>
+                    <span>Thanh toán bảo mật 100%</span>
                 </div>
-                <div class="card-body">
-                    <div class="guide-step mb-3">
-                        <div class="d-flex gap-3">
-                            <div class="step-number">1</div>
-                            <div>
-                                <strong>Điền thông tin</strong>
-                                <p class="mb-0 text-muted small">Nhập thông tin giao hàng chính xác</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="guide-step mb-3">
-                        <div class="d-flex gap-3">
-                            <div class="step-number">2</div>
-                            <div>
-                                <strong>Quét mã QR</strong>
-                                <p class="mb-0 text-muted small">Mở ứng dụng ngân hàng và quét mã</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="guide-step">
-                        <div class="d-flex gap-3">
-                            <div class="step-number">3</div>
-                            <div>
-                                <strong>Xác nhận đặt hàng</strong>
-                                <p class="mb-0 text-muted small">Nhấn nút xác nhận sau khi thanh toán thành công</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="trust-item">
+                    <i class="fas fa-rotate-left"></i>
+                    <span>Đổi trả trong 7 ngày</span>
                 </div>
-            </div>
-
-            <!-- Contact Info -->
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h6 class="mb-3"><i class="fas fa-headset me-2 text-primary"></i>Cần hỗ trợ?</h6>
-                    <div class="contact-info">
-                        <div class="contact-item mb-2">
-                            <i class="fas fa-phone text-primary me-2"></i>
-                            <small>0123 456 789</small>
-                        </div>
-                        <div class="contact-item mb-2">
-                            <i class="fas fa-envelope text-primary me-2"></i>
-                            <small>support@webstore.com</small>
-                        </div>
-                        <div class="contact-item">
-                            <i class="fas fa-clock text-primary me-2"></i>
-                            <small>Hỗ trợ 24/7</small>
-                        </div>
-                    </div>
+                <div class="trust-item">
+                    <i class="fas fa-headset"></i>
+                    <span>Hỗ trợ 24/7</span>
                 </div>
             </div>
         </div>
@@ -230,219 +311,615 @@
 </div>
 
 <style>
-    .card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    /* Header */
+    .checkout-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        padding: 24px 0;
     }
-
-    .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .checkout-title {
         color: white;
-        border-radius: 15px 15px 0 0 !important;
-        border: none;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
     }
 
-    .form-control,
-    .form-select {
-        border-radius: 10px;
-        border: 2px solid #e9ecef;
-        transition: all 0.3s ease;
-        padding: 0.75rem 1rem;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-
-    .product-image-small {
-        width: 50px;
-        height: 50px;
-        background: #f8f9fa;
-        border-radius: 8px;
+    /* Step Indicator */
+    .step-indicator {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        font-size: 1.2rem;
-        color: #666;
-        flex-shrink: 0;
     }
-
-    .order-item {
-        border-bottom: 1px solid #eee;
+    .step-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        min-width: 80px;
     }
-
-    .order-item:last-child {
-        border-bottom: none;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
+    .step-item span {
+        font-size: 0.8rem;
         font-weight: 600;
+        color: var(--text-muted);
+    }
+    .step-item.active span { color: var(--primary); }
+    .step-item.completed span { color: var(--success); }
+    .step-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--border);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
         transition: all 0.3s ease;
-        padding: 0.85rem;
+        z-index: 1;
     }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    .step-item.active .step-circle {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 0 0 4px rgba(0, 119, 182, 0.2);
     }
-
-    .btn-primary:disabled {
-        background: #ccc;
-        border-color: #ccc;
-        transform: none;
-        box-shadow: none;
+    .step-item.completed .step-circle {
+        background: var(--success);
+        color: white;
     }
-
-    .contact-item {
-        display: flex;
-        align-items: center;
+    .step-line {
+        width: 80px;
+        height: 2px;
+        background: var(--border);
+        margin-top: 17px;
+        transition: background 0.3s ease;
     }
+    .step-line.active { background: var(--primary); }
 
-    .text-danger {
-        color: #e74c3c !important;
-    }
-
-    /* QR Payment Styles */
-    .qr-payment-container {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 15px;
-        border: 2px solid #dee2e6;
-    }
-
-    .qr-wrapper {
-        display: flex;
-        justify-content: center;
-    }
-
-    .qr-box {
-        width: 220px;
-        height: 220px;
+    /* Card */
+    .checkout-card {
         background: white;
-        border-radius: 15px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+    .checkout-card-header {
+        padding: 16px 24px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+    }
+    .checkout-card-header h5 { margin: 0; font-weight: 700; font-size: 1rem; }
+    .checkout-success-header {
+        background: linear-gradient(135deg, var(--success) 0%, #34D399 100%) !important;
+    }
+    .checkout-card-body { padding: 24px; }
+
+    /* Form */
+    .form-label {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+    }
+    .form-control {
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 0.65rem 1rem;
+        font-size: 0.92rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+    }
+    .form-control.is-invalid { border-color: var(--danger); }
+    .form-check-input:checked {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-checkout-next {
+        padding: 14px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .btn-checkout-next:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 119, 182, 0.3);
+        color: white;
+    }
+
+    /* QR Box */
+    .qr-scan-container { display: flex; justify-content: center; }
+    .qr-box-large {
+        width: 260px;
+        height: 260px;
+        background: white;
+        border-radius: var(--radius-lg);
+        border: 3px solid var(--primary-lighter);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
         position: relative;
         overflow: hidden;
     }
-
-    .qr-inner {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
     .qr-scan-line {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, transparent, #667eea, transparent);
-        animation: scanLine 2s linear infinite;
+        background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        animation: qrScan 2.5s linear infinite;
     }
-
-    @@keyframes scanLine {
+    @@keyframes qrScan {
         0% { top: 0; }
         50% { top: calc(100% - 3px); }
         100% { top: 0; }
     }
-
     .qr-content {
         text-align: center;
         z-index: 1;
+        color: var(--primary);
     }
+    .qr-content p { font-size: 0.85rem; }
 
-    .payment-info code {
-        background: rgba(102, 126, 234, 0.1);
-        color: #667eea;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        display: inline-block;
-    }
-
-    .guide-step .step-number {
-        width: 32px;
-        height: 32px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Payment Details */
+    .payment-amount-display {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         color: white;
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .payment-label { font-size: 0.88rem; opacity: 0.85; }
+    .payment-amount { font-size: 1.6rem; font-weight: 800; }
+    .payment-account-info {
+        background: var(--surface-alt);
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        text-align: left;
+    }
+    .payment-account-info i { color: var(--primary); }
+    .payment-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 0.88rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .payment-row:last-child { border-bottom: none; }
+    .payment-row span { color: var(--text-secondary); }
+    .btn-copy-transfer {
+        background: white;
+        border: 2px solid var(--primary);
+        color: var(--primary);
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 8px 20px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .btn-copy-transfer:hover { background: var(--primary); color: white; }
+
+    .confirm-checkbox-wrapper { font-size: 0.92rem; }
+    .confirm-checkbox-wrapper input { width: 18px; height: 18px; cursor: pointer; }
+
+    .btn-confirm-payment {
+        background: linear-gradient(135deg, var(--success) 0%, #34D399 100%);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 0.95rem;
+        padding: 12px 28px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .btn-confirm-payment:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        color: white;
+    }
+    .btn-confirm-payment:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Success */
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--success) 0%, #34D399 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
+        margin: 0 auto;
+        font-size: 2.5rem;
+        color: white;
+    }
+
+    /* Tracking */
+    .tracking-timeline { padding: 8px 0; }
+    .tracking-step {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        position: relative;
+    }
+    .tracking-step::before {
+        content: "";
+        position: absolute;
+        left: 19px;
+        top: 38px;
+        width: 2px;
+        height: calc(100% + 4px);
+        background: var(--border);
+    }
+    .tracking-step:last-child::before { display: none; }
+    .tracking-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--border);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 0.85rem;
         flex-shrink: 0;
+        z-index: 1;
+        transition: all 0.3s ease;
     }
-
-    .alert-info {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        border: 1px solid rgba(102, 126, 234, 0.3);
-        color: #333;
-        border-radius: 10px;
+    .tracking-step.completed .tracking-icon {
+        background: var(--success);
+        color: white;
     }
+    .tracking-step.active .tracking-icon {
+        background: var(--primary);
+        color: white;
+        animation: pulseIcon 1.5s ease infinite;
+    }
+    @@keyframes pulseIcon {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 182, 0.4); }
+        50% { box-shadow: 0 0 0 8px rgba(0, 119, 182, 0); }
+    }
+    .tracking-content { flex: 1; padding-top: 4px; }
+    .tracking-content strong { display: block; font-size: 0.92rem; }
+    .tracking-time { font-size: 0.75rem; color: var(--text-muted); display: block; margin: 2px 0; }
+    .tracking-desc { font-size: 0.8rem; color: var(--text-secondary); }
 
-    .alert-info i {
-        color: #667eea;
+    /* Summary */
+    .checkout-summary-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        position: sticky;
+        top: 80px;
+    }
+    .checkout-summary-header {
+        padding: 14px 20px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+    }
+    .checkout-summary-header h5 { margin: 0; font-weight: 700; font-size: 0.95rem; }
+    .checkout-summary-body { padding: 20px; }
+    .summary-items-list { max-height: 280px; overflow-y: auto; margin-bottom: 16px; }
+    .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .summary-item:last-child { border-bottom: none; }
+    .summary-item-img {
+        width: 48px;
+        height: 48px;
+        background: var(--surface-alt);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
         font-size: 1.2rem;
+        color: var(--text-muted);
+    }
+    .summary-item-img img { width: 100%; height: 100%; object-fit: contain; }
+    .summary-item-info { flex: 1; min-width: 0; }
+    .summary-item-name {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .summary-item-qty { font-size: 0.75rem; color: var(--text-muted); }
+    .summary-item-price { font-weight: 700; font-size: 0.88rem; white-space: nowrap; }
+    .summary-totals { margin-top: 12px; }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+    }
+    .summary-divider { border-top: 2px dashed var(--border); margin: 8px 0; }
+    .summary-total-row span:first-child { font-weight: 800; color: var(--text-primary); font-size: 1rem; }
+    .summary-total-price { font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+
+    /* Trust Badges */
+    .checkout-trust-badges {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+    .trust-item i { color: var(--primary); width: 18px; }
+
+    @@media (max-width: 991px) {
+        .step-line { width: 40px; }
+        .checkout-summary-card { position: static; }
+    }
+    @@media (max-width: 767px) {
+        .step-indicator { gap: 0; }
+        .step-line { width: 20px; margin: 0 4px; }
+        .step-item span { font-size: 0.7rem; }
+        .step-item { min-width: 60px; }
+        .qr-box-large { width: 200px; height: 200px; }
     }
 </style>
 
 <script>
-    function copyTransferContent() {
-        const content = document.getElementById('transferContent').textContent;
-        navigator.clipboard.writeText(content).then(function() {
-            showToast('Đã sao chép nội dung chuyển khoản!', 'success');
-        }).catch(function() {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = content;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('Copy');
-            document.body.removeChild(textArea);
-            showToast('Đã sao chép nội dung chuyển khoản!', 'success');
-        });
+    var CHECKOUT_KEY = 'webstore_checkout_pending';
+
+    // =====================================================
+    // SESSION STORAGE: Persist form data across F5 refresh
+    // =====================================================
+    function saveCheckoutState() {
+        try {
+            var state = {
+                customerName: document.getElementById('customerName').value.trim(),
+                customerPhone: document.getElementById('customerPhone').value.trim(),
+                customerAddress: document.getElementById('customerAddress').value.trim(),
+                notes: document.getElementById('notes').value.trim(),
+                step: getCurrentStep(),
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(state));
+        } catch (e) { /* storage full — non-critical */ }
     }
 
-    function placeOrder() {
-        const customerName = document.getElementById('customerName').value.trim();
-        const customerPhone = document.getElementById('customerPhone').value.trim();
-        const customerAddress = document.getElementById('customerAddress').value.trim();
+    function loadCheckoutState() {
+        try {
+            var raw = sessionStorage.getItem(CHECKOUT_KEY);
+            if (!raw) return null;
+            var state = JSON.parse(raw);
+            // Expire after 30 minutes
+            if (Date.now() - state.timestamp > 30 * 60 * 1000) {
+                sessionStorage.removeItem(CHECKOUT_KEY);
+                return null;
+            }
+            return state;
+        } catch (e) { return null; }
+    }
 
-        if (!customerName || !customerPhone || !customerAddress) {
-            showToast('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error');
-            // Highlight empty fields
-            if (!customerName) document.getElementById('customerName').style.borderColor = '#e74c3c';
-            if (!customerPhone) document.getElementById('customerPhone').style.borderColor = '#e74c3c';
-            if (!customerAddress) document.getElementById('customerAddress').style.borderColor = '#e74c3c';
+    function clearCheckoutState() {
+        try { sessionStorage.removeItem(CHECKOUT_KEY); } catch (e) {}
+    }
+
+    function getCurrentStep() {
+        if (document.getElementById('step3-success').style.display !== 'none') return 3;
+        if (document.getElementById('step2-qr').style.display !== 'none') return 2;
+        return 1;
+    }
+
+    function restoreStep(step, savedState) {
+        if (step === 3) {
+            document.getElementById('step1-form').style.display = 'none';
+            document.getElementById('step2-qr').style.display = 'none';
+            document.getElementById('step3-success').style.display = 'block';
+            // Restore order code from session (set when step 3 is reached)
+            var orderId = sessionStorage.getItem('webstore_last_order_id');
+            if (orderId) {
+                document.getElementById('orderCodeDisplay').textContent = '#' + orderId;
+            }
+            // Full indicator restore
+            document.getElementById('step1-indicator').classList.remove('active');
+            document.getElementById('step1-indicator').classList.add('completed');
+            document.getElementById('step2-indicator').classList.remove('active');
+            document.getElementById('step2-indicator').classList.add('completed');
+            document.getElementById('step3-indicator').classList.add('active');
+            document.getElementById('stepLine1').classList.add('active');
+            document.getElementById('stepLine2').classList.add('active');
+        } else if (step === 2) {
+            // Restore form data
+            if (savedState) {
+                document.getElementById('customerName').value = savedState.customerName || '';
+                document.getElementById('customerPhone').value = savedState.customerPhone || '';
+                document.getElementById('customerAddress').value = savedState.customerAddress || '';
+                document.getElementById('notes').value = savedState.notes || '';
+            }
+            document.getElementById('step1-form').style.display = 'none';
+            document.getElementById('step2-qr').style.display = 'block';
+            document.getElementById('step1-indicator').classList.remove('active');
+            document.getElementById('step1-indicator').classList.add('completed');
+            document.getElementById('step2-indicator').classList.add('active');
+            document.getElementById('stepLine1').classList.add('active');
+        }
+    }
+
+    // Restore state on page load
+    (function() {
+        var saved = loadCheckoutState();
+        if (saved) { restoreStep(saved.step, saved); }
+    })();
+
+    // Auto-save on every input change
+    ['customerName', 'customerPhone', 'customerAddress', 'notes'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', saveCheckoutState);
+    });
+
+    // =====================================================
+    // STEP 1: Validate -> Show QR
+    // =====================================================
+    function validateAndShowQR() {
+        var nameEl = document.getElementById('customerName');
+        var phoneEl = document.getElementById('customerPhone');
+        var addressEl = document.getElementById('customerAddress');
+        var valid = true;
+
+        [nameEl, phoneEl, addressEl].forEach(function(el) {
+            el.classList.remove('is-invalid');
+        });
+
+        // Validate name
+        if (!nameEl.value.trim()) {
+            nameEl.classList.add('is-invalid');
+            valid = false;
+        }
+
+        // Validate phone: 10 digits, starts with 0
+        var phoneVal = phoneEl.value.trim();
+        if (!phoneVal || !/^0\d{9}$/.test(phoneVal)) {
+            phoneEl.classList.add('is-invalid');
+            valid = false;
+        }
+
+        // Validate address
+        if (!addressEl.value.trim()) {
+            addressEl.classList.add('is-invalid');
+            valid = false;
+        }
+
+        if (!valid) {
+            showToast('error', 'Vui lòng điền đầy đủ thông tin bắt buộc!');
             return;
         }
 
-        // Reset border colors
-        document.querySelectorAll('#checkoutForm .form-control').forEach(el => el.style.borderColor = '#e9ecef');
+        // Switch to Step 2
+        document.getElementById('step1-form').style.display = 'none';
+        document.getElementById('step2-qr').style.display = 'block';
 
-        const button = document.getElementById('placeOrderBtn');
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
-        button.disabled = true;
+        // Update step indicator
+        document.getElementById('step1-indicator').classList.remove('active');
+        document.getElementById('step1-indicator').classList.add('completed');
+        document.getElementById('step2-indicator').classList.add('active');
+        document.getElementById('stepLine1').classList.add('active');
 
-        const orderData = {
-            customerName: customerName,
-            customerPhone: customerPhone,
-            customerAddress: customerAddress,
-            notes: document.getElementById('notes').value.trim(),
+        // Persist state
+        saveCheckoutState();
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // =====================================================
+    // STEP 2: Go Back
+    // =====================================================
+    function goBackToStep1() {
+        document.getElementById('step2-qr').style.display = 'none';
+        document.getElementById('step1-form').style.display = 'block';
+
+        document.getElementById('step1-indicator').classList.add('active');
+        document.getElementById('step1-indicator').classList.remove('completed');
+        document.getElementById('step2-indicator').classList.remove('active');
+        document.getElementById('stepLine1').classList.remove('active');
+
+        saveCheckoutState();
+    }
+
+    // =====================================================
+    // STEP 2: Toggle Payment Button (checkbox)
+    // =====================================================
+    function togglePaymentBtn() {
+        var checked = document.getElementById('confirmPaymentCheck').checked;
+        var btn = document.getElementById('btnConfirmedPayment');
+        btn.disabled = !checked;
+    }
+
+    // =====================================================
+    // STEP 2: Copy Transfer Content
+    // =====================================================
+    function copyTransferContent() {
+        var code = document.getElementById('transferCodeDisplay').textContent.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(function() {
+                showToast('success', 'Đã sao chép nội dung chuyển khoản!');
+            }).catch(function() {
+                fallbackCopy(code);
+            });
+        } else {
+            fallbackCopy(code);
+        }
+    }
+
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('Copy');
+        document.body.removeChild(ta);
+        showToast('success', 'Đã sao chép nội dung chuyển khoản!');
+    }
+
+    // =====================================================
+    // STEP 3: Confirm Payment -> Place Order
+    // =====================================================
+    function confirmPayment() {
+        // Double-check checkbox is checked
+        if (!document.getElementById('confirmPaymentCheck').checked) {
+            showToast('error', 'Vui lòng xác nhận đã chuyển khoản trước!');
+            return;
+        }
+
+        var name = document.getElementById('customerName').value.trim();
+        var phone = document.getElementById('customerPhone').value.trim();
+        var address = document.getElementById('customerAddress').value.trim();
+        var notes = document.getElementById('notes').value.trim();
+
+        var btn = document.getElementById('btnConfirmedPayment');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xác nhận...';
+
+        var orderData = {
+            customerName: name,
+            customerPhone: phone,
+            customerAddress: address,
+            notes: notes,
             paymentMethod: 'qr'
         };
 
@@ -451,74 +928,143 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderData)
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(function(res) {
+            if (!res.ok) {
+                // HTTP error (4xx/5xx)
+                throw new Error('Lỗi mạng (mã ' + res.status + '). Vui lòng kiểm tra kết nối và thử lại.');
+            }
+            return res.json();
+        })
+        .then(function(data) {
             if (data.success) {
-                showToast('Đặt hàng thành công! Mã đơn hàng: #' + data.orderId, 'success');
-                button.innerHTML = '<i class="fas fa-check-circle me-2"></i>Thành công!';
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-success');
+                // Persist orderId for F5 resilience on success page
+                try { sessionStorage.setItem('webstore_last_order_id', data.orderId); } catch(e) {}
 
-                setTimeout(() => {
-                    window.location.href = '@Url.Action("Cart", "Shop")';
-                }, 2000);
+                // Show Step 3
+                document.getElementById('step2-qr').style.display = 'none';
+                document.getElementById('step3-success').style.display = 'block';
+
+                // Update order code
+                document.getElementById('orderCodeDisplay').textContent = '#' + data.orderId;
+
+                // Update step indicator
+                document.getElementById('step2-indicator').classList.remove('active');
+                document.getElementById('step2-indicator').classList.add('completed');
+                document.getElementById('step3-indicator').classList.add('active');
+                document.getElementById('stepLine2').classList.add('active');
+
+                // Persist step 3 state
+                saveCheckoutState();
+
+                // Start tracking animation
+                startTrackingAnimation();
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                showToast('success', 'Thanh toán thành công! Cảm ơn bạn đã đặt hàng.');
             } else {
-                showToast(data.message || 'Có lỗi xảy ra, vui lòng thử lại', 'error');
-                button.innerHTML = originalText;
-                button.disabled = false;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Đã thanh toán';
+                showToast('error', data.message || 'Đặt hàng thất bại. Vui lòng nhập đúng định dạng hoặc liên hệ hỗ trợ.');
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Có lỗi xảy ra, vui lòng thử lại', 'error');
-            button.innerHTML = originalText;
-            button.disabled = false;
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Đã thanh toán';
+            // Distinguish network vs server error
+            var msg = err.message && err.message.includes('Lỗi mạng')
+                ? err.message
+                : 'Thanh toán thất bại do lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.';
+            showToast('error', msg);
         });
     }
 
-    function showToast(message, type) {
-        const container = document.getElementById('toastContainer') || (function() {
-            const div = document.createElement('div');
-            div.id = 'toastContainer';
-            div.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;max-width:350px;';
-            document.body.appendChild(div);
-            return div;
-        })();
+    // =====================================================
+    // Tracking Animation
+    // =====================================================
+    function startTrackingAnimation() {
+        var steps = document.querySelectorAll('.tracking-step');
+        var baseTime = new Date();
 
-        const colors = {
-            success: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-            error: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-            warning: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)',
-            info: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        };
+        var times = [
+            formatTime(0),
+            formatTime(3),
+            formatTime(15),
+            formatTime(30),
+            formatTime(45)
+        ];
 
-        const icons = {
-            success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
-            warning: 'fa-exclamation-triangle',
-            info: 'fa-info-circle'
-        };
+        // Reset all steps
+        steps.forEach(function(step, idx) {
+            step.classList.remove('completed', 'active');
+            if (idx === 0) {
+                step.classList.add('completed');
+            }
+        });
 
-        const toast = document.createElement('div');
-        toast.style.cssText = 'background:' + colors[type] + ';color:white;padding:1rem 1.25rem;border-radius:12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;box-shadow:0 5px 20px rgba(0,0,0,0.2);animation:slideIn 0.3s ease;';
-        toast.innerHTML = '<i class="fas ' + icons[type] + '"></i><span style="flex:1">' + message + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">&times;</button>';
+        // Animate each step
+        var delays = [0, 2500, 5000, 8500, 12000];
+        steps.forEach(function(step, idx) {
+            if (idx === 0) return;
+            var stepNum = idx + 1;
 
-        const style = document.createElement('style');
-        style.textContent = '@@keyframes slideIn{from{opacity:0;transform:translateX(50px);}to{opacity:1;transform:translateX(0);}}';
-        document.head.appendChild(style);
+            setTimeout(function() {
+                step.classList.add('active');
+                var timeEl = document.getElementById('step' + stepNum + '-time');
+                if (timeEl) { timeEl.textContent = times[idx]; }
+            }, delays[idx]);
 
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'slideIn 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
+            setTimeout(function() {
+                step.classList.remove('active');
+                step.classList.add('completed');
+            }, delays[idx] + 2000);
+        });
     }
 
-    // Clear error highlight on input
-    document.querySelectorAll('#checkoutForm .form-control').forEach(el => {
+    function formatTime(minutesLater) {
+        var d = new Date();
+        d.setMinutes(d.getMinutes() + minutesLater);
+        return d.toTimeString().substring(0, 5) + ' ' +
+            ('0' + d.getDate()).slice(-2) + '/' +
+            ('0' + (d.getMonth() + 1)).slice(-2) + '/' +
+            d.getFullYear();
+    }
+
+    // =====================================================
+    // Toast Notification
+    // =====================================================
+    function showToast(type, message) {
+        var icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            info: 'fa-info-circle'
+        };
+        var existing = document.querySelectorAll('.alert-toast');
+        existing.forEach(function(el) { el.remove(); });
+
+        var toast = document.createElement('div');
+        toast.className = 'alert-toast alert-toast-' + type;
+        toast.innerHTML =
+            '<i class="fas ' + (icons[type] || 'fa-info-circle') + '"></i>' +
+            '<span style="flex:1">' + message + '</span>' +
+            '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+        document.body.appendChild(toast);
+
+        setTimeout(function() {
+            if (toast.parentElement) {
+                toast.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(function() {
+                    if (toast.parentElement) { toast.remove(); }
+                }, 300);
+            }
+        }, 5000);
+    }
+
+    // =====================================================
+    // Clear invalid state on input
+    // =====================================================
+    document.querySelectorAll('#customerForm .form-control').forEach(function(el) {
         el.addEventListener('input', function() {
-            this.style.borderColor = '#e9ecef';
+            this.classList.remove('is-invalid');
         });
     });
 </script>

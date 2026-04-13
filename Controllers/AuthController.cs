@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
 using Webstore.Models;
-using System.Security.Cryptography;
 
 namespace Webstore.Controllers
 {
@@ -47,24 +46,9 @@ namespace Webstore.Controllers
                 return View();
             }
 
-            // So sánh mật khẩu - hỗ trợ cả hash và plain text cho data cũ
-            bool ok = false;
-            if (!string.IsNullOrEmpty(account.PasswordHash))
-            {
-                // Thử hash mới trước
-                ok = PasswordHasher.VerifyHash(password, account.PasswordHash);
-                // Nếu không đúng, thử so sánh plain text (backward compatible)
-                if (!ok)
-                {
-                    ok = string.Equals(password, account.PasswordHash, StringComparison.OrdinalIgnoreCase);
-                    // Nếu plain text đúng, tự động cập nhật sang hash cho lần sau
-                    if (ok)
-                    {
-                        account.PasswordHash = PasswordHasher.HashPassword(password);
-                        await _context.SaveChangesAsync();
-                    }
-                }
-            }
+            // So sánh trực tiếp mật khẩu plain text theo yêu cầu
+            bool ok = !string.IsNullOrEmpty(account.PasswordHash)
+                && string.Equals(password, account.PasswordHash, StringComparison.Ordinal);
 
             if (!ok)
             {
@@ -151,8 +135,8 @@ namespace Webstore.Controllers
 
             try
             {
-                // Mã hóa mật khẩu
-                input.PasswordHash = PasswordHasher.HashPassword(password);
+                // Lưu mật khẩu plain text theo yêu cầu
+                input.PasswordHash = password;
                 if (string.IsNullOrEmpty(input.Role)) input.Role = "Customer";
 
                 _context.Accounts.Add(input);
@@ -183,61 +167,5 @@ namespace Webstore.Controllers
         }
     }
 
-    public static class PasswordHasher
-    {
-        private const int SaltSize = 16;
-        private const int HashSize = 32;
-        private const int Iterations = 100000;
-
-        public static string HashPassword(string password)
-        {
-            byte[] salt = new byte[SaltSize];
-            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(salt);
-            }
-
-            byte[] hash;
-            using (var pbkdf2 = new System.Security.Cryptography.Rfc2898DeriveBytes(password, salt, Iterations, System.Security.Cryptography.HashAlgorithmName.SHA256))
-            {
-                hash = pbkdf2.GetBytes(HashSize);
-            }
-
-            byte[] hashBytes = new byte[SaltSize + HashSize];
-            Array.Copy(salt, 0, hashBytes, 0, SaltSize);
-            Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
-
-            return Convert.ToBase64String(hashBytes);
-        }
-
-        public static bool VerifyHash(string password, string storedHash)
-        {
-            if (string.IsNullOrEmpty(storedHash)) return false;
-
-            try
-            {
-                byte[] hashBytes = Convert.FromBase64String(storedHash);
-                if (hashBytes.Length != SaltSize + HashSize) return false;
-
-                byte[] salt = new byte[SaltSize];
-                Array.Copy(hashBytes, 0, salt, 0, SaltSize);
-
-                byte[] storedHashValue = new byte[HashSize];
-                Array.Copy(hashBytes, SaltSize, storedHashValue, 0, HashSize);
-
-                byte[] computedHash;
-                using (var pbkdf2 = new System.Security.Cryptography.Rfc2898DeriveBytes(password, salt, Iterations, System.Security.Cryptography.HashAlgorithmName.SHA256))
-                {
-                    computedHash = pbkdf2.GetBytes(HashSize);
-                }
-
-                return CryptographicOperations.FixedTimeEquals(storedHashValue, computedHash);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-    }
 }
 

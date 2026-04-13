@@ -109,81 +109,152 @@ namespace Webstore.Data
 
             await context.SaveChangesAsync();
 
-            // Lấy ID của categories và suppliers vừa tạo
-            var phoneCategory = await context.Categories.FirstAsync(c => c.Name == "Điện thoại");
-            var laptopCategory = await context.Categories.FirstAsync(c => c.Name == "Laptop");
-            var appleSupplier = await context.Suppliers.FirstAsync(s => s.Name == "Apple Store");
-            var samsungSupplier = await context.Suppliers.FirstAsync(s => s.Name == "Samsung Vietnam");
+            // Lấy ID của categories và suppliers vừa tạo (dùng FirstOrDefault + fallback null-safe)
+            var phoneCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Điện thoại di động");
+            var laptopCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Laptop & Máy tính");
+            var tabletCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Tablet");
+            var accessoryCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Phụ kiện điện tử");
+            var audioCategory = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Thiết bị âm thanh");
+
+            var appleSupplier = await context.Suppliers.FirstOrDefaultAsync(s => s.Name == "Apple Vietnam");
+            var samsungSupplier = await context.Suppliers.FirstOrDefaultAsync(s => s.Name == "Samsung Electronics Vietnam");
+            var dellSupplier = await context.Suppliers.FirstOrDefaultAsync(s => s.Name == "Dell Vietnam");
+            var sonySupplier = await context.Suppliers.FirstOrDefaultAsync(s => s.Name == "Sony Vietnam");
+            var lgSupplier = await context.Suppliers.FirstOrDefaultAsync(s => s.Name == "LG Electronics Vietnam");
+
+            // Fallback placeholder cho ảnh (dùng ảnh cục bộ tránh broken external links)
+            var placeholderImg = "/images/products/placeholder.png";
 
             // Tạo sản phẩm công nghệ mẫu
-            var products = new List<Product>
+            var products = new List<Product>();
+
+            if (phoneCategory != null && appleSupplier != null)
             {
-                new Product
+                products.Add(new Product
                 {
                     Name = "iPhone 15 Pro Max 256GB",
-                    Description = "iPhone 15 Pro Max. Titan. Nút Action. Chip A17 Pro. Camera chính 48MP. Dynamic Island.",
+                    Description = "iPhone 15 Pro Max. Titan. Nút Action. Chip A17 Pro. Camera chính 48MP. Dynamic Island. Pin siêu bền cả ngày.",
                     Price = 34990000,
-                    ImageUrl = "https://images.apple.com/media/us/iphone-15/2023/16c928ee-07a5-4a38-8d56-30ba4c6b445c/PDP_LOGO_14__CCCOSD932E2E_FMT_WHH.jpg",
+                    ImageUrl = placeholderImg,
                     CategoryId = phoneCategory.CategoryId,
                     SupplierId = appleSupplier.SupplierId
-                },
-                new Product
+                });
+            }
+
+            if (phoneCategory != null && samsungSupplier != null)
+            {
+                products.Add(new Product
                 {
                     Name = "Samsung Galaxy S24 Ultra 5G",
-                    Description = "Galaxy S24 Ultra với S Pen, màn hình Dynamic AMOLED 2X 6.8\", camera 200MP, pin 5000mAh",
+                    Description = "Galaxy S24 Ultra với S Pen tích hợp, màn hình Dynamic AMOLED 2X 6.8 inch, camera 200MP, pin 5000mAh, hỗ trợ AI.",
                     Price = 29990000,
-                    ImageUrl = "https://images.samsung.com/us/smartphones/galaxy-s24/galaxy-s24-ultra/assets/images/gallery/galaxy-s24-ultra-titanium-black-gallery-front.jpg",
+                    ImageUrl = placeholderImg,
                     CategoryId = phoneCategory.CategoryId,
                     SupplierId = samsungSupplier.SupplierId
-                },
-                new Product
+                });
+            }
+
+            if (laptopCategory != null && appleSupplier != null)
+            {
+                products.Add(new Product
                 {
-                    Name = "MacBook Pro 14\" M3 Pro",
-                    Description = "Chip M3 Pro 12-core CPU, 18-core GPU, 18GB RAM, 512GB SSD, Liquid Retina XDR display",
+                    Name = "MacBook Pro 14 inch M3 Pro",
+                    Description = "Chip M3 Pro 12-core CPU, 18-core GPU, 18GB RAM, 512GB SSD, Liquid Retina XDR display, pin 17h.",
                     Price = 49990000,
-                    ImageUrl = "https://images.apple.com/media/us/macbook-pro/2023/16ada7ff-5a81-4491-a67f-fa1aad0a0657/og__cvrebk237zkm_og.jpg",
+                    ImageUrl = placeholderImg,
                     CategoryId = laptopCategory.CategoryId,
                     SupplierId = appleSupplier.SupplierId
-                },
-                new Product
+                });
+            }
+
+            if (laptopCategory != null && dellSupplier != null)
+            {
+                products.Add(new Product
                 {
                     Name = "Dell XPS 15 9530",
-                    Description = "Intel Core i9-13900H, RTX 4070, 32GB RAM, 1TB SSD, 15.6\" 3.5K OLED Touch",
+                    Description = "Intel Core i9-13900H, RTX 4070, 32GB RAM, 1TB SSD, 15.6 inch 3.5K OLED Touch, Windows 11.",
                     Price = 69990000,
-                    ImageUrl = "https://i.dell.com/is/image/DellContent/contexts/ctx_7521900bc10ec0f7~ctx_92cd643cc5f10bf5/images/transparent/15-9530-FHD-InfinityEdge-Webcam-Hero-500x500-GLF.pngw=500",
+                    ImageUrl = placeholderImg,
                     CategoryId = laptopCategory.CategoryId,
-                    SupplierId = context.Suppliers.First(s => s.Name == "Dell Vietnam").SupplierId
-                },
-                new Product
+                    SupplierId = dellSupplier.SupplierId
+                });
+            }
+
+            if (audioCategory != null && sonySupplier != null)
+            {
+                products.Add(new Product
                 {
                     Name = "Sony WH-1000XM5",
-                    Description = "Tai nghe chống ồn cao cấp, 30 giờ pin, LDAC, Multipoint, 8 mic",
+                    Description = "Tai nghe chống ồn cao cấp nhất của Sony, 30 giờ pin, LDAC, kết nối Multipoint, 8 micro khử ồn AI.",
                     Price = 9990000,
-                    ImageUrl = "https://www.sony.com/image/cc/images/en_US/electronics/product_images/WH1000XM5_L.jpg",
-                    CategoryId = context.Categories.First(c => c.Name == "Thiết bị âm thanh").CategoryId,
-                    SupplierId = context.Suppliers.First(s => s.Name == "Sony Vietnam").SupplierId
-                },
-                new Product
+                    ImageUrl = placeholderImg,
+                    CategoryId = audioCategory.CategoryId,
+                    SupplierId = sonySupplier.SupplierId
+                });
+            }
+
+            if (tabletCategory != null && appleSupplier != null)
+            {
+                products.Add(new Product
                 {
-                    Name = "iPad Pro 12.9\" M2",
-                    Description = "M2 chip, 12.9-inch Liquid Retina XDR display, 256GB, WiFi + 5G",
+                    Name = "iPad Pro 12.9 inch M2",
+                    Description = "M2 chip mạnh mẽ, 12.9-inch Liquid Retina XDR display, 256GB, WiFi + 5G, hỗ trợ Apple Pencil Gen 2.",
                     Price = 32990000,
-                    ImageUrl = "https://images.apple.com/media/us/ipad-pro/2022/296bea55-91e0-4112-9a27-fa34b47cca63/og__bnnpzy8kceea_og.jpg",
-                    CategoryId = context.Categories.First(c => c.Name == "Tablet").CategoryId,
+                    ImageUrl = placeholderImg,
+                    CategoryId = tabletCategory.CategoryId,
                     SupplierId = appleSupplier.SupplierId
-                },
-                new Product
+                });
+            }
+
+            if (accessoryCategory != null && lgSupplier != null)
+            {
+                products.Add(new Product
                 {
                     Name = "LG UltraGear 27GR95QE-B",
-                    Description = "Màn hình gaming 27\" OLED, 2K, 240Hz, 0.03ms GtG, G-Sync, FreeSync Premium",
+                    Description = "Màn hình gaming 27 inch OLED, 2K QHD, 240Hz, 0.03ms GtG, G-Sync Compatible, FreeSync Premium Pro.",
                     Price = 19990000,
-                    ImageUrl = "https://www.lg.com/us/en/products/gaming/monitors/oled-monitor-27gr95qe-b.jpg",
-                    CategoryId = context.Categories.First(c => c.Name == "Phụ kiện điện tử").CategoryId,
-                    SupplierId = context.Suppliers.First(s => s.Name == "LG Electronics Vietnam").SupplierId
-                }
-            };
-            context.Products.AddRange(products);
+                    ImageUrl = placeholderImg,
+                    CategoryId = accessoryCategory.CategoryId,
+                    SupplierId = lgSupplier.SupplierId
+                });
+            }
 
+            // Thêm 13 sản phẩm mẫu còn lại để đạt 20 sản phẩm
+            if (phoneCategory != null)
+            {
+                products.Add(new Product { Name = "iPhone 15 Pro 128GB", Description = "Chip A17 Pro, camera 48MP, titanium grade 5, USB-C 3.0.", Price = 27990000, ImageUrl = placeholderImg, CategoryId = phoneCategory.CategoryId, SupplierId = appleSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "iPhone 15 256GB", Description = "Chip A16 Bionic, camera 48MP, Dynamic Island, pin 24h.", Price = 22990000, ImageUrl = placeholderImg, CategoryId = phoneCategory.CategoryId, SupplierId = appleSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "Samsung Galaxy Z Fold5", Description = "Màn hình gập 7.6 inch, Snapdragon 8 Gen 2, camera 50MP.", Price = 39990000, ImageUrl = placeholderImg, CategoryId = phoneCategory.CategoryId, SupplierId = samsungSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "Samsung Galaxy Z Flip5", Description = "Màn hình gập nhỏ gọn 6.7 inch, Snapdragon 8 Gen 2, Flex Mode.", Price = 22990000, ImageUrl = placeholderImg, CategoryId = phoneCategory.CategoryId, SupplierId = samsungSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "Xiaomi 14 Pro", Description = "Snapdragon 8 Gen 3, Leica camera 50MP, 120W HyperCharge.", Price = 19990000, ImageUrl = placeholderImg, CategoryId = phoneCategory.CategoryId, SupplierId = samsungSupplier?.SupplierId ?? 0 });
+            }
+
+            if (laptopCategory != null)
+            {
+                products.Add(new Product { Name = "MacBook Air 15 M3", Description = "Chip M3, 15.3 inch Liquid Retina, 18GB RAM, 256GB SSD, pin 18h.", Price = 34990000, ImageUrl = placeholderImg, CategoryId = laptopCategory.CategoryId, SupplierId = appleSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "Dell Inspiron 15 3530", Description = "Intel Core i5-1335U, 8GB RAM, 512GB SSD, 15.6 inch FHD.", Price = 15990000, ImageUrl = placeholderImg, CategoryId = laptopCategory.CategoryId, SupplierId = dellSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "ASUS ROG Zephyrus G14", Description = "AMD Ryzen 9 7940HS, RTX 4070, 16GB RAM, 1TB SSD, 14 inch.", Price = 54990000, ImageUrl = placeholderImg, CategoryId = laptopCategory.CategoryId, SupplierId = dellSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "HP Pavilion 15", Description = "Intel Core i7-1355U, 16GB RAM, 512GB SSD, 15.6 inch IPS.", Price = 21990000, ImageUrl = placeholderImg, CategoryId = laptopCategory.CategoryId, SupplierId = dellSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "Lenovo ThinkPad X1 Carbon", Description = "Intel Core i7-1365U, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 49990000, ImageUrl = placeholderImg, CategoryId = laptopCategory.CategoryId, SupplierId = dellSupplier?.SupplierId ?? 0 });
+            }
+
+            if (tabletCategory != null)
+            {
+                products.Add(new Product { Name = "Samsung Galaxy Tab S9 Ultra", Description = "Snapdragon 8 Gen 2, 14.6 inch AMOLED 120Hz, S Pen included.", Price = 28990000, ImageUrl = placeholderImg, CategoryId = tabletCategory.CategoryId, SupplierId = samsungSupplier?.SupplierId ?? 0 });
+            }
+
+            if (audioCategory != null)
+            {
+                products.Add(new Product { Name = "AirPods Pro 2", Description = "Chip H2, Active Noise Cancellation, Adaptive Audio, USB-C, 6h pin.", Price = 6490000, ImageUrl = placeholderImg, CategoryId = audioCategory.CategoryId, SupplierId = appleSupplier?.SupplierId ?? 0 });
+                products.Add(new Product { Name = "Sony WF-1000XM5", Description = "Tai nghe True Wireless chống ồn, 8h pin, LDAC, Multipoint.", Price = 7490000, ImageUrl = placeholderImg, CategoryId = audioCategory.CategoryId, SupplierId = sonySupplier?.SupplierId ?? 0 });
+            }
+
+            if (accessoryCategory != null)
+            {
+                products.Add(new Product { Name = "Logitech MX Master 3S", Description = "Chuột không dây cao cấp, 8K DPI, scroll电磁, kết nối 3 thiết bị.", Price = 2490000, ImageUrl = placeholderImg, CategoryId = accessoryCategory.CategoryId, SupplierId = dellSupplier?.SupplierId ?? 0 });
+            }
+
+            context.Products.AddRange(products);
             await context.SaveChangesAsync();
 
             // Tạo inventory cho các sản phẩm

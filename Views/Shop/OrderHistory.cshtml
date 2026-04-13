@@ -1,0 +1,234 @@
+@model List<Webstore.Models.Order>
+@{
+    ViewData["Title"] = "Lịch sử đơn hàng";
+    Layout = "_ShopLayout";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container">
+        <h1 class="page-title"><i class="fas fa-receipt me-2"></i>Lịch sử đơn hàng</h1>
+        <p class="page-subtitle mb-0">Theo dõi và quản lý các đơn hàng của bạn</p>
+    </div>
+</div>
+
+<div class="container py-5">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="empty-orders-state">
+            <div class="empty-orders-icon">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <h3>Chưa có đơn hàng nào</h3>
+            <p>Bạn chưa có đơn hàng nào. Hãy bắt đầu mua hàng ngay!</p>
+            <a asp-controller="Shop" asp-action="Products" class="btn btn-hero-primary">
+                <i class="fas fa-shopping-bag me-2"></i>Mua hàng ngay
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="orders-list">
+            @foreach (var order in Model)
+            {
+                var statusClass = order.Status switch
+                {
+                    "Pending" => "status-pending",
+                    "Confirmed" => "status-confirmed",
+                    "Processing" => "status-processing",
+                    "Shipped" => "status-shipped",
+                    "Delivered" => "status-delivered",
+                    "Cancelled" => "status-cancelled",
+                    _ => "status-pending"
+                };
+                var statusText = order.Status switch
+                {
+                    "Pending" => "Chờ xác nhận",
+                    "Confirmed" => "Đã xác nhận",
+                    "Processing" => "Đang xử lý",
+                    "Shipped" => "Đang vận chuyển",
+                    "Delivered" => "Đã giao hàng",
+                    "Cancelled" => "Đã hủy",
+                    _ => order.Status
+                };
+
+                <div class="order-card mb-3">
+                    <div class="order-card-header">
+                        <div class="d-flex flex-wrap gap-3 align-items-center">
+                            <div class="order-info">
+                                <span class="order-id">#@order.OrderId.ToString("D4")</span>
+                                <span class="order-date">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <div class="order-status-badge @statusClass">
+                                <i class="fas @(order.Status switch {
+                                    "Pending" => "fa-clock",
+                                    "Confirmed" => "fa-check",
+                                    "Processing" => "fa-boxes-packing",
+                                    "Shipped" => "fa-truck-fast",
+                                    "Delivered" => "fa-house-chimney",
+                                    "Cancelled" => "fa-ban",
+                                    _ => "fa-circle"
+                                }) me-1"></i>
+                                @statusText
+                            </div>
+                        </div>
+                        <div class="order-total">
+                            <span class="order-total-label">Tổng tiền:</span>
+                            <span class="order-total-amount">@order.TotalAmount.ToString("N0") ₫</span>
+                        </div>
+                    </div>
+
+                    <div class="order-card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="order-customer">
+                                    <div class="customer-item">
+                                        <i class="fas fa-user"></i>
+                                        <strong>@order.CustomerName</strong>
+                                    </div>
+                                    <div class="customer-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>@order.CustomerPhone</span>
+                                    </div>
+                                    <div class="customer-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span>@order.CustomerAddress</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                                <a asp-controller="Shop" asp-action="OrderDetail" asp-route-id="@order.OrderId" class="btn btn-view-order">
+                                    <i class="fas fa-eye me-1"></i>Xem chi tiết
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        padding: 28px 0;
+    }
+    .page-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: white;
+        margin: 0 0 4px;
+    }
+    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+
+    /* Empty State */
+    .empty-orders-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+    .empty-orders-icon {
+        width: 120px; height: 120px;
+        background: linear-gradient(135deg, var(--primary-lightest), white);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 3rem;
+        color: var(--primary);
+        margin: 0 auto 24px;
+        border: 3px dashed var(--primary-lighter);
+    }
+    .empty-orders-state h3 { font-weight: 800; margin-bottom: 10px; }
+    .empty-orders-state p { color: var(--text-muted); margin-bottom: 24px; }
+
+    /* Order Card */
+    .order-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        transition: var(--transition);
+    }
+    .order-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+    .order-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .order-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .order-id {
+        font-weight: 800;
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+    .order-date {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        background: white;
+        padding: 4px 12px;
+        border-radius: 50px;
+        border: 1px solid var(--border);
+    }
+    .order-total { text-align: right; }
+    .order-total-label { font-size: 0.82rem; color: var(--text-muted); display: block; }
+    .order-total-amount { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+
+    /* Status Badge */
+    .order-status-badge {
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .status-pending { background: #FEF3C7; color: #D97706; }
+    .status-confirmed { background: #DBEAFE; color: #2563EB; }
+    .status-processing { background: #E0E7FF; color: #4F46E5; }
+    .status-shipped { background: #CFFAFE; color: #0891B2; }
+    .status-delivered { background: #D1FAE5; color: #059669; }
+    .status-cancelled { background: #FEE2E2; color: #DC2626; }
+
+    .order-card-body { padding: 16px 24px; }
+    .order-customer { display: flex; flex-direction: column; gap: 8px; }
+    .customer-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.88rem;
+    }
+    .customer-item i { width: 18px; color: var(--primary); text-align: center; }
+    .btn-view-order {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 8px 20px;
+        transition: var(--transition);
+    }
+    .btn-view-order:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); color: white; }
+
+    .btn-hero-primary {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+        padding: 14px 28px;
+        border-radius: 50px;
+        font-weight: 700;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        transition: var(--transition);
+    }
+    .btn-hero-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); color: white; }
+</style>

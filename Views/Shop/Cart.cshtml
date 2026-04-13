@@ -82,7 +82,7 @@
                 <!-- Continue Shopping -->
                 <div class="mt-3">
                     <a asp-controller="Shop" asp-action="Products" class="btn btn-back-shop">
-                        <i class="fas fa-arrow-left me-2"></i>Tiếp tục mua sắm
+                        <i class="fas fa-arrow-left me-2"></i>Tiếp tục mua hàng
                     </a>
                 </div>
             </div>
@@ -149,9 +149,9 @@
                 <i class="fas fa-shopping-cart"></i>
             </div>
             <h3>Giỏ hàng trống</h3>
-            <p>Bạn chưa có sản phẩm nào trong giỏ hàng. Hãy bắt đầu mua sắm ngay!</p>
+            <p>Bạn chưa có sản phẩm nào trong giỏ hàng. Hãy bắt đầu mua hàng ngay!</p>
             <a asp-controller="Shop" asp-action="Products" class="btn btn-hero-primary">
-                <i class="fas fa-shopping-bag me-2"></i>Bắt đầu mua sắm
+                <i class="fas fa-shopping-bag me-2"></i>Mua hàng ngay
             </a>
         </div>
     }
@@ -449,7 +449,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'productId=' + productId + '&quantity=' + quantity
-        }).then(function(res) { window.location.reload(); });
+        }).then(function(res) { return res.json(); })
+          .then(function(data) {
+              if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
+              else { window.location.reload(); }
+          }).catch(function() { window.location.reload(); });
     }
 
     function removeCartItem(productId) {
@@ -458,14 +462,18 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'productId=' + productId
-        }).then(function(res) { window.location.reload(); });
+        }).then(function(res) { return res.json(); })
+          .then(function(data) {
+              if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
+              else { window.location.reload(); }
+          }).catch(function() { window.location.reload(); });
     }
 
     function clearSelected() {
-        const checked = document.querySelectorAll('.select-for-checkout:checked');
+        var checked = document.querySelectorAll('.select-for-checkout:checked');
         if (checked.length === 0) { alert('Vui lòng chọn sản phẩm để xóa.'); return; }
         if (!confirm('Xóa ' + checked.length + ' sản phẩm đã chọn?')) return;
-        let promises = [];
+        var promises = [];
         checked.forEach(function(cb) {
             promises.push(fetch('@Url.Action("RemoveFromCart", "Shop")', {
                 method: 'POST',
@@ -477,7 +485,7 @@
     }
 
     function goCheckout() {
-        const selected = Array.from(document.querySelectorAll('.select-for-checkout:checked'))
+        var selected = Array.from(document.querySelectorAll('.select-for-checkout:checked'))
             .map(function(cb) { return cb.value; })
             .filter(function(v) { return v && v.trim().length > 0; });
         if (!selected || selected.length === 0) {
@@ -497,13 +505,13 @@
             });
         }
 
-        document.body.addEventListener('change', function(e) {
-            if (e.target && e.target.classList && e.target.classList.contains('select-for-checkout')) {
+        checkboxes.forEach(function(cb) {
+            cb.addEventListener('change', function() {
                 if (selectAll) {
-                    var allChecked = Array.from(checkboxes).every(function(cb) { return cb.checked; });
+                    var allChecked = Array.from(checkboxes).every(function(c) { return c.checked; });
                     selectAll.checked = allChecked;
                 }
-            }
+            });
         });
     });
 </script>

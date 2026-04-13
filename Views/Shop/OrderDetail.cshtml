@@ -1,0 +1,348 @@
+@model Webstore.Models.Order
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng #" + Model.OrderId.ToString("D4");
+    Layout = "_ShopLayout";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <a asp-controller="Shop" asp-action="OrderHistory" class="btn btn-back-sm">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="page-title mb-1">Đơn hàng #@Model.OrderId.ToString("D4")</h1>
+                <p class="page-subtitle mb-0">Đặt lúc @Model.OrderDate.ToString("HH:mm dd/MM/yyyy")</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row g-4">
+        <!-- Order Items -->
+        <div class="col-lg-8">
+            <div class="checkout-card mb-4">
+                <div class="checkout-card-header">
+                    <h5><i class="fas fa-box-open me-2"></i>Sản phẩm đã đặt (@(Model.OrderItems?.Count() ?? 0))</h5>
+                </div>
+                <div class="checkout-card-body p-0">
+                    @if (Model.OrderItems != null)
+                    {
+                        foreach (var item in Model.OrderItems)
+                        {
+                            <div class="order-detail-item">
+                                <div class="item-img">
+                                    @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
+                                    {
+                                        <img src="@item.Product.ImageUrl" alt="@item.Product.Name" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-box text-muted"></i>
+                                    }
+                                </div>
+                                <div class="item-info">
+                                    <h6 class="item-name">@item.Product?.Name</h6>
+                                    <div class="item-meta">
+                                        <span class="item-cat">@item.Product?.Category?.Name</span>
+                                        <span class="item-qty">x @item.Quantity</span>
+                                    </div>
+                                </div>
+                                <div class="item-price">
+                                    <div class="item-unit">@item.UnitPrice.ToString("N0") ₫</div>
+                                    <div class="item-total">@((item.UnitPrice * item.Quantity).ToString("N0")) ₫</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Shipping Tracking -->
+            <div class="checkout-card">
+                <div class="checkout-card-header">
+                    <h5><i class="fas fa-truck me-2"></i>Theo dõi vận chuyển</h5>
+                </div>
+                <div class="checkout-card-body">
+                    <div class="tracking-timeline">
+                        @{
+                            var steps = new[] {
+                                ("Đã đặt hàng", "fa-check", "completed", Model.OrderDate.ToString("HH:mm dd/MM/yyyy")),
+                                ("Xác nhận thanh toán", "fa-wallet", Model.Status != "Pending" ? "completed" : "pending", Model.Status != "Pending" ? Model.OrderDate.AddMinutes(3).ToString("HH:mm dd/MM/yyyy") : "--:--"),
+                                ("Đang chuẩn bị hàng", "fa-boxes-packing", Model.Status == "Processing" || Model.Status == "Shipped" || Model.Status == "Delivered" ? "completed" : (Model.Status == "Confirmed" ? "active" : "pending"), Model.Status == "Processing" || Model.Status == "Shipped" || Model.Status == "Delivered" ? Model.OrderDate.AddMinutes(15).ToString("HH:mm dd/MM/yyyy") : "--:--"),
+                                ("Đang vận chuyển", "fa-truck-fast", Model.Status == "Shipped" || Model.Status == "Delivered" ? "completed" : (Model.Status == "Processing" ? "active" : "pending"), Model.Status == "Shipped" || Model.Status == "Delivered" ? Model.OrderDate.AddMinutes(30).ToString("HH:mm dd/MM/yyyy") : "--:--"),
+                                ("Đã giao hàng", "fa-house-chimney", Model.Status == "Delivered" ? "completed" : (Model.Status == "Shipped" ? "active" : "pending"), Model.Status == "Delivered" ? Model.OrderDate.AddMinutes(45).ToString("HH:mm dd/MM/yyyy") : "--:--")
+                            };
+                        }
+                        @for (int i = 0; i < steps.Length; i++)
+                        {
+                            var (label, icon, state, time) = steps[i];
+                            <div class="tracking-step @state" data-step="@(i+1)">
+                                <div class="tracking-icon"><i class="fas @icon"></i></div>
+                                <div class="tracking-content">
+                                    <strong>@label</strong>
+                                    <span class="tracking-time">@time</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-lg-4">
+            <div class="checkout-summary-card">
+                <div class="checkout-summary-header">
+                    <h5><i class="fas fa-receipt me-2"></i>Thông tin đơn hàng</h5>
+                </div>
+                <div class="checkout-summary-body">
+                    <div class="info-row">
+                        <span><i class="fas fa-calendar me-2"></i>Ngày đặt</span>
+                        <strong>@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+                    <div class="info-row">
+                        <span><i class="fas fa-wallet me-2"></i>Thanh toán</span>
+                        <strong>QR Code / Chuyển khoản</strong>
+                    </div>
+                    <div class="info-row">
+                        <span><i class="fas fa-circle me-2" style="font-size:0.5rem;"></i>Trạng thái</span>
+                        <span class="status-pill @(Model.Status switch {
+                            "Pending" => "pill-pending",
+                            "Confirmed" => "pill-confirmed",
+                            "Processing" => "pill-processing",
+                            "Shipped" => "pill-shipped",
+                            "Delivered" => "pill-delivered",
+                            "Cancelled" => "pill-cancelled",
+                            _ => "pill-pending"
+                        })">@(
+                            Model.Status switch {
+                                "Pending" => "Chờ xác nhận",
+                                "Confirmed" => "Đã xác nhận",
+                                "Processing" => "Đang xử lý",
+                                "Shipped" => "Đang vận chuyển",
+                                "Delivered" => "Đã giao hàng",
+                                "Cancelled" => "Đã hủy",
+                                _ => Model.Status
+                            }
+                        )</span>
+                    </div>
+
+                    <div class="summary-divider"></div>
+
+                    <div class="info-row">
+                        <span>Tạm tính</span>
+                        <strong>@(((Model.OrderItems?.Sum(i => i.UnitPrice * i.Quantity)) ?? 0m).ToString("N0")) ₫</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Phí vận chuyển</span>
+                        <strong class="text-success">Miễn phí</strong>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="info-row total-row">
+                        <span>Tổng cộng</span>
+                        <strong class="total-price">@Model.TotalAmount.ToString("N0") ₫</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Info -->
+            <div class="checkout-summary-card mt-3">
+                <div class="checkout-summary-header">
+                    <h5><i class="fas fa-user me-2"></i>Địa chỉ giao hàng</h5>
+                </div>
+                <div class="checkout-summary-body">
+                    <div class="info-row">
+                        <span><i class="fas fa-user me-2"></i>Người nhận</span>
+                        <strong>@Model.CustomerName</strong>
+                    </div>
+                    <div class="info-row">
+                        <span><i class="fas fa-phone me-2"></i>Điện thoại</span>
+                        <strong>@Model.CustomerPhone</strong>
+                    </div>
+                    <div class="info-row flex-column align-items-start gap-1">
+                        <span><i class="fas fa-map-marker-alt me-2"></i>Địa chỉ</span>
+                        <strong class="w-100">@Model.CustomerAddress</strong>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <div class="info-row flex-column align-items-start gap-1">
+                            <span><i class="fas fa-sticky-note me-2"></i>Ghi chú</span>
+                            <em class="text-muted">@Model.Notes</em>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <a asp-controller="Shop" asp-action="OrderHistory" class="btn btn-outline-primary w-100 mt-3">
+                <i class="fas fa-arrow-left me-1"></i>Quay lại lịch sử đơn hàng
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        padding: 20px 0;
+    }
+    .page-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: white;
+    }
+    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+    .btn-back-sm {
+        width: 40px; height: 40px;
+        border-radius: var(--radius-md);
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: none;
+        display: flex; align-items: center; justify-content: center;
+        transition: var(--transition);
+    }
+    .btn-back-sm:hover { background: rgba(255,255,255,0.3); color: white; }
+
+    .checkout-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+    .checkout-card-header {
+        padding: 14px 24px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+    }
+    .checkout-card-header h5 { margin: 0; font-weight: 700; font-size: 1rem; }
+    .checkout-card-body { padding: 20px; }
+
+    /* Order Detail Items */
+    .order-detail-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .order-detail-item:last-child { border-bottom: none; }
+    .item-img {
+        width: 70px; height: 70px;
+        background: var(--surface-alt);
+        border-radius: var(--radius-md);
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+        font-size: 1.5rem;
+        color: var(--text-muted);
+    }
+    .item-img img { width: 100%; height: 100%; object-fit: contain; }
+    .item-info { flex: 1; min-width: 0; }
+    .item-name {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .item-meta {
+        display: flex;
+        gap: 10px;
+        font-size: 0.8rem;
+    }
+    .item-cat { color: var(--text-muted); }
+    .item-qty { color: var(--text-secondary); font-weight: 600; }
+    .item-price { text-align: right; flex-shrink: 0; }
+    .item-unit { font-size: 0.8rem; color: var(--text-muted); }
+    .item-total { font-size: 0.95rem; font-weight: 800; color: var(--primary); }
+
+    /* Summary Card */
+    .checkout-summary-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+    .checkout-summary-header {
+        padding: 14px 20px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        color: white;
+    }
+    .checkout-summary-header h5 { margin: 0; font-weight: 700; font-size: 1rem; }
+    .checkout-summary-body { padding: 20px; }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 0.88rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row span:first-child { color: var(--text-secondary); }
+    .info-row i { color: var(--primary); }
+    .summary-divider { border-top: 2px dashed var(--border); margin: 8px 0; }
+    .total-row span:first-child { font-weight: 800; color: var(--text-primary) !important; font-size: 0.95rem; }
+    .total-price { font-size: 1.3rem !important; color: var(--primary) !important; }
+
+    /* Status Pill */
+    .status-pill {
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .pill-pending { background: #FEF3C7; color: #D97706; }
+    .pill-confirmed { background: #DBEAFE; color: #2563EB; }
+    .pill-processing { background: #E0E7FF; color: #4F46E5; }
+    .pill-shipped { background: #CFFAFE; color: #0891B2; }
+    .pill-delivered { background: #D1FAE5; color: #059669; }
+    .pill-cancelled { background: #FEE2E2; color: #DC2626; }
+
+    /* Tracking */
+    .tracking-timeline { padding: 8px 0; }
+    .tracking-step {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        position: relative;
+    }
+    .tracking-step::before {
+        content: '';
+        position: absolute;
+        left: 18px; top: 38px;
+        width: 2px; height: calc(100% + 4px);
+        background: var(--border);
+    }
+    .tracking-step:last-child::before { display: none; }
+    .tracking-icon {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        background: var(--border);
+        color: var(--text-muted);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        z-index: 1;
+        transition: var(--transition);
+    }
+    .tracking-step.completed .tracking-icon { background: var(--success); color: white; }
+    .tracking-step.active .tracking-icon {
+        background: var(--primary); color: white;
+        animation: pulseIcon 1.5s ease infinite;
+    }
+    @@keyframes pulseIcon {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 182, 0.4); }
+        50% { box-shadow: 0 0 0 8px rgba(0, 119, 182, 0); }
+    }
+    .tracking-content { flex: 1; padding-top: 6px; }
+    .tracking-content strong { display: block; font-size: 0.9rem; }
+    .tracking-time { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 2px; }
+</style>

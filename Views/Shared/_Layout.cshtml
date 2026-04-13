@@ -621,7 +621,13 @@
                                     <li><a class="dropdown-item" asp-controller="Shop" asp-action="Index"><i class="fas fa-store"></i>Cửa hàng</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                 }
-                                <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-sign-out-alt"></i>Đăng xuất</a></li>
+                                <li>
+                                    <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
+                                        <button type="submit" class="dropdown-item text-danger w-100 text-start">
+                                            <i class="fas fa-sign-out-alt"></i>Đăng xuất
+                                        </button>
+                                    </form>
+                                </li>
                             </ul>
                         </div>
                     }
