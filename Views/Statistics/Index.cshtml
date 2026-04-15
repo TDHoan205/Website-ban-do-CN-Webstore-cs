@@ -23,7 +23,7 @@
 <div class="row g-3 mb-4">
     <div class="col-lg-3 col-md-6">
         <div class="rev-card">
-            <div class="rev-icon" style="background:linear-gradient(135deg,#10B981,#34D399);">
+            <div class="rev-icon rev-icon-success">
                 <i class="fas fa-calendar-day"></i>
             </div>
             <div class="rev-info">
@@ -35,7 +35,7 @@
     </div>
     <div class="col-lg-3 col-md-6">
         <div class="rev-card">
-            <div class="rev-icon" style="background:linear-gradient(135deg,#0077B6,#00B4D8);">
+            <div class="rev-icon rev-icon-primary">
                 <i class="fas fa-calendar-alt"></i>
             </div>
             <div class="rev-info">
@@ -47,7 +47,7 @@
     </div>
     <div class="col-lg-3 col-md-6">
         <div class="rev-card">
-            <div class="rev-icon" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);">
+            <div class="rev-icon rev-icon-warning">
                 <i class="fas fa-calendar"></i>
             </div>
             <div class="rev-info">
@@ -59,12 +59,12 @@
     </div>
     <div class="col-lg-3 col-md-6">
         <div class="rev-card">
-            <div class="rev-icon" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);">
+            <div class="rev-icon rev-icon-purple">
                 <i class="fas fa-coins"></i>
             </div>
             <div class="rev-info">
                 <div class="rev-label">Tổng doanh thu</div>
-                <div class="rev-value" style="color:#8B5CF6;">@Model.TotalRevenue.ToString("N0") ₫</div>
+                <div class="rev-value rev-value-purple">@Model.TotalRevenue.ToString("N0") ₫</div>
                 <div class="rev-sub"><i class="fas fa-history me-1"></i>Tất cả thời gian</div>
             </div>
         </div>
@@ -74,45 +74,45 @@
 <!-- Order Status Summary -->
 <div class="row g-3 mb-4">
     <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card" style="border-left:4px solid #007bff;">
+        <div class="status-card status-card-new">
             <div class="sc-number">@Model.NewOrders</div>
             <div class="sc-label">Đơn mới</div>
-            <i class="fas fa-inbox sc-icon" style="color:#007bff;"></i>
+            <i class="fas fa-inbox sc-icon sc-icon-new"></i>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card" style="border-left:4px solid #ff9500;">
+        <div class="status-card status-card-processing">
             <div class="sc-number">@Model.ProcessingOrders</div>
             <div class="sc-label">Đang xử lý</div>
-            <i class="fas fa-cog sc-icon" style="color:#ff9500;"></i>
+            <i class="fas fa-cog sc-icon sc-icon-processing"></i>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card" style="border-left:4px solid #9b59b6;">
+        <div class="status-card status-card-shipped">
             <div class="sc-number">@Model.ShippedOrders</div>
             <div class="sc-label">Đã giao shipper</div>
-            <i class="fas fa-truck sc-icon" style="color:#9b59b6;"></i>
+            <i class="fas fa-truck sc-icon sc-icon-shipped"></i>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card" style="border-left:4px solid #10B981;">
+        <div class="status-card status-card-delivered">
             <div class="sc-number">@Model.DeliveredOrders</div>
             <div class="sc-label">Đã giao</div>
-            <i class="fas fa-check-circle sc-icon" style="color:#10B981;"></i>
+            <i class="fas fa-check-circle sc-icon sc-icon-delivered"></i>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card" style="border-left:4px solid #3B82F6;">
+        <div class="status-card status-card-completed">
             <div class="sc-number">@Model.CompletedOrders</div>
             <div class="sc-label">Hoàn thành</div>
-            <i class="fas fa-check-double sc-icon" style="color:#3B82F6;"></i>
+            <i class="fas fa-check-double sc-icon sc-icon-completed"></i>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card" style="border-left:4px solid #EF4444;">
+        <div class="status-card status-card-canceled">
             <div class="sc-number">@Model.CanceledOrders</div>
             <div class="sc-label">Đã hủy</div>
-            <i class="fas fa-times-circle sc-icon" style="color:#EF4444;"></i>
+            <i class="fas fa-times-circle sc-icon sc-icon-canceled"></i>
         </div>
     </div>
 </div>
@@ -143,7 +143,7 @@
                             {
                                 var pct = maxDayRev > 0 ? (double)(day.Revenue / maxDayRev * 100) : 0;
                                 var isToday = day.Date.Date == DateTime.Today;
-                                <tr @(isToday ? "style=background:rgba(0,119,182,0.05);font-weight:600;" : "")>
+                                <tr class="@(isToday ? "row-today" : "")">
                                     <td>
                                         @day.Date.ToString("EEE, dd/MM")
                                         @if (isToday)
@@ -155,14 +155,14 @@
                                     <td class="text-end text-success fw-bold">@day.Revenue.ToString("N0") ₫</td>
                                     <td class="text-end text-muted">@pct.ToString("F1")%</td>
                                     <td>
-                                        <div style="background:#E1E8ED;border-radius:10px;height:18px;overflow:hidden;">
-                                            <div style="background:linear-gradient(90deg,#0077B6,#00B4D8);height:100%;width:@pct.ToString("F0")%;border-radius:10px;"></div>
+                                        <div class="progress-bar-custom">
+                                            <div class="progress-fill-custom" style="width:@pct.ToString("F0")%;"></div>
                                         </div>
                                     </td>
                                 </tr>
                             }
                         </tbody>
-                        <tfoot style="border-top:2px solid #E1E8ED; background:var(--surface-alt);">
+                        <tfoot class="table-foot-custom">
                             <tr>
                                 <td class="fw-bold">Tổng cộng</td>
                                 <td class="text-center fw-bold">@Model.RevenueByDay.Sum(d => d.OrderCount)</td>
@@ -182,12 +182,12 @@
             <div class="card-header"><i class="fas fa-pie-chart me-2"></i>Tổng quan đơn hàng</div>
             <div class="card-body">
                 <div class="status-list">
-                    <div class="status-row"><div class="sr-dot" style="background:#007bff;"></div><span>Đơn mới</span><span class="fw-bold">@Model.NewOrders</span></div>
-                    <div class="status-row"><div class="sr-dot" style="background:#ff9500;"></div><span>Đang xử lý</span><span class="fw-bold">@Model.ProcessingOrders</span></div>
-                    <div class="status-row"><div class="sr-dot" style="background:#9b59b6;"></div><span>Đã giao shipper</span><span class="fw-bold">@Model.ShippedOrders</span></div>
-                    <div class="status-row"><div class="sr-dot" style="background:#10B981;"></div><span>Đã giao</span><span class="fw-bold">@Model.DeliveredOrders</span></div>
-                    <div class="status-row"><div class="sr-dot" style="background:#3B82F6;"></div><span>Hoàn thành</span><span class="fw-bold">@Model.CompletedOrders</span></div>
-                    <div class="status-row"><div class="sr-dot" style="background:#EF4444;"></div><span>Đã hủy</span><span class="fw-bold">@Model.CanceledOrders</span></div>
+                    <div class="status-row"><div class="sr-dot sr-dot-new"></div><span>Đơn mới</span><span class="fw-bold">@Model.NewOrders</span></div>
+                    <div class="status-row"><div class="sr-dot sr-dot-processing"></div><span>Đang xử lý</span><span class="fw-bold">@Model.ProcessingOrders</span></div>
+                    <div class="status-row"><div class="sr-dot sr-dot-shipped"></div><span>Đã giao shipper</span><span class="fw-bold">@Model.ShippedOrders</span></div>
+                    <div class="status-row"><div class="sr-dot sr-dot-delivered"></div><span>Đã giao</span><span class="fw-bold">@Model.DeliveredOrders</span></div>
+                    <div class="status-row"><div class="sr-dot sr-dot-completed"></div><span>Hoàn thành</span><span class="fw-bold">@Model.CompletedOrders</span></div>
+                    <div class="status-row"><div class="sr-dot sr-dot-canceled"></div><span>Đã hủy</span><span class="fw-bold">@Model.CanceledOrders</span></div>
                 </div>
                 <hr>
                 <div class="text-center">
@@ -228,14 +228,14 @@
                                         <td class="text-center">@month.OrderCount</td>
                                         <td class="text-end text-success fw-bold">@month.Revenue.ToString("N0") ₫</td>
                                         <td>
-                                            <div style="background:#E1E8ED;border-radius:10px;height:14px;overflow:hidden;">
-                                                <div style="background:linear-gradient(90deg,#0077B6,#00B4D8);height:100%;width:@pct.ToString("F0")%;border-radius:10px;"></div>
+                                            <div class="progress-bar-sm">
+                                                <div class="progress-fill-custom" style="width:@pct.ToString("F0")%;"></div>
                                             </div>
                                         </td>
                                     </tr>
                                 }
                             </tbody>
-                            <tfoot style="border-top:2px solid #E1E8ED; background:var(--surface-alt);">
+                            <tfoot class="table-foot-custom">
                                 <tr>
                                     <td class="fw-bold">Tổng</td>
                                     <td class="text-center fw-bold">@Model.RevenueByMonth.Sum(m => m.OrderCount)</td>
@@ -260,7 +260,7 @@
     <!-- Top Products -->
     <div class="col-lg-6">
         <div class="card h-100">
-            <div class="card-header"><i class="fas fa-fire me-2" style="color:#FF6B6B;"></i>Top sản phẩm bán chạy</div>
+            <div class="card-header"><i class="fas fa-fire me-2" style="color:var(--danger);"></i>Top sản phẩm bán chạy</div>
             <div class="card-body p-0">
                 @if (Model.TopProducts.Any())
                 {
@@ -281,7 +281,7 @@
                                     <td>
                                         @if (rank == 0)
                                         {
-                                            <span class="badge" style="background:linear-gradient(135deg,#FFD700,#FF8C00);color:#333;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:0.8rem;"><i class="fas fa-trophy"></i></span>
+                                            <span class="badge-trophy"><i class="fas fa-trophy"></i></span>
                                         }
                                         else
                                         {
@@ -292,13 +292,13 @@
                                         <div class="d-flex align-items-center gap-2">
                                             @if (!string.IsNullOrEmpty(product.ImageUrl))
                                             {
-                                                <img src="@product.ImageUrl" style="width:36px;height:36px;object-fit:contain;border-radius:8px;background:#F0F8FF;" />
+                                                <img src="@product.ImageUrl" style="width:36px;height:36px;object-fit:contain;border-radius:8px;background:var(--surface-alt);" />
                                             }
                                             else
                                             {
-                                                <div style="width:36px;height:36px;background:#F0F8FF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#9CA8B3;"><i class="fas fa-box"></i></div>
+                                                <div style="width:36px;height:36px;background:var(--surface-alt);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);"><i class="fas fa-box"></i></div>
                                             }
-                                            <span class="fw-bold" style="font-size:0.88rem;">@product.ProductName</span>
+                                            <span class="product-name-cell fw-bold">@product.ProductName</span>
                                         </div>
                                     </td>
                                     <td class="text-center"><span class="badge" style="background:var(--primary);">@product.TotalSold</span></td>
@@ -453,4 +453,83 @@
     .sr-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .status-row span:first-of-type { flex: 1; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
     .status-row span:last-of-type { font-size: 0.95rem; }
+
+    /* Gradient icon variants */
+    .rev-icon-success { background: linear-gradient(135deg, var(--success) 0%, #34D399 100%); }
+    .rev-icon-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); }
+    .rev-icon-warning { background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%); }
+    .rev-icon-purple  { background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%); }
+
+    /* Status border variants */
+    .status-card-new        { border-left: 4px solid var(--primary); }
+    .status-card-processing { border-left: 4px solid #ff9500; }
+    .status-card-shipped    { border-left: 4px solid #9b59b6; }
+    .status-card-delivered  { border-left: 4px solid var(--success); }
+    .status-card-completed  { border-left: 4px solid var(--info); }
+    .status-card-canceled   { border-left: 4px solid var(--danger); }
+
+    /* Status icon colors */
+    .sc-icon-new        { color: var(--primary); }
+    .sc-icon-processing  { color: #ff9500; }
+    .sc-icon-shipped     { color: #9b59b6; }
+    .sc-icon-delivered   { color: var(--success); }
+    .sc-icon-completed   { color: var(--info); }
+    .sc-icon-canceled    { color: var(--danger); }
+
+    /* Status dot colors */
+    .sr-dot-new        { background: var(--primary); }
+    .sr-dot-processing  { background: #ff9500; }
+    .sr-dot-shipped    { background: #9b59b6; }
+    .sr-dot-delivered  { background: var(--success); }
+    .sr-dot-completed  { background: var(--info); }
+    .sr-dot-canceled   { background: var(--danger); }
+
+    /* Revenue value colors */
+    .rev-value-purple { color: #8B5CF6; }
+
+    /* Progress bar */
+    .progress-bar-custom {
+        background: var(--border);
+        border-radius: var(--radius-sm);
+        height: 18px;
+        overflow: hidden;
+    }
+    .progress-fill-custom {
+        background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        height: 100%;
+        border-radius: var(--radius-sm);
+    }
+    .progress-bar-sm {
+        background: var(--border);
+        border-radius: var(--radius-sm);
+        height: 14px;
+        overflow: hidden;
+    }
+
+    /* Table row highlight */
+    .row-today { background: rgba(0,119,182,0.05); font-weight: 600; }
+
+    /* Badge color variants */
+    .badge-fire { background: var(--danger); }
+
+    /* Product name in table */
+    .product-name-cell { font-size: 0.88rem; }
+
+    /* Top product trophy badge */
+    .badge-trophy {
+        background: linear-gradient(135deg, #FFD700, #FF8C00);
+        color: #333;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.8rem;
+    }
+
+    .table-foot-custom {
+        border-top: 2px solid var(--border);
+        background: var(--surface-alt);
+    }
 </style>

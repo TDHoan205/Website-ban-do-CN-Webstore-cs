@@ -19,7 +19,7 @@
                 <!-- Avatar Section -->
                 <div class="profile-avatar-section">
                     <div class="profile-avatar">
-                        @(Model.FullName?.Substring(0, 1).ToUpper() ?? "U")
+                        @(string.IsNullOrEmpty(Model.FullName) ? "U" : Model.FullName.Substring(0, 1).ToUpper())
                     </div>
                     <div class="profile-info">
                         <h4>@(string.IsNullOrEmpty(Model.FullName) ? Model.Username : Model.FullName)</h4>
@@ -114,18 +114,6 @@
 </div>
 
 <style>
-    .page-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        padding: 28px 0;
-    }
-    .page-title {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: white;
-        margin: 0 0 4px;
-    }
-    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-
     .profile-card {
         background: white;
         border-radius: var(--radius-xl);
@@ -284,28 +272,15 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save me-2"></i>Lưu thay đổi';
             if (data.success) {
-                showToast('success', data.message);
+                window.showToast('success', data.message);
             } else {
-                showToast('error', data.message);
+                window.showToast('error', data.message);
             }
         })
         .catch(function() {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save me-2"></i>Lưu thay đổi';
-            showToast('error', 'Có lỗi xảy ra, vui lòng thử lại.');
+            window.showToast('error', 'Có lỗi xảy ra, vui lòng thử lại.');
         });
     });
-
-    function showToast(type, message) {
-        var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
-        var existing = document.querySelectorAll('.alert-toast');
-        existing.forEach(function(el) { el.remove(); });
-        var toast = document.createElement('div');
-        toast.className = 'alert-toast alert-toast-' + type;
-        toast.innerHTML = '<i class="fas ' + (icons[type] || 'fa-info-circle') + '"></i><span style="flex:1">' + message + '</span><button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
-        document.body.appendChild(toast);
-        setTimeout(function() {
-            if (toast.parentElement) { toast.style.animation = 'slideInRight 0.3s ease reverse'; setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300); }
-        }, 3500);
-    }
 </script>

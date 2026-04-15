@@ -8,11 +8,11 @@
 <div class="page-header-sm">
     <div class="container">
         <nav aria-label="breadcrumb">
-            <ol class="breadcrumb" style="background:transparent;padding:0;margin:0;font-size:0.85rem;">
-                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index" style="color:rgba(255,255,255,0.7);">Trang chủ</a></li>
-                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products" style="color:rgba(255,255,255,0.7);">Sản phẩm</a></li>
-                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@Model.CategoryId" style="color:rgba(255,255,255,0.7);">@(Model.Category?.Name ?? "Danh mục")</a></li>
-                <li class="breadcrumb-item active" style="color:white;">@Model.Name</li>
+            <ol class="breadcrumb breadcrumb-light">
+                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products">Sản phẩm</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@Model.CategoryId">@(Model.Category?.Name ?? "Danh mục")</a></li>
+                <li class="breadcrumb-item active">@Html.Encode(Model.Name)</li>
             </ol>
         </nav>
     </div>
@@ -30,7 +30,12 @@
                     }
                     else
                     {
-                        <div class="gallery-placeholder"><i class="fas fa-box fa-5x text-muted"></i></div>
+                        <div class="gallery-placeholder">
+                            <div style="text-align:center;color:var(--text-muted);">
+                                <i class="fas fa-box fa-5x"></i>
+                                <p style="margin-top:12px;font-weight:700;font-size:0.85rem;">@Html.Encode(Model.Name)</p>
+                            </div>
+                        </div>
                     }
                 </div>
                 @if (!string.IsNullOrEmpty(Model.ImageUrl))
@@ -47,7 +52,7 @@
             <div class="product-detail-card">
                 <div class="detail-header">
                     <div class="detail-category">@Model.Category?.Name</div>
-                    <h1 class="detail-title">@Model.Name</h1>
+                    <h1 class="detail-title">@Html.Encode(Model.Name)</h1>
                     <div class="detail-rating">
                         <span class="stars">
                             <i class="fas fa-star"></i>
@@ -67,7 +72,7 @@
 
                 <div class="detail-desc">
                     <h6><i class="fas fa-info-circle me-2"></i>Mô tả sản phẩm</h6>
-                    <p>@(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
+                    <p>@Html.Encode(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
                 </div>
 
                 <div class="detail-meta">
@@ -152,7 +157,7 @@
                     <div class="tab-pane active" id="description">
                         <div class="tab-content-card">
                             <h5>Mô tả chi tiết sản phẩm</h5>
-                            <p>@(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
+                            <p>@Html.Encode(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
                             <ul>
                                 <li>Chất liệu cao cấp, bền đẹp theo thời gian</li>
                                 <li>Thiết kế hiện đại, sang trọng</li>
@@ -237,7 +242,10 @@
                                     }
                                     else
                                     {
-                                        <i class="fas fa-box fa-3x text-muted"></i>
+                                        <div class="img-placeholder">
+                                            <i class="fas fa-box" style="font-size:3rem;"></i>
+                                            <span class="placeholder-name">@Html.Encode(product.Name)</span>
+                                        </div>
                                     }
                                     <div class="product-overlay"><i class="fas fa-eye"></i></div>
                                 </a>
@@ -540,6 +548,27 @@
     .reviewer-info strong { font-size: 0.9rem; }
     .review-stars { color: #F59E0B; font-size: 0.78rem; }
     .review-text { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 4px; }
+
+    /* Breadcrumb light variant for product page */
+    .breadcrumb-light {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: 0.85rem;
+    }
+    .breadcrumb-light .breadcrumb-item a {
+        color: rgba(255,255,255,0.7);
+        transition: color 0.2s;
+    }
+    .breadcrumb-light .breadcrumb-item a:hover {
+        color: white;
+    }
+    .breadcrumb-light .breadcrumb-item + .breadcrumb-item::before {
+        color: rgba(255,255,255,0.5);
+    }
+    .breadcrumb-light .breadcrumb-item.active {
+        color: white;
+    }
 </style>
 
 <script>

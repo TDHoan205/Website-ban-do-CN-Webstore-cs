@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Webstore Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
@@ -42,7 +45,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            font-family: 'Be Vietnam Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--surface-alt);
             color: var(--text-primary);
             line-height: 1.6;
@@ -267,6 +270,8 @@
             color: var(--primary);
         }
         .user-dropdown .dropdown-toggle::after { display: none; }
+        .chevron-icon { font-size: 0.7rem; }
+
         .user-avatar {
             width: 32px; height: 32px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
@@ -375,6 +380,42 @@
         }
 
         /* =====================================================
+           PAGE HEADER (shared across all pages)
+        ===================================================== */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: 28px 0;
+        }
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: white;
+            margin: 0 0 4px;
+        }
+        .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+
+        /* =====================================================
+           FORM CONSISTENCY
+        ===================================================== */
+        .form-label {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .form-control {
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.65rem 1rem;
+            font-size: 0.92rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
+        }
+
+        /* =====================================================
            MAIN CONTENT
         ===================================================== */
         main {
@@ -388,7 +429,7 @@
             background: linear-gradient(180deg, var(--accent) 0%, #012a4a 100%);
             color: white;
             padding: 60px 0 0;
-            margin-top: 40px;
+            margin-top: 0;
         }
         .footer-brand {
             font-size: 1.5rem;
@@ -816,13 +857,13 @@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <div class="user-dropdown dropdown">
-                            <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <div class="user-dropdown dropdown" id="userDropdownContainer">
+                            <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="userDropdownBtn">
                                 <div class="user-avatar">@(User.Identity.Name?.Substring(0,1).ToUpper())</div>
                                 <span class="d-none d-sm-inline">@(User.Identity.Name)</span>
-                                <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+                                <i class="fas fa-chevron-down chevron-icon"></i>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end" role="menu" id="userDropdownMenu">
                                 @if (User.IsInRole("Admin") || User.IsInRole("Employee"))
                                 {
                                     <li><a class="dropdown-item" asp-controller="Home" asp-action="Index"><i class="fas fa-tachometer-alt"></i>Quản trị</a></li>
@@ -833,6 +874,7 @@
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0">
+                                        @Html.AntiForgeryToken()
                                         <button type="submit" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt"></i>Đăng xuất</button>
                                     </form>
                                 </li>
@@ -841,7 +883,7 @@
                     }
                     else
                     {
-                        <a asp-controller="Auth" asp-action="Login" class="btn btn-primary d-none d-sm-inline" style="padding: 8px 20px; border-radius: 50px;">
+                        <a asp-controller="Auth" asp-action="Login" class="btn btn-primary d-none d-sm-inline btn-login-nav">
                             <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
                         </a>
                     }
@@ -879,7 +921,7 @@
 
                 <div class="d-flex align-items-center gap-2">
                     <a href="@Url.Action("Index", "Shop")#new-products" class="nav-category-link"><i class="fas fa-bolt me-1"></i> Sản phẩm mới</a>
-                    <a href="@Url.Action("Index", "Shop")#hot-products" class="nav-category-link"><i class="fas fa-fire me-1"></i> Hot deals</a>
+                    <a href="@Url.Action("Index", "Shop")#special-offers" class="nav-category-link"><i class="fas fa-tags me-1"></i> Ưu đãi</a>
                 </div>
             </div>
         </div>
@@ -943,7 +985,7 @@
                 </div>
             </div>
             <div class="footer-bottom text-center">
-                <p>&copy; @DateTime.Now.Year WebStore. Tất cả quyền được bảo lưu. | Phát triển với <i class="fas fa-heart" style="color:#EF4444;"></i></p>
+                <p>&copy; @DateTime.Now.Year WebStore. Tất cả quyền được bảo lưu. | Phát triển với <i class="fas fa-heart" style="color:var(--danger);"></i></p>
             </div>
         </div>
     </footer>
@@ -953,6 +995,25 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>
+        // Global CSRF token for AJAX requests
+        var csrfToken = '';
+        function getCsrfToken() {
+            if (!csrfToken) {
+                var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (tokenInput) csrfToken = tokenInput.value;
+            }
+            return csrfToken;
+        }
+        $(function() {
+            // Auto-include CSRF token on all AJAX POST requests
+            $.ajaxSetup({
+                beforeSend: function(xhr) {
+                    var token = getCsrfToken();
+                    if (token) xhr.setRequestHeader('RequestVerificationToken', token);
+                }
+            });
+        });
+
         // Cart count
         function updateCartCount() {
             $.get('@Url.Action("GetCartCount", "Shop")', function(data) {
@@ -969,20 +1030,26 @@
             searchTimeout = setTimeout(function () {
                 $.get('@Url.Action("Search", "Shop")', { q: q }, function (data) {
                     if (!data || data.length === 0) {
-                        $('#searchResults').html('<div style="padding:1.2rem; text-align:center; color:#9CA8B3;">Không tìm thấy sản phẩm nào</div>').show();
+                        $('#searchResults').html('<div style="padding:1.2rem; text-align:center; color:var(--text-muted);">Không tìm thấy sản phẩm nào</div>').show();
                         return;
                     }
                     let html = '';
                     data.forEach(function (p) {
                         const price = new Intl.NumberFormat('vi-VN').format(p.price) + ' ₫';
                         const img = p.imageUrl && p.imageUrl.trim()
-                            ? '<img src="' + p.imageUrl + '" />'
-                            : '<div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:#F0F8FF;border-radius:8px;color:#9CA8B3;"><i class="fas fa-box"></i></div>';
+                            ? $('<img>').prop('src', p.imageUrl).css({ width:'52px', height:'52px', 'object-fit':'contain', 'border-radius':'8px', 'background':'var(--surface-alt)', 'flex-shrink':'0' })[0].outerHTML
+                            : '<div style="width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface-alt);border-radius:8px;color:var(--text-muted);gap:4px;flex-shrink:0;">' +
+                              '<i class="fas fa-box" style="font-size:1.2rem;"></i>' +
+                              '<span style="font-size:0.55rem;font-weight:700;text-align:center;max-width:48px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;">' + $('<div>').text(p.name).html() + '</span>' +
+                              '</div>';
+                        // Escape HTML to prevent XSS
+                        const escapedName = $('<div>').text(p.name).html();
+                        const escapedPrice = price;
                         html += '<a href="@Url.Action("Product", "Shop")/' + p.productId + '" class="search-result-item">' +
                             img +
-                            '<div class="sr-info"><div class="sr-name">' + p.name + '</div><div class="sr-price">' + price + '</div></div></a>';
+                            '<div class="sr-info"><div class="sr-name">' + escapedName + '</div><div class="sr-price">' + escapedPrice + '</div></div></a>';
                     });
-                    html += '<a href="@Url.Action("Products", "Shop")?search=' + encodeURIComponent(q) + '" class="search-result-all">Xem tất cả kết quả cho "<strong>' + q + '</strong>"</a>';
+                    html += '<a href="@Url.Action("Products", "Shop")?search=' + encodeURIComponent(q) + '" class="search-result-all">Xem tất cả kết quả cho "<strong>' + $('<div>').text(q).html() + '</strong>"</a>';
                     $('#searchResults').html(html).show();
                 });
             }, 300);
@@ -1006,12 +1073,57 @@
                         updateCartCount();
                         showToast('success', '<i class="fas fa-check-circle me-2"></i>' + response.message);
                         animateCartIcon();
+                    } else if (response.requiresLogin) {
+                        // Chưa đăng nhập -> hiển thị modal yêu cầu đăng nhập
+                        showLoginRequiredModal();
                     } else {
                         showToast('error', '<i class="fas fa-exclamation-circle me-2"></i>' + response.message);
                     }
                 },
                 error: function() { showToast('error', '<i class="fas fa-exclamation-circle me-2"></i>Có lỗi xảy ra!'); }
             });
+        }
+
+        // Modal yêu cầu đăng nhập
+        function showLoginRequiredModal() {
+            var currentUrl = window.location.href;
+            var loginUrl = '@Url.Action("Login", "Auth")' + '?returnUrl=' + encodeURIComponent(currentUrl);
+
+            var modalHtml = '<div class="modal fade" id="loginRequiredModal" tabindex="-1" aria-labelledby="loginRequiredModalLabel" aria-hidden="true">' +
+                '<div class="modal-dialog modal-dialog-centered">' +
+                '<div class="modal-content" style="border-radius:var(--radius-lg);border:none;overflow:hidden;">' +
+                '<div class="modal-header" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border:none;padding:20px 24px;">' +
+                '<h5 class="modal-title" id="loginRequiredModalLabel" style="font-weight:800;margin:0;display:flex;align-items:center;gap:10px;">' +
+                '<i class="fas fa-user-lock" style="font-size:1.2rem;"></i> Yêu cầu đăng nhập' +
+                '</h5>' +
+                '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                '</div>' +
+                '<div class="modal-body" style="padding:28px 24px;text-align:center;">' +
+                '<div style="width:72px;height:72px;background:linear-gradient(135deg,var(--primary-lightest),white);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2rem;color:var(--primary);">' +
+                '<i class="fas fa-shopping-cart"></i>' +
+                '</div>' +
+                '<h5 style="font-weight:700;color:var(--text-primary);margin-bottom:8px;">Bạn cần đăng nhập để mua hàng</h5>' +
+                '<p style="color:var(--text-secondary);margin-bottom:0;font-size:0.92rem;line-height:1.6;">Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng và tiếp tục mua sắm. Chúng tôi sẽ lưu sản phẩm bạn đã chọn.</p>' +
+                '</div>' +
+                '<div class="modal-footer" style="padding:0 24px 24px;border:none;display:flex;gap:10px;justify-content:center;">' +
+                '<button type="button" class="btn" data-bs-dismiss="modal" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:var(--radius-md);font-weight:700;color:var(--text-secondary);font-size:0.92rem;background:white;">Hủy bỏ</button>' +
+                '<a href="' + loginUrl + '" class="btn" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border:none;border-radius:var(--radius-md);font-weight:700;font-size:0.92rem;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(0,119,182,0.3);text-decoration:none;">' +
+                '<i class="fas fa-sign-in-alt"></i> Đăng nhập ngay' +
+                '</a>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+
+            // Remove existing modal if any
+            var existingModal = document.getElementById('loginRequiredModal');
+            if (existingModal) existingModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            var modalEl = document.getElementById('loginRequiredModal');
+            var bsModal = new bootstrap.Modal(modalEl);
+            modalEl.addEventListener('hidden.bs.modal', function() { modalEl.remove(); });
+            bsModal.show();
         }
 
         function animateCartIcon() {
@@ -1022,8 +1134,8 @@
             }
         }
 
-        // Toast notification
-        function showToast(type, message) {
+        // Toast notification (unified for all pages)
+        window.showToast = function(type, message) {
             const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
             const existing = document.querySelectorAll('.alert-toast');
             existing.forEach(function(el) { el.remove(); });
@@ -1034,9 +1146,28 @@
             setTimeout(function() {
                 if (toast.parentElement) { toast.style.animation = 'slideInRight 0.3s ease reverse'; setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300); }
             }, 3500);
-        }
+        };
 
-        $(document).ready(function() { updateCartCount(); });
+        $(document).ready(function() {
+            updateCartCount();
+            // Khôi phục cart nếu có action bị chặn bởi đăng nhập
+            restorePendingCart();
+        });
+
+        // Khôi phục giỏ hàng bị treo do yêu cầu đăng nhập
+        function restorePendingCart() {
+            $.ajax({
+                url: '@Url.Action("RestorePendingCart", "Shop")',
+                type: 'POST',
+                success: function(response) {
+                    if (response && response.success) {
+                        updateCartCount();
+                        // Hiển thị toast thông báo đã khôi phục sản phẩm
+                        showToast('success', '<i class="fas fa-check-circle me-2"></i>Đã thêm sản phẩm vào giỏ hàng!');
+                    }
+                }
+            });
+        }
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

@@ -89,8 +89,8 @@
                 </div>
                 <div class="toolbar-actions">
                     <div class="sort-info d-none d-md-inline">
-                        <span class="text-muted" style="font-size:0.85rem;">Sắp xếp:</span>
-                        <span class="fw-bold" style="font-size:0.85rem; color:var(--primary);">
+                        <span class="text-muted">Sắp xếp:</span>
+                        <span class="fw-bold text-primary">
                             @(ViewBag.SortBy switch {
                                 "price_asc" => "Giá thấp → cao",
                                 "price_desc" => "Giá cao → thấp",
@@ -118,14 +118,17 @@
                                     }
                                     else
                                     {
-                                        <i class="fas fa-box fa-3x text-muted"></i>
+                                        <div class="img-placeholder">
+                                            <i class="fas fa-box" style="font-size:3rem;"></i>
+                                            <span class="placeholder-name">@Html.Encode(product.Name)</span>
+                                        </div>
                                     }
                                     <div class="product-overlay"><i class="fas fa-eye"></i></div>
                                 </a>
                                 <div class="product-card-body">
                                     <div class="product-card-cat">@product.Category?.Name</div>
                                     <h5 class="product-card-title">
-                                        <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId">@product.Name</a>
+                                        <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId">@Html.Encode(product.Name)</a>
                                     </h5>
                                     <div class="product-card-rating">
                                         <i class="fas fa-star"></i>
@@ -305,6 +308,7 @@
         font-weight: 700;
         color: var(--text-secondary);
     }
+    .sort-info { font-size: 0.88rem; }
 
     /* Pagination */
     .pagination {

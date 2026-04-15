@@ -1,4 +1,4 @@
--- Create Database (idempotent)
+l-- Create Database (idempotent)
 IF DB_ID(N'TechShopWebsite1') IS NULL
 BEGIN
     CREATE DATABASE TechShopWebsite1;

@@ -4,6 +4,13 @@
     Layout = "_ShopLayout";
     var total = Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity);
     var transferCode = "WEBSTORE" + DateTime.Now.ToString("yyyyMMddHHmmss");
+    var paymentInfo = ViewBag.PaymentInfo ?? new { BankName = "Vietcombank", AccountNumber = "123456789012", AccountName = "WEBSTORE SHOP" };
+    // Generate QR code URL ( VietQR format )
+    var qrAmount = ((int)total).ToString();
+    var qrAccountNo = paymentInfo.AccountNumber;
+    var qrBankCode = paymentInfo.BankName == "Vietcombank" ? "VCB" : "MB";
+    var qrContent = $"{paymentInfo.AccountNumber}&{qrAmount}&{transferCode}";
+    var qrApiUrl = $"https://img.vietqr.io/image/{qrBankCode.ToLower()}-{qrAccountNo}-compact.png?amount={qrAmount}&addInfo={Uri.EscapeDataString(transferCode)}&accountName={Uri.EscapeDataString(paymentInfo.AccountName)}";
 }
 
 <!-- Page Header -->
@@ -97,8 +104,8 @@
                     <!-- QR Box -->
                     <div class="qr-scan-container mb-4">
                         <div class="qr-box-large">
-                            <div class="qr-scan-line"></div>
-                            <div class="qr-content">
+                            <img src="@qrApiUrl" alt="QR Code Thanh toán" class="qr-image" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                            <div class="qr-fallback" style="display:none;">
                                 <i class="fas fa-mobile-alt fa-3x mb-2"></i>
                                 <p class="mb-1 fw-bold">Quét mã bằng ứng dụng ngân hàng</p>
                                 <p class="mb-0 text-muted small">Mở app ngân hàng &rarr; Quét mã QR bên dưới</p>
@@ -120,15 +127,15 @@
                         </div>
                         <div class="payment-row">
                             <span>Ngân hàng</span>
-                            <strong>Vietcombank</strong>
+                            <strong>@paymentInfo.BankName</strong>
                         </div>
                         <div class="payment-row">
                             <span>Số tài khoản</span>
-                            <strong>1234 5678 9012</strong>
+                            <strong>@paymentInfo.AccountNumber</strong>
                         </div>
                         <div class="payment-row">
                             <span>Tên tài khoản</span>
-                            <strong>WEBSTORE SHOP</strong>
+                            <strong>@paymentInfo.AccountName</strong>
                         </div>
                         <div class="payment-row">
                             <span>Nội dung CK</span>
@@ -259,7 +266,9 @@
                                     }
                                     else
                                     {
-                                        <i class="fas fa-box text-muted"></i>
+                                        <div style="width:48px;height:48px;background:var(--surface-alt);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text-muted);">
+                                            <i class="fas fa-box"></i>
+                                        </div>
                                     }
                                 </div>
                                 <div class="summary-item-info">
@@ -448,7 +457,20 @@
         justify-content: center;
         position: relative;
         overflow: hidden;
+        padding: 8px;
     }
+    .qr-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .qr-fallback {
+        text-align: center;
+        color: var(--primary);
+        z-index: 1;
+        flex-direction: column;
+    }
+    .qr-fallback p { font-size: 0.85rem; }
     .qr-scan-line {
         position: absolute;
         top: 0;
@@ -896,87 +918,95 @@
         showToast('success', 'Đã sao chép nội dung chuyển khoản!');
     }
 
-    // =====================================================
-    // STEP 3: Confirm Payment -> Place Order
-    // =====================================================
-    function confirmPayment() {
-        // Double-check checkbox is checked
-        if (!document.getElementById('confirmPaymentCheck').checked) {
-            showToast('error', 'Vui lòng xác nhận đã chuyển khoản trước!');
-            return;
-        }
-
-        var name = document.getElementById('customerName').value.trim();
-        var phone = document.getElementById('customerPhone').value.trim();
-        var address = document.getElementById('customerAddress').value.trim();
-        var notes = document.getElementById('notes').value.trim();
-
-        var btn = document.getElementById('btnConfirmedPayment');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xác nhận...';
-
-        var orderData = {
-            customerName: name,
-            customerPhone: phone,
-            customerAddress: address,
-            notes: notes,
-            paymentMethod: 'qr'
-        };
-
-        fetch('@Url.Action("PlaceOrder", "Shop")', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData)
-        })
-        .then(function(res) {
-            if (!res.ok) {
-                // HTTP error (4xx/5xx)
-                throw new Error('Lỗi mạng (mã ' + res.status + '). Vui lòng kiểm tra kết nối và thử lại.');
+        // =====================================================
+        // STEP 3: Confirm Payment -> Place Order -> Confirm Transaction
+        // =====================================================
+        function confirmPayment() {
+            // Double-check checkbox is checked
+            if (!document.getElementById('confirmPaymentCheck').checked) {
+                showToast('error', 'Vui lòng xác nhận đã chuyển khoản trước!');
+                return;
             }
-            return res.json();
-        })
-        .then(function(data) {
-            if (data.success) {
-                // Persist orderId for F5 resilience on success page
-                try { sessionStorage.setItem('webstore_last_order_id', data.orderId); } catch(e) {}
 
-                // Show Step 3
+            var name = document.getElementById('customerName').value.trim();
+            var phone = document.getElementById('customerPhone').value.trim();
+            var address = document.getElementById('customerAddress').value.trim();
+            var notes = document.getElementById('notes').value.trim();
+
+            var btn = document.getElementById('btnConfirmedPayment');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xác nhận...';
+
+            var orderData = {
+                customerName: name,
+                customerPhone: phone,
+                customerAddress: address,
+                notes: notes,
+                paymentMethod: 'qr'
+            };
+
+            fetch('@Url.Action("PlaceOrder", "Shop")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            })
+            .then(function(res) {
+                if (!res.ok) {
+                    throw new Error('Lỗi mạng (mã ' + res.status + '). Vui lòng kiểm tra kết nối và thử lại.');
+                }
+                return res.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    // Lưu orderId
+                    try { sessionStorage.setItem('webstore_last_order_id', data.orderId); } catch(e) {}
+
+                    // Bước 2: Gọi ConfirmPayment để thực sự xác nhận thanh toán (cập nhật status + clear cart)
+                    return fetch('@Url.Action("ConfirmPayment", "Shop")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'orderId=' + data.orderId
+                    }).then(function(res) { return res.json(); });
+                } else {
+                    throw new Error(data.message || 'Đặt hàng thất bại. Vui lòng thử lại.');
+                }
+            })
+            .then(function(confirmData) {
+                if (!confirmData || !confirmData.success) {
+                    throw new Error(confirmData?.message || 'Xác nhận thanh toán thất bại.');
+                }
+
+                // Payment confirmed successfully
                 document.getElementById('step2-qr').style.display = 'none';
                 document.getElementById('step3-success').style.display = 'block';
 
-                // Update order code
-                document.getElementById('orderCodeDisplay').textContent = '#' + data.orderId;
+                var orderId = sessionStorage.getItem('webstore_last_order_id') || '';
+                document.getElementById('orderCodeDisplay').textContent = '#' + orderId;
 
-                // Update step indicator
                 document.getElementById('step2-indicator').classList.remove('active');
                 document.getElementById('step2-indicator').classList.add('completed');
                 document.getElementById('step3-indicator').classList.add('active');
                 document.getElementById('stepLine2').classList.add('active');
 
-                // Persist step 3 state
                 saveCheckoutState();
+                clearCheckoutState();
 
-                // Start tracking animation
+                try { sessionStorage.removeItem('webstore_last_order_id'); } catch(e) {}
+                try { sessionStorage.removeItem('webstore_checkout_pending'); } catch(e) {}
+
                 startTrackingAnimation();
-
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 showToast('success', 'Thanh toán thành công! Cảm ơn bạn đã đặt hàng.');
-            } else {
+            })
+            .catch(function(err) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Đã thanh toán';
-                showToast('error', data.message || 'Đặt hàng thất bại. Vui lòng nhập đúng định dạng hoặc liên hệ hỗ trợ.');
-            }
-        })
-        .catch(function(err) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Đã thanh toán';
-            // Distinguish network vs server error
-            var msg = err.message && err.message.includes('Lỗi mạng')
-                ? err.message
-                : 'Thanh toán thất bại do lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.';
-            showToast('error', msg);
-        });
-    }
+                var msg = err.message && err.message.includes('Lỗi mạng')
+                    ? err.message
+                    : 'Thanh toán thất bại: ' + (err.message || 'Vui lòng kiểm tra kết nối và thử lại.');
+                showToast('error', msg);
+            });
+        }
 
     // =====================================================
     // Tracking Animation

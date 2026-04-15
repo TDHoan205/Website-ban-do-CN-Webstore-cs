@@ -32,6 +32,16 @@ namespace Webstore.Models
         [Column("supplier_id")]
         public int? SupplierId { get; set; }
 
+        // Product type flags (NotMapped - computed in controller/query)
+        [NotMapped]
+        public bool IsNew { get; set; }
+
+        [NotMapped]
+        public bool IsHot { get; set; }
+
+        [NotMapped]
+        public bool IsDeal { get; set; }
+
         // Navigation properties
         [ForeignKey("CategoryId")]
         public virtual Category? Category { get; set; }

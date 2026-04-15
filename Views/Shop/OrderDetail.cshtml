@@ -40,7 +40,10 @@
                                     }
                                     else
                                     {
-                                        <i class="fas fa-box text-muted"></i>
+                                        <div style="width:64px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--text-muted);">
+                                            <i class="fas fa-box" style="font-size:1.5rem;"></i>
+                                            <span style="font-size:0.5rem;font-weight:700;text-align:center;max-width:60px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;">@Html.Encode(item.Product?.Name)</span>
+                                        </div>
                                     }
                                 </div>
                                 <div class="item-info">
@@ -108,7 +111,7 @@
                         <strong>QR Code / Chuyển khoản</strong>
                     </div>
                     <div class="info-row">
-                        <span><i class="fas fa-circle me-2" style="font-size:0.5rem;"></i>Trạng thái</span>
+                        <span><i class="fas fa-circle me-2 icon-dot"></i>Trạng thái</span>
                         <span class="status-pill @(Model.Status switch {
                             "Pending" => "pill-pending",
                             "Confirmed" => "pill-confirmed",
@@ -184,16 +187,6 @@
 </div>
 
 <style>
-    .page-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        padding: 20px 0;
-    }
-    .page-title {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: white;
-    }
-    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
     .btn-back-sm {
         width: 40px; height: 40px;
         border-radius: var(--radius-md);
@@ -345,4 +338,7 @@
     .tracking-content { flex: 1; padding-top: 6px; }
     .tracking-content strong { display: block; font-size: 0.9rem; }
     .tracking-time { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 2px; }
+
+    /* Status dot indicator */
+    .icon-dot { font-size: 0.5rem; vertical-align: middle; }
 </style>
