@@ -20,4 +20,6 @@ public class PlaceOrderRequest
     public string Notes { get; set; } = "";
 
     public string PaymentMethod { get; set; } = "qr";
+
+    public int[]? SelectedProductIds { get; set; }
 }

@@ -36,7 +36,7 @@
                         @foreach (var item in Model)
                         {
                             var lineTotal = ((item.Product?.Price ?? 0m) * item.Quantity).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
-                            <div class="cart-item" data-product-id="@item.ProductId" data-price="@(item.Product?.Price ?? 0m)" data-quantity="@item.Quantity">
+                            <div class="cart-item" data-product-id="@item.ProductId" data-price="@((item.Product?.Price ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture))" data-quantity="@item.Quantity">
                                 <div class="cart-item-left">
                                     <input type="checkbox" class="select-for-checkout form-check-input" value="@item.ProductId" checked style="accent-color:var(--primary);" />
                                 </div>
@@ -59,11 +59,11 @@
                                 </div>
                                 <div class="cart-item-qty">
                                     <div class="qty-controls">
-                                        <button type="button" class="qty-btn" onclick="updateCartItem(@item.ProductId, @(item.Quantity - 1))">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, -1)">
                                             <i class="fas fa-minus"></i>
                                         </button>
                                         <input type="number" class="qty-input" value="@item.Quantity" readonly id="qty-@item.ProductId">
-                                        <button type="button" class="qty-btn" onclick="updateCartItem(@item.ProductId, @(item.Quantity + 1))">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, 1)">
                                             <i class="fas fa-plus"></i>
                                         </button>
                                     </div>
@@ -432,35 +432,60 @@
 </style>
 
 <script>
-    function updateCartItem(productId, quantity) {
-        // Remove item when quantity reaches 0
-        if (quantity <= 0) {
+    // =====================================================
+    // Thay đổi số lượng (đọc qty hiện tại từ data-attribute)
+    // =====================================================
+    function changeQuantity(productId, delta) {
+        var item = document.querySelector('.cart-item[data-product-id="' + productId + '"]');
+        if (!item) return;
+        var currentQty = parseInt(item.dataset.quantity) || 0;
+        var newQty = currentQty + delta;
+        if (newQty <= 0) {
             removeCartItem(productId);
             return;
         }
-        // Cập nhật UI ngay lập tức trước khi gọi API
-        var item = document.querySelector('.cart-item[data-product-id="' + productId + '"]');
-        if (item) {
-            item.dataset.quantity = quantity;
-            var price = parseFloat(item.dataset.price) || 0;
-            var total = price * quantity;
-            var lineTotalEl = item.querySelector('.line-total');
-            var qtyInput = item.querySelector('.qty-input');
-            if (lineTotalEl) lineTotalEl.textContent = formatCurrency(total);
-            if (qtyInput) qtyInput.value = quantity;
-        }
+        // Cập nhật UI ngay lập tức
+        item.dataset.quantity = newQty;
+        var price = parseFloat(item.dataset.price) || 0;
+        var qtyInput = item.querySelector('.qty-input');
+        var lineTotalEl = item.querySelector('.line-total');
+        if (qtyInput) qtyInput.value = newQty;
+        if (lineTotalEl) lineTotalEl.textContent = formatCurrency(price * newQty);
         updateCartSummary();
 
+        // Gửi lên server
         fetch('@Url.Action("UpdateCart", "Shop")', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'productId=' + productId + '&quantity=' + quantity
+            body: 'productId=' + productId + '&quantity=' + newQty
         }).then(function(res) { return res.json(); })
           .then(function(data) {
-              if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
-          }).catch(function() { window.location.reload(); });
+              if (!data) return;
+              // Server trả về redirectUrl khi xóa item (qty=0) => reload
+              if (data.redirectUrl) {
+                  window.location.href = data.redirectUrl;
+                  return;
+              }
+              // Nếu server điều chỉnh lại số lượng (ví dụ vượt tồn kho)
+              if (data.success === false && data.message) {
+                  if (window.showToast) window.showToast('warning', data.message);
+                  else alert(data.message);
+              }
+              if (data.newQuantity !== undefined && data.newQuantity !== null) {
+                  var correctedQty = parseInt(data.newQuantity);
+                  item.dataset.quantity = correctedQty;
+                  if (qtyInput) qtyInput.value = correctedQty;
+                  if (lineTotalEl) lineTotalEl.textContent = formatCurrency(price * correctedQty);
+                  updateCartSummary();
+              }
+          }).catch(function(err) {
+              console.error('UpdateCart error:', err);
+          });
     }
 
+    // =====================================================
+    // Xóa sản phẩm khỏi giỏ hàng
+    // =====================================================
     function removeCartItem(productId) {
         if (!confirm('Xóa sản phẩm này khỏi giỏ hàng?')) return;
         fetch('@Url.Action("RemoveFromCart", "Shop")', {
@@ -474,6 +499,9 @@
           }).catch(function() { window.location.reload(); });
     }
 
+    // =====================================================
+    // Xóa nhiều sản phẩm đã chọn
+    // =====================================================
     function clearSelected() {
         var checked = document.querySelectorAll('.select-for-checkout:checked');
         if (checked.length === 0) {
@@ -493,6 +521,9 @@
         Promise.all(promises).then(function() { window.location.reload(); });
     }
 
+    // =====================================================
+    // Thanh toán: chỉ gửi sản phẩm đã chọn
+    // =====================================================
     function goCheckout() {
         var selected = Array.from(document.querySelectorAll('.select-for-checkout:checked'))
             .map(function(cb) { return cb.value; })
@@ -509,14 +540,14 @@
     }
 
     // =====================================================
-    // Cart Summary: chỉ tính các sản phẩm được chọn
+    // Tóm tắt đơn hàng: CHỈ tính sản phẩm được tick chọn
     // =====================================================
     function updateCartSummary() {
-        var selected = document.querySelectorAll('.select-for-checkout:checked');
+        var checkedBoxes = document.querySelectorAll('.select-for-checkout:checked');
         var totalQty = 0;
         var totalAmount = 0;
 
-        selected.forEach(function(cb) {
+        checkedBoxes.forEach(function(cb) {
             var item = cb.closest('.cart-item');
             if (item) {
                 var price = parseFloat(item.dataset.price) || 0;
@@ -534,17 +565,24 @@
         if (totalEl) totalEl.textContent = formatCurrency(totalAmount);
     }
 
+    // =====================================================
+    // Format tiền tệ VND
+    // =====================================================
     function formatCurrency(amount) {
         return amount.toLocaleString('vi-VN') + ' ₫';
     }
 
+    // =====================================================
+    // Khởi tạo khi trang load
+    // =====================================================
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize summary on page load
+        // Tính tóm tắt lần đầu
         updateCartSummary();
 
         var selectAll = document.getElementById('selectAllCart');
         var checkboxes = document.querySelectorAll('.cart-items .select-for-checkout');
 
+        // Chọn tất cả / bỏ chọn tất cả
         if (selectAll) {
             selectAll.addEventListener('change', function() {
                 checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
@@ -552,6 +590,7 @@
             });
         }
 
+        // Khi tick/bỏ tick từng sản phẩm => cập nhật tóm tắt
         checkboxes.forEach(function(cb) {
             cb.addEventListener('change', function() {
                 if (selectAll) {

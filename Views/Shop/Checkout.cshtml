@@ -149,12 +149,19 @@
 
                     <!-- Confirmation Checkbox -->
                     <div class="confirm-checkbox-wrapper mt-4">
-                        <div class="form-check d-inline-flex align-items-start gap-2 p-3 rounded" style="background:var(--surface-alt);border:2px solid var(--border);">
-                            <input class="form-check-input mt-1" type="checkbox" id="confirmPaymentCheck" onchange="togglePaymentBtn()">
-                            <label class="form-check-label text-start" for="confirmPaymentCheck" style="font-size:0.88rem;line-height:1.5;cursor:pointer;">
-                                Tôi đã chuyển khoản thành công theo thông tin trên.<br>
-                                <span class="text-muted small">Vui lòng đảm bảo chuyển đúng số tiền và nội dung.</span>
-                            </label>
+                        <div class="payment-confirm-box">
+                            <div class="payment-confirm-icon">
+                                <i class="fas fa-shield-check"></i>
+                            </div>
+                            <div class="payment-confirm-content">
+                                <div class="form-check payment-confirm-check">
+                                    <input class="form-check-input" type="checkbox" id="confirmPaymentCheck" onchange="togglePaymentBtn()">
+                                    <label class="form-check-label text-start" for="confirmPaymentCheck">
+                                        <span class="payment-confirm-title">Tôi đã chuyển khoản thành công theo thông tin trên</span>
+                                        <span class="payment-confirm-desc">Vui lòng đảm bảo chuyển đúng số tiền và nội dung để hệ thống xác nhận nhanh nhất.</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -257,7 +264,6 @@
                     <div class="summary-items-list">
                         @foreach (var item in Model)
                         {
-                            <text>
                             <div class="summary-item">
                                 <div class="summary-item-img">
                                     @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
@@ -279,7 +285,6 @@
                                     @(((item.Product?.Price ?? 0m) * item.Quantity).ToString("N0")) ₫
                                 </div>
                             </div>
-                            </text>
                         }
                     </div>
                     <div class="summary-totals">
@@ -537,6 +542,84 @@
     .confirm-checkbox-wrapper { font-size: 0.92rem; }
     .confirm-checkbox-wrapper input { width: 18px; height: 18px; cursor: pointer; }
 
+    .payment-confirm-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px 18px;
+        background: linear-gradient(135deg, rgba(0, 119, 182, 0.06), rgba(0, 180, 216, 0.08));
+        border: 1px solid rgba(0, 119, 182, 0.18);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 24px rgba(0, 119, 182, 0.06);
+    }
+
+    .payment-confirm-icon {
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        box-shadow: 0 8px 18px rgba(0, 119, 182, 0.18);
+        font-size: 1rem;
+    }
+
+    .payment-confirm-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .payment-confirm-check {
+        margin: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .payment-confirm-check .form-check-input {
+        width: 20px;
+        height: 20px;
+        margin-top: 3px;
+        border: 2px solid var(--primary);
+        cursor: pointer;
+        box-shadow: none;
+        flex-shrink: 0;
+    }
+
+    .payment-confirm-check .form-check-input:checked {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(0, 119, 182, 0.12);
+    }
+
+    .payment-confirm-check .form-check-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(0, 119, 182, 0.14);
+    }
+
+    .payment-confirm-check .form-check-label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        cursor: pointer;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .payment-confirm-title {
+        font-size: 0.94rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .payment-confirm-desc {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+    }
+
     .btn-confirm-payment {
         background: linear-gradient(135deg, var(--success) 0%, #34D399 100%);
         color: white;
@@ -719,6 +802,15 @@
         .step-item span { font-size: 0.7rem; }
         .step-item { min-width: 60px; }
         .qr-box-large { width: 200px; height: 200px; }
+        .payment-confirm-box {
+            padding: 14px;
+            gap: 12px;
+        }
+
+        .payment-confirm-icon {
+            width: 40px;
+            height: 40px;
+        }
     }
 </style>
 
@@ -942,7 +1034,8 @@
                 customerPhone: phone,
                 customerAddress: address,
                 notes: notes,
-                paymentMethod: 'qr'
+                paymentMethod: 'qr',
+                selectedProductIds: [@string.Join(",", Model.Select(m => m.ProductId))]
             };
 
             fetch('@Url.Action("PlaceOrder", "Shop")', {

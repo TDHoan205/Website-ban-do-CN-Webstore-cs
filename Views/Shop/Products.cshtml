@@ -29,7 +29,8 @@
                         <!-- Search -->
                         <div class="filter-group">
                             <label class="filter-label">Tìm kiếm</label>
-                            <input type="text" name="search" class="filter-input" value="@ViewBag.Search" placeholder="Tên sản phẩm...">
+                            <input type="text" name="search" class="filter-input" value="@ViewBag.Search"
+                                   placeholder="Tên sản phẩm...">
                         </div>
 
                         <!-- Category Filter -->
@@ -39,7 +40,8 @@
                                 <option value="">Tất cả danh mục</option>
                                 @foreach (var category in ViewBag.Categories)
                                 {
-                                    <option value="@category.CategoryId" selected="@(ViewBag.CategoryId?.ToString() == category.CategoryId.ToString())">
+                                    <option value="@category.CategoryId"
+                                            selected="@(ViewBag.CategoryId?.ToString() == category.CategoryId.ToString())">
                                         @category.Name
                                     </option>
                                 }
@@ -52,8 +54,10 @@
                             <select name="sortBy" class="filter-select">
                                 <option value="name_asc" selected="@(ViewBag.SortBy == "name_asc")">Tên A → Z</option>
                                 <option value="name_desc" selected="@(ViewBag.SortBy == "name_desc")">Tên Z → A</option>
-                                <option value="price_asc" selected="@(ViewBag.SortBy == "price_asc")">Giá thấp → cao</option>
-                                <option value="price_desc" selected="@(ViewBag.SortBy == "price_desc")">Giá cao → thấp</option>
+                                <option value="price_asc" selected="@(ViewBag.SortBy == "price_asc")">Giá thấp → cao
+                                </option>
+                                <option value="price_desc" selected="@(ViewBag.SortBy == "price_desc")">Giá cao → thấp
+                                </option>
                                 <option value="newest" selected="@(ViewBag.SortBy == "newest")">Mới nhất</option>
                             </select>
                         </div>
@@ -91,7 +95,8 @@
                     <div class="sort-info d-none d-md-inline">
                         <span class="text-muted">Sắp xếp:</span>
                         <span class="fw-bold text-primary">
-                            @(ViewBag.SortBy switch {
+                            @(ViewBag.SortBy switch
+                            {
                                 "price_asc" => "Giá thấp → cao",
                                 "price_desc" => "Giá cao → thấp",
                                 "name_asc" => "Tên A → Z",
@@ -111,7 +116,8 @@
                     {
                         <div class="col-lg-4 col-md-6">
                             <div class="product-card">
-                                <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId" class="product-card-img">
+                                <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId"
+                                   class="product-card-img">
                                     @if (!string.IsNullOrEmpty(product.ImageUrl))
                                     {
                                         <img src="@product.ImageUrl" alt="@product.Name" />
@@ -128,7 +134,8 @@
                                 <div class="product-card-body">
                                     <div class="product-card-cat">@product.Category?.Name</div>
                                     <h5 class="product-card-title">
-                                        <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId">@Html.Encode(product.Name)</a>
+                                        <a asp-controller="Shop" asp-action="Product"
+                                           asp-route-id="@product.ProductId">@Html.Encode(product.Name)</a>
                                     </h5>
                                     <div class="product-card-rating">
                                         <i class="fas fa-star"></i>
@@ -166,7 +173,8 @@
                                 </li>
                             }
 
-                            @for (int i = Math.Max(1, (int)ViewBag.CurrentPage - 2); i <= Math.Min((int)ViewBag.TotalPages, (int)ViewBag.CurrentPage + 2); i++)
+                            @for (int i = Math.Max(1, (int)ViewBag.CurrentPage - 2); i <= Math.Min((int)ViewBag.TotalPages,
+                    (int)ViewBag.CurrentPage + 2); i++)
                             {
                                 <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
                                     <a class="page-link" asp-controller="Shop" asp-action="Products"
@@ -210,13 +218,18 @@
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         padding: 24px 0;
     }
+
     .page-title {
         font-size: 1.5rem;
         font-weight: 800;
         color: white;
         margin: 0 0 4px;
     }
-    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+
+    .page-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.88rem;
+    }
 
     /* Filter Card */
     .filter-card {
@@ -226,14 +239,28 @@
         overflow: hidden;
         border: 1px solid var(--border);
     }
+
     .filter-header {
         padding: 14px 18px;
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         color: white;
     }
-    .filter-header h5, .filter-header h6 { margin: 0; font-weight: 700; font-size: 0.95rem; }
-    .filter-body { padding: 16px; }
-    .filter-group { margin-bottom: 14px; }
+
+    .filter-header h5,
+    .filter-header h6 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .filter-body {
+        padding: 16px;
+    }
+
+    .filter-group {
+        margin-bottom: 14px;
+    }
+
     .filter-label {
         display: block;
         font-size: 0.8rem;
@@ -243,7 +270,9 @@
         text-transform: uppercase;
         letter-spacing: 0.3px;
     }
-    .filter-input, .filter-select {
+
+    .filter-input,
+    .filter-select {
         width: 100%;
         border: 2px solid var(--border);
         border-radius: var(--radius-sm);
@@ -253,11 +282,14 @@
         background: white;
         color: var(--text-primary);
     }
-    .filter-input:focus, .filter-select:focus {
+
+    .filter-input:focus,
+    .filter-select:focus {
         border-color: var(--primary);
         outline: none;
         box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
     }
+
     .btn-filter-apply {
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         color: white;
@@ -270,10 +302,12 @@
         transition: var(--transition);
         width: 100%;
     }
+
     .btn-filter-apply:hover {
         transform: translateY(-1px);
         box-shadow: var(--shadow-md);
     }
+
     .quick-cat-item {
         display: flex;
         align-items: center;
@@ -286,7 +320,9 @@
         margin-bottom: 4px;
         text-decoration: none;
     }
-    .quick-cat-item:hover, .quick-cat-item.active {
+
+    .quick-cat-item:hover,
+    .quick-cat-item.active {
         background: var(--primary-lightest);
         color: var(--primary);
     }
@@ -303,17 +339,22 @@
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--border);
     }
+
     .results-count {
         font-size: 0.88rem;
         font-weight: 700;
         color: var(--text-secondary);
     }
-    .sort-info { font-size: 0.88rem; }
+
+    .sort-info {
+        font-size: 0.88rem;
+    }
 
     /* Pagination */
     .pagination {
         gap: 4px;
     }
+
     .page-link {
         border: none;
         border-radius: var(--radius-sm);
@@ -324,11 +365,33 @@
         background: white;
         transition: var(--transition);
     }
-    .page-link:hover { background: var(--primary-lightest); color: var(--primary); }
+
+    .page-link:hover {
+        background: var(--primary-lightest);
+        color: var(--primary);
+    }
+
     .page-item.active .page-link {
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         color: white;
         box-shadow: var(--shadow-sm);
+    }
+
+    .product-card-price {
+        white-space: nowrap;
+    }
+
+    .product-card .btn-sm.btn-add-cart {
+        width: auto !important;
+        min-width: 50px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        margin-top: 0;
+        flex: 0 0 auto;
+    }
+
+    .product-card .btn-sm.btn-add-cart i {
+        font-size: 1rem;
     }
 
     /* Empty State */
@@ -336,17 +399,29 @@
         text-align: center;
         padding: 80px 20px;
     }
+
     .empty-icon {
-        width: 80px; height: 80px;
+        width: 80px;
+        height: 80px;
         background: var(--primary-lightest);
         border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 2rem;
         color: var(--primary);
         margin: 0 auto 20px;
     }
-    .empty-state h4 { font-weight: 700; margin-bottom: 8px; }
-    .empty-state p { color: var(--text-muted); margin-bottom: 20px; }
+
+    .empty-state h4 {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .empty-state p {
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
 </style>
 
 @functions {

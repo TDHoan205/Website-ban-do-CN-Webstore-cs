@@ -272,15 +272,29 @@ namespace Webstore.Controllers
                 if (quantity <= 0)
                 {
                     cart.Remove(item);
+                    SaveCartItems(cart);
+                    return Json(new { success = true, redirectUrl = Url.Action("Cart") });
                 }
                 else
                 {
+                    var product = _context.Products.Include(p => p.Inventory).FirstOrDefault(p => p.ProductId == productId);
+                    if (product != null && product.Inventory != null)
+                    {
+                        if (quantity > product.Inventory.QuantityInStock)
+                        {
+                            quantity = product.Inventory.QuantityInStock;
+                            item.Quantity = quantity;
+                            SaveCartItems(cart);
+                            return Json(new { success = false, message = $"Số lượng vượt quá tồn kho. Còn lại {quantity} sản phẩm.", newQuantity = quantity });
+                        }
+                    }
+
                     item.Quantity = quantity;
+                    SaveCartItems(cart);
                 }
-                SaveCartItems(cart);
             }
 
-            return Json(new { success = true, redirectUrl = Url.Action("Cart") });
+            return Json(new { success = true, newQuantity = quantity });
         }
 
         [HttpPost]
@@ -391,9 +405,15 @@ namespace Webstore.Controllers
             }
 
             var cartItems = GetCartItems();
+
+            if (req.SelectedProductIds != null && req.SelectedProductIds.Any())
+            {
+                cartItems = cartItems.Where(c => req.SelectedProductIds.Contains(c.ProductId)).ToList();
+            }
+
             if (!cartItems.Any())
             {
-                return Json(new { success = false, message = "Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng." });
+                return Json(new { success = false, message = "Không có sản phẩm nào để đặt hàng." });
             }
 
             try
@@ -471,8 +491,18 @@ namespace Webstore.Controllers
                 order.Status = "Confirmed";
                 _context.SaveChanges();
 
-                // Clear cart sau khi thanh toán thực sự được xác nhận
-                ClearCart();
+                // Clear items that were purchased from cart
+                var orderedProductIds = _context.OrderItems.Where(oi => oi.OrderId == orderId).Select(oi => oi.ProductId).ToList();
+                var cartItems = GetCartItems();
+                cartItems.RemoveAll(c => orderedProductIds.Contains(c.ProductId));
+                if (cartItems.Any())
+                {
+                    SaveCartItems(cartItems);
+                }
+                else
+                {
+                    ClearCart();
+                }
 
                 return Json(new { success = true, message = "Xác nhận thanh toán thành công!" });
             }

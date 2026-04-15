@@ -34,16 +34,24 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
         {
             ViewBag.ReturnUrl = returnUrl;
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                TempData["Error"] = "Vui lòng nhập đầy đủ thông tin";
+                var errorMsg = "Vui lòng nhập đầy đủ thông tin";
+                if (isAjax)
+                    return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
                 return View();
             }
 
             var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Username == username);
             if (account == null)
             {
-                TempData["Error"] = "Sai thông tin đăng nhập";
+                var errorMsg = "Sai thông tin đăng nhập";
+                if (isAjax)
+                    return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
                 return View();
             }
 
@@ -51,6 +59,7 @@ namespace Webstore.Controllers
             bool ok = false;
             if (!string.IsNullOrEmpty(account.PasswordHash) && account.PasswordHash.Contains(':'))
             {
+                // Định dạng salt:hash
                 var parts = account.PasswordHash.Split(':');
                 if (parts.Length == 2)
                 {
@@ -62,10 +71,26 @@ namespace Webstore.Controllers
                         Convert.FromHexString(storedHash));
                 }
             }
+            else if (!string.IsNullOrEmpty(account.PasswordHash))
+            {
+                // Fallback: password lưu dạng plaintext (database cũ)
+                ok = account.PasswordHash == password;
+                if (ok)
+                {
+                    // Tự động nâng cấp lên dạng hash
+                    var newSalt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
+                    var newHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, newSalt);
+                    account.PasswordHash = newSalt + ":" + newHash;
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             if (!ok)
             {
-                TempData["Error"] = "Sai thông tin đăng nhập";
+                var errorMsg = "Sai thông tin đăng nhập";
+                if (isAjax)
+                    return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
                 return View();
             }
 
@@ -165,11 +190,11 @@ namespace Webstore.Controllers
             try
             {
                 // Tạo salt và hash password
-            var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
-            var passwordHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
-            
-            input.PasswordHash = salt + ":" + passwordHash;
-            if (string.IsNullOrEmpty(input.Role)) input.Role = "Customer";
+                var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
+                var passwordHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
+
+                input.PasswordHash = salt + ":" + passwordHash;
+                if (string.IsNullOrEmpty(input.Role)) input.Role = "Customer";
 
                 _context.Accounts.Add(input);
                 await _context.SaveChangesAsync();
