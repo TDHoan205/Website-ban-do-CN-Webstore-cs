@@ -51,7 +51,6 @@
             }
 
             body {
-                font-family: 'Be Vietnam Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
                 background-color: var(--surface-alt);
                 color: var(--text-primary);
                 line-height: 1.6;
@@ -1371,7 +1370,7 @@
                                             data.forEach(function (p) {
                                             const price = new Intl.NumberFormat('vi-VN').format(p.price) + ' ₫';
                                             const img = p.imageUrl && p.imageUrl.trim()
-                                            ? $('<img>').prop('src', p.imageUrl).css({ width: '52px', height: '52px', 'object-fit': 'contain', 'border-radius': '8px', 'background': 'var(--surface-alt)', 'flex-shrink': '0' })[0].outerHTML
+                                            ? $('<img>').prop('src', p.imageUrl).attr('loading', 'lazy').attr('onerror', "this.onerror=null;this.src='/images/products/placeholder.svg';").css({ width: '52px', height: '52px', 'object-fit': 'contain', 'border-radius': '8px', 'background': 'var(--surface-alt)', 'flex-shrink': '0' })[0].outerHTML
                                             : '<div style="width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface-alt);border-radius:8px;color:var(--text-muted);gap:4px;flex-shrink:0;">' +
                                             '<i class="fas fa-box" style="font-size:1.2rem;"></i>' +
                                             '<span style="font-size:0.55rem;font-weight:700;text-align:center;max-width:48px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;">' + $('<div>').text(p.name).html() + '</span>' +

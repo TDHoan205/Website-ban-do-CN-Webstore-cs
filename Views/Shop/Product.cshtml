@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = Model.Name;
     Layout = "_ShopLayout";
+    var fallbackDescriptionHtml = ProductDescriptionText.SanitizeDescriptionHtml("Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp.");
+    var descriptionHtml = string.IsNullOrWhiteSpace(Model.Description) ? fallbackDescriptionHtml : Model.Description;
 }
 
 <!-- Page Header -->
@@ -72,7 +74,7 @@
 
                 <div class="detail-desc">
                     <h6><i class="fas fa-info-circle me-2"></i>Mô tả sản phẩm</h6>
-                    <p>@Html.Encode(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
+                    <div class="product-description-content">@Html.Raw(descriptionHtml)</div>
                 </div>
 
                 <div class="detail-meta">
@@ -157,7 +159,7 @@
                     <div class="tab-pane active" id="description">
                         <div class="tab-content-card">
                             <h5>Mô tả chi tiết sản phẩm</h5>
-                            <p>@Html.Encode(string.IsNullOrEmpty(Model.Description) ? "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp." : Model.Description)</p>
+                            <div class="product-description-content">@Html.Raw(descriptionHtml)</div>
                             <ul>
                                 <li>Chất liệu cao cấp, bền đẹp theo thời gian</li>
                                 <li>Thiết kế hiện đại, sang trọng</li>
@@ -361,6 +363,17 @@
         color: var(--text-primary);
     }
     .detail-desc p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; }
+    .product-description-content p,
+    .product-description-content ul,
+    .product-description-content ol {
+        margin-bottom: 0.75rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+    }
+    .product-description-content ul,
+    .product-description-content ol {
+        padding-left: 1.2rem;
+    }
     .detail-meta {
         display: flex;
         flex-wrap: wrap;

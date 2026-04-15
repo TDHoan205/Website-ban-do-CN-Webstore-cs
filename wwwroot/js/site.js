@@ -67,3 +67,61 @@ function getProductPlaceholder(productName) {
         '<span class="placeholder-name">' + name + '</span>' +
         '</div>';
 }
+
+// ================================================
+// GLOBAL IMAGE FALLBACK
+// Replaces broken/missing image sources consistently
+// across admin + shop pages.
+// ================================================
+(function setupGlobalImageFallback() {
+    var FALLBACK_SRC = '/images/products/placeholder.svg';
+
+    function applyFallback(img) {
+        if (!img || img.dataset.fallbackApplied === '1') return;
+        img.dataset.fallbackApplied = '1';
+        img.src = FALLBACK_SRC;
+    }
+
+    function bindImage(img) {
+        if (!img) return;
+
+        if (!img.getAttribute('loading')) {
+            img.setAttribute('loading', 'lazy');
+        }
+
+        if (!img.src || !img.src.trim()) {
+            applyFallback(img);
+            return;
+        }
+
+        img.addEventListener('error', function onImageError() {
+            applyFallback(img);
+        }, { once: true });
+    }
+
+    function bindAll(root) {
+        var scope = root || document;
+        var imgs = scope.querySelectorAll('img');
+        imgs.forEach(bindImage);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        bindAll(document);
+
+        // Handle dynamically injected images (AJAX/search results/modals)
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+                m.addedNodes.forEach(function (node) {
+                    if (!node || node.nodeType !== 1) return;
+                    if (node.tagName === 'IMG') {
+                        bindImage(node);
+                    } else {
+                        bindAll(node);
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+})();

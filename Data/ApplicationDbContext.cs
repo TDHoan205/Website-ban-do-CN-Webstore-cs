@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Webstore.Models;
+using Webstore.Utilities;
 
 namespace Webstore.Data
 {
@@ -23,6 +25,14 @@ namespace Webstore.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            var plainTextConverter = new ValueConverter<string?, string?>(
+                v => ProductDescriptionText.NormalizePlainText(v),
+                v => ProductDescriptionText.NormalizePlainText(v));
+
+            var descriptionHtmlConverter = new ValueConverter<string?, string?>(
+                v => ProductDescriptionText.SanitizeDescriptionHtmlNullable(v),
+                v => ProductDescriptionText.SanitizeDescriptionHtmlNullable(v));
 
             // Unique index for Category.Name
             modelBuilder.Entity<Category>()
@@ -60,6 +70,30 @@ namespace Webstore.Data
             modelBuilder.Entity<Product>()
                 .Property(p => p.ImageUrl)
                 .HasMaxLength(500);
+
+            modelBuilder.Entity<Category>()
+                .Property(c => c.Name)
+                .HasConversion(plainTextConverter);
+
+            modelBuilder.Entity<Supplier>()
+                .Property(s => s.Name)
+                .HasConversion(plainTextConverter);
+
+            modelBuilder.Entity<Supplier>()
+                .Property(s => s.ContactPerson)
+                .HasConversion(plainTextConverter);
+
+            modelBuilder.Entity<Supplier>()
+                .Property(s => s.Address)
+                .HasConversion(plainTextConverter);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Name)
+                .HasConversion(plainTextConverter);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Description)
+                .HasConversion(descriptionHtmlConverter);
 
             modelBuilder.Entity<Order>()
                 .Property(o => o.TotalAmount)

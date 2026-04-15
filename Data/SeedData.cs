@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using Webstore.Models;
 using Webstore.Models.Security;
+using Webstore.Utilities;
 
 namespace Webstore.Data
 {
@@ -8,6 +10,8 @@ namespace Webstore.Data
     {
         public static async Task SeedAsync(ApplicationDbContext context)
         {
+            await RepairCorruptedTextAsync(context);
+
             if (await context.Accounts.AnyAsync())
             {
                 return;
@@ -168,6 +172,262 @@ namespace Webstore.Data
 
             context.Inventory.AddRange(inventories);
             await context.SaveChangesAsync();
+        }
+
+        private static async Task RepairCorruptedTextAsync(ApplicationDbContext context)
+        {
+            var changed = false;
+
+            if (context.Database.GetDbConnection() is not SqlConnection connection)
+            {
+                return;
+            }
+
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            var canonicalCategoryNames = new Dictionary<int, string>
+            {
+                [1] = "Điện thoại",
+                [2] = "Laptop",
+                [3] = "Tablet",
+                [4] = "Phụ kiện",
+                [5] = "Đồng hồ thông minh",
+                [6] = "Gaming"
+            };
+
+            try
+            {
+                changed |= await RepairCategoriesAsync(connection, canonicalCategoryNames);
+                changed |= await RepairSuppliersAsync(connection);
+                changed |= await RepairProductsAsync(connection);
+
+                if (changed)
+                {
+                    await context.SaveChangesAsync();
+                }
+            }
+            finally
+            {
+                if (connection.State == System.Data.ConnectionState.Open)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+        }
+
+        private static async Task<bool> RepairCategoriesAsync(SqlConnection connection, IReadOnlyDictionary<int, string> canonicalCategoryNames)
+        {
+            var changed = false;
+            using var select = new SqlCommand("SELECT category_id, name FROM Categories", connection);
+            using var reader = await select.ExecuteReaderAsync();
+            var rows = new List<(int Id, string? Name)>();
+
+            while (await reader.ReadAsync())
+            {
+                rows.Add((reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetString(1)));
+            }
+
+            await reader.CloseAsync();
+
+            foreach (var row in rows)
+            {
+                var normalized = ProductDescriptionText.NormalizePlainText(row.Name) ?? string.Empty;
+                if (canonicalCategoryNames.TryGetValue(row.Id, out var canonical)
+                    && (normalized.Contains('\uFFFD') || normalized.Length == 0 || normalized == row.Name))
+                {
+                    normalized = canonical;
+                }
+
+                if (!string.Equals(row.Name, normalized, StringComparison.Ordinal))
+                {
+                    await UpdateTextAsync(connection, "Categories", "category_id", "name", row.Id, normalized);
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        private static async Task<bool> RepairSuppliersAsync(SqlConnection connection)
+        {
+            var changed = false;
+            using var select = new SqlCommand("SELECT supplier_id, name, contact_person, address FROM Suppliers", connection);
+            using var reader = await select.ExecuteReaderAsync();
+            var rows = new List<(int Id, string? Name, string? Contact, string? Address)>();
+
+            while (await reader.ReadAsync())
+            {
+                rows.Add((
+                    reader.GetInt32(0),
+                    reader.IsDBNull(1) ? null : reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetString(2),
+                    reader.IsDBNull(3) ? null : reader.GetString(3)));
+            }
+
+            await reader.CloseAsync();
+
+            foreach (var row in rows)
+            {
+                var normalizedName = ProductDescriptionText.NormalizePlainText(row.Name) ?? string.Empty;
+                var normalizedContact = ProductDescriptionText.NormalizePlainText(row.Contact);
+                var normalizedAddress = ProductDescriptionText.NormalizePlainText(row.Address);
+
+                if (!string.Equals(row.Name, normalizedName, StringComparison.Ordinal))
+                {
+                    await UpdateTextAsync(connection, "Suppliers", "supplier_id", "name", row.Id, normalizedName);
+                    changed = true;
+                }
+
+                if (!string.Equals(row.Contact, normalizedContact, StringComparison.Ordinal))
+                {
+                    await UpdateTextAsync(connection, "Suppliers", "supplier_id", "contact_person", row.Id, normalizedContact);
+                    changed = true;
+                }
+
+                if (!string.Equals(row.Address, normalizedAddress, StringComparison.Ordinal))
+                {
+                    await UpdateTextAsync(connection, "Suppliers", "supplier_id", "address", row.Id, normalizedAddress);
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        private static async Task<bool> RepairProductsAsync(SqlConnection connection)
+        {
+            var changed = false;
+            var canonicalProducts = await LoadCanonicalProductsAsync();
+            using var select = new SqlCommand("SELECT product_id, name, description FROM Products", connection);
+            using var reader = await select.ExecuteReaderAsync();
+            var rows = new List<(int Id, string? Name, string? Description)>();
+
+            while (await reader.ReadAsync())
+            {
+                rows.Add((
+                    reader.GetInt32(0),
+                    reader.IsDBNull(1) ? null : reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetString(2)));
+            }
+
+            await reader.CloseAsync();
+
+            foreach (var row in rows)
+            {
+                var normalizedName = ProductDescriptionText.NormalizePlainText(row.Name) ?? string.Empty;
+                var normalizedDescription = ProductDescriptionText.SanitizeDescriptionHtmlNullable(row.Description);
+                var normalizedImageUrl = (string?)null;
+
+                if (canonicalProducts.TryGetValue(row.Id, out var canonical))
+                {
+                    if (!string.IsNullOrWhiteSpace(canonical.Name))
+                    {
+                        normalizedName = ProductDescriptionText.NormalizePlainText(canonical.Name) ?? normalizedName;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(canonical.Description))
+                    {
+                        normalizedDescription = ProductDescriptionText.SanitizeDescriptionHtmlNullable(canonical.Description);
+                    }
+
+                    normalizedImageUrl = NormalizeImageUrl(canonical.ImageUrl ?? canonical.Image);
+                }
+
+                normalizedImageUrl ??= NormalizeImageUrl(null);
+
+                if (!string.Equals(row.Name, normalizedName, StringComparison.Ordinal))
+                {
+                    await UpdateTextAsync(connection, "Products", "product_id", "name", row.Id, normalizedName);
+                    changed = true;
+                }
+
+                if (!string.Equals(row.Description, normalizedDescription, StringComparison.Ordinal))
+                {
+                    await UpdateTextAsync(connection, "Products", "product_id", "description", row.Id, normalizedDescription);
+                    changed = true;
+                }
+
+                if (await UpdateImageUrlAsync(connection, row.Id, normalizedImageUrl))
+                {
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        private static async Task<Dictionary<int, CanonicalProduct>> LoadCanonicalProductsAsync()
+        {
+            var candidatePaths = new[]
+            {
+                Path.Combine(Directory.GetCurrentDirectory(), "sample_products.json"),
+                Path.Combine(AppContext.BaseDirectory, "sample_products.json"),
+                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "sample_products.json"))
+            };
+
+            var filePath = candidatePaths.FirstOrDefault(File.Exists);
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return new Dictionary<int, CanonicalProduct>();
+            }
+
+            var json = await File.ReadAllTextAsync(filePath);
+            var products = System.Text.Json.JsonSerializer.Deserialize<List<CanonicalProduct>>(json, new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (products == null)
+            {
+                return new Dictionary<int, CanonicalProduct>();
+            }
+
+            return products
+                .Where(p => p.Id > 0)
+                .ToDictionary(p => p.Id, p => p);
+        }
+
+        private sealed class CanonicalProduct
+        {
+            public int Id { get; set; }
+            public string? Name { get; set; }
+            public string? Description { get; set; }
+            public string? Image { get; set; }
+            public string? ImageUrl { get; set; }
+        }
+
+        private static string NormalizeImageUrl(string? imageUrl)
+        {
+            if (string.IsNullOrWhiteSpace(imageUrl))
+            {
+                return "/images/products/placeholder.svg";
+            }
+
+            if (imageUrl.Contains("via.placeholder.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return "/images/products/placeholder.svg";
+            }
+
+            return imageUrl.Trim();
+        }
+
+        private static async Task<bool> UpdateImageUrlAsync(SqlConnection connection, int id, string imageUrl)
+        {
+            using var update = new SqlCommand("UPDATE Products SET image_url = @imageUrl WHERE product_id = @id AND (image_url IS NULL OR image_url <> @imageUrl)", connection);
+            update.Parameters.AddWithValue("@id", id);
+            update.Parameters.AddWithValue("@imageUrl", imageUrl);
+            return await update.ExecuteNonQueryAsync() > 0;
+        }
+
+        private static async Task UpdateTextAsync(SqlConnection connection, string tableName, string keyColumn, string textColumn, int id, string? value)
+        {
+            using var update = new SqlCommand($"UPDATE {tableName} SET {textColumn} = @value WHERE {keyColumn} = @id", connection);
+            update.Parameters.AddWithValue("@id", id);
+            update.Parameters.AddWithValue("@value", (object?)value ?? DBNull.Value);
+            await update.ExecuteNonQueryAsync();
         }
     }
 }

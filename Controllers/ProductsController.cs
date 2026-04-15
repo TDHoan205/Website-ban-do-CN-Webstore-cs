@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
 using Webstore.Models;
+using Webstore.Utilities;
 
 namespace Webstore.Controllers
 {
@@ -77,6 +78,10 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Create([Bind("Name,Description,Price,CategoryId,SupplierId")] Product product, IFormFile? imageFile)
         {
             await LoadLookups();
+
+            product.Name = ProductDescriptionText.NormalizePlainText(product.Name) ?? string.Empty;
+            product.Description = ProductDescriptionText.SanitizeDescriptionHtmlNullable(product.Description);
+
             if (!ModelState.IsValid)
             {
                 return View(product);
@@ -111,6 +116,10 @@ namespace Webstore.Controllers
         {
             if (id != product.ProductId) return NotFound();
             await LoadLookups();
+
+            product.Name = ProductDescriptionText.NormalizePlainText(product.Name) ?? string.Empty;
+            product.Description = ProductDescriptionText.SanitizeDescriptionHtmlNullable(product.Description);
+
             if (!ModelState.IsValid)
             {
                 return View(product);

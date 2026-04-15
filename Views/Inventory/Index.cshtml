@@ -99,7 +99,7 @@
                                 <strong>@(item.Product?.Name ?? "N/A")</strong>
                                 @if (!string.IsNullOrEmpty(item.Product?.Description))
                                 {
-                                    <br /><small class="text-muted">@item.Product.Description</small>
+                                    <br /><small class="text-muted">@ProductDescriptionText.ToPlainText(item.Product.Description)</small>
                                 }
                             </td>
                             <td>

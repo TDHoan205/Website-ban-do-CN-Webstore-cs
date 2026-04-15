@@ -114,9 +114,10 @@
                             </td>
                             <td>
                                 <strong>@item.Name</strong>
-                                @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 50)
+                                @{ var previewDescription = ProductDescriptionText.ToPlainText(item.Description, 50); }
+                                @if (!string.IsNullOrEmpty(previewDescription))
                                 {
-                                    <br /><small class="text-muted" title="@item.Description">@item.Description.Substring(0, 50)...</small>
+                                    <br /><small class="text-muted" title="@Html.Encode(ProductDescriptionText.ToPlainText(item.Description))">@Html.Encode(previewDescription)</small>
                                 }
                             </td>
                             <td class="fw-bold text-danger">@item.Price.ToString("N0") ₫</td>
