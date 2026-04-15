@@ -20,6 +20,19 @@
 </div>
 
 <div class="container py-4">
+    @if ((ViewBag.PaymentResult as string) == "success")
+    {
+        <div class="alert alert-success mb-3" role="alert">
+            <i class="fas fa-circle-check me-2"></i>Thanh toán thành công. Đơn hàng của bạn đã được xác nhận.
+        </div>
+    }
+    else if ((ViewBag.PaymentResult as string) == "failed")
+    {
+        <div class="alert alert-warning mb-3" role="alert">
+            <i class="fas fa-triangle-exclamation me-2"></i>Thanh toán chưa thành công. Bạn có thể thử lại hoặc liên hệ hỗ trợ.
+        </div>
+    }
+
     <div class="row g-4">
         <!-- Order Items -->
         <div class="col-lg-8">
@@ -108,7 +121,7 @@
                     </div>
                     <div class="info-row">
                         <span><i class="fas fa-wallet me-2"></i>Thanh toán</span>
-                        <strong>QR Code / Chuyển khoản</strong>
+                        <strong>VNPAY / Chuyển khoản</strong>
                     </div>
                     <div class="info-row">
                         <span><i class="fas fa-circle me-2 icon-dot"></i>Trạng thái</span>
@@ -179,9 +192,14 @@
                 </div>
             </div>
 
-            <a asp-controller="Shop" asp-action="OrderHistory" class="btn btn-outline-primary w-100 mt-3">
-                <i class="fas fa-arrow-left me-1"></i>Quay lại lịch sử đơn hàng
-            </a>
+            <div class="d-flex gap-2 mt-3">
+                <a asp-controller="Shop" asp-action="Index" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-shopping-cart me-1"></i>Tiếp tục mua hàng
+                </a>
+                <a asp-controller="Shop" asp-action="OrderHistory" class="btn btn-outline-primary flex-grow-1">
+                    <i class="fas fa-history me-1"></i>Lịch sử đơn hàng
+                </a>
+            </div>
         </div>
     </div>
 </div>
