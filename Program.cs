@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Webstore.Services.AI;
 
 namespace Webstore
 {
@@ -57,6 +58,11 @@ namespace Webstore
                     options.SlidingExpiration = true;
                     options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 });
+
+            // Register AI Services
+            builder.Services.AddScoped<IntentDetectionService>();
+            builder.Services.AddScoped<RAGEngineService>();
+            builder.Services.AddScoped<AIResponseService>();
 
             var app = builder.Build();
 

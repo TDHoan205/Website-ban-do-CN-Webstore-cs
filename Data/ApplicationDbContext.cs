@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Webstore.Models;
+using Webstore.Models.AI;
 using Webstore.Utilities;
 
 namespace Webstore.Data
@@ -21,6 +22,13 @@ namespace Webstore.Data
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<CartItem> CartItems => Set<CartItem>();
         public DbSet<ReceiptShipment> ReceiptShipments => Set<ReceiptShipment>();
+
+        // AI Chat Models
+        public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+        public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+        public DbSet<FAQ> FAQs => Set<FAQ>();
+        public DbSet<AIConversationLog> AIConversationLogs => Set<AIConversationLog>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

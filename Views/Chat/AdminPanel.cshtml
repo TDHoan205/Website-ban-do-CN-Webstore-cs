@@ -1,0 +1,304 @@
+@model IEnumerable<Webstore.Models.AI.ChatSession>
+@{
+    ViewData["Title"] = "Admin Chat Live";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">Admin Chat Live</h2>
+        <span class="text-muted">Polling 3 giay</span>
+    </div>
+
+    <form id="adminChatAntiForgeryForm" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Danh sach phien chat</strong>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="loadSessions()">Lam moi</button>
+                </div>
+                <div class="card-body p-0" style="max-height:70vh;overflow:auto;" id="sessionList"></div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong id="chatTitle">Chua chon phien chat</strong>
+                        <div class="small text-muted" id="chatStatus">-</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary" type="button" id="acceptBtn" onclick="acceptCurrentSession()" disabled>Nhan chat</button>
+                        <button class="btn btn-sm btn-outline-danger" type="button" id="endBtn" onclick="endCurrentSession()" disabled>Ket thuc</button>
+                    </div>
+                </div>
+
+                <div class="card-body" id="messageList" style="height:58vh;overflow:auto;background:#f8fafc;"></div>
+
+                <div class="card-footer">
+                    <div class="input-group">
+                        <input class="form-control" id="replyInput" placeholder="Nhap tin nhan cho khach..." disabled />
+                        <button class="btn btn-success" type="button" id="replyBtn" onclick="sendReply()" disabled>Gui</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .session-item {
+        border-bottom: 1px solid #eef2f7;
+        padding: 12px;
+        cursor: pointer;
+        transition: background .15s ease;
+    }
+
+    .session-item:hover,
+    .session-item.active {
+        background: #f0f7ff;
+    }
+
+    .msg {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .msg .bubble {
+        max-width: 78%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+    }
+
+    .msg.user { align-items: flex-start; }
+    .msg.ai { align-items: flex-start; }
+    .msg.system { align-items: center; }
+    .msg.admin { align-items: flex-end; }
+
+    .msg.user .bubble { background: #fff; border: 1px solid #dbe3ee; }
+    .msg.ai .bubble { background: #eef6ff; border: 1px solid #cfe1f5; }
+    .msg.admin .bubble { background: #d1fae5; border: 1px solid #8be0bd; }
+    .msg.system .bubble { background: #fff7cd; border: 1px solid #f3e39a; }
+
+    .msg-time {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+</style>
+
+<script>
+    let sessions = [];
+    let currentSessionId = null;
+    let lastMessageId = 0;
+    let sessionPoll = null;
+    let messagePoll = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSessions();
+        startPolling();
+
+        const input = document.getElementById('replyInput');
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendReply();
+            }
+        });
+    });
+
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('#adminChatAntiForgeryForm input[name="__RequestVerificationToken"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    function formatTime(value) {
+        try {
+            return new Date(value).toLocaleString('vi-VN');
+        } catch {
+            return '';
+        }
+    }
+
+    function statusBadge(status) {
+        const map = {
+            active: 'badge bg-success',
+            escalated: 'badge bg-danger',
+            closed: 'badge bg-secondary'
+        };
+        return `<span class="${map[status] || 'badge bg-light text-dark'}">${status || 'active'}</span>`;
+    }
+
+    async function loadSessions() {
+        const response = await fetch('/api/admin/chat/sessions');
+        const data = await response.json();
+        if (!data.success) return;
+
+        sessions = data.sessions || [];
+        renderSessionList();
+    }
+
+    function renderSessionList() {
+        const list = document.getElementById('sessionList');
+        if (!sessions.length) {
+            list.innerHTML = '<div class="p-3 text-muted">Chua co phien chat nao.</div>';
+            return;
+        }
+
+        list.innerHTML = sessions.map(s => {
+            const isActive = currentSessionId === s.sessionId;
+            return `
+                <div class="session-item ${isActive ? 'active' : ''}" onclick="selectSession('${s.sessionId}')">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong>${escapeHtml(s.accountName || s.username || 'Khach')}</strong>
+                        ${statusBadge(s.status)}
+                    </div>
+                    <div class="small text-muted">Session: ${s.sessionId}</div>
+                    <div class="small text-muted">Bat dau: ${formatTime(s.startedAt)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function selectSession(sessionId) {
+        currentSessionId = sessionId;
+        lastMessageId = 0;
+
+        const session = sessions.find(x => x.sessionId === sessionId);
+        document.getElementById('chatTitle').textContent = `Khach: ${session?.accountName || session?.username || 'Khach'}`;
+        document.getElementById('chatStatus').textContent = `Trang thai: ${session?.status || 'active'}`;
+
+        document.getElementById('acceptBtn').disabled = !(session?.status === 'escalated');
+        document.getElementById('endBtn').disabled = false;
+        document.getElementById('replyInput').disabled = false;
+        document.getElementById('replyBtn').disabled = false;
+
+        renderSessionList();
+        await loadHistory(true);
+    }
+
+    async function loadHistory(reset) {
+        if (!currentSessionId) return;
+
+        const url = reset
+            ? `/api/admin/chat/history?sessionId=${currentSessionId}`
+            : `/api/admin/chat/history?sessionId=${currentSessionId}&lastMessageId=${lastMessageId}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!data.success) return;
+
+        if (reset) {
+            document.getElementById('messageList').innerHTML = '';
+        }
+
+        const messages = data.messages || [];
+        messages.forEach(m => {
+            lastMessageId = Math.max(lastMessageId, Number(m.messageId || 0));
+            appendMessage(m.senderType, m.message, m.createdAt);
+        });
+    }
+
+    function appendMessage(type, text, createdAt) {
+        const list = document.getElementById('messageList');
+        const wrap = document.createElement('div');
+        wrap.className = `msg ${type || 'user'}`;
+
+        wrap.innerHTML = `
+            <div class="bubble">${escapeHtml(text || '')}</div>
+            <div class="msg-time">${formatTime(createdAt)}</div>
+        `;
+
+        list.appendChild(wrap);
+        list.scrollTop = list.scrollHeight;
+    }
+
+    async function acceptCurrentSession() {
+        if (!currentSessionId) return;
+
+        const response = await fetch('/api/admin/chat/accept', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getCsrfToken()
+            },
+            body: JSON.stringify({ sessionId: currentSessionId })
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            alert(data.error || 'Khong the nhan chat');
+            return;
+        }
+
+        await loadSessions();
+        await loadHistory(false);
+    }
+
+    async function sendReply() {
+        if (!currentSessionId) return;
+
+        const input = document.getElementById('replyInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        const response = await fetch('/api/admin/chat/reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                sessionId: currentSessionId,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            alert(data.error || 'Khong the gui tin nhan');
+            return;
+        }
+
+        input.value = '';
+        await loadHistory(false);
+    }
+
+    async function endCurrentSession() {
+        if (!currentSessionId) return;
+
+        const response = await fetch(`/api/admin/chat/end?sessionId=${currentSessionId}`, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': getCsrfToken()
+            }
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            alert(data.error || 'Khong the ket thuc chat');
+            return;
+        }
+
+        await loadSessions();
+        await loadHistory(false);
+    }
+
+    function startPolling() {
+        sessionPoll = setInterval(loadSessions, 3000);
+        messagePoll = setInterval(() => loadHistory(false), 3000);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>

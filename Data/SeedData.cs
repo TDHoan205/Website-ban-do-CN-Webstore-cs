@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using Webstore.Models;
+using Webstore.Models.AI;
 using Webstore.Models.Security;
 using Webstore.Utilities;
 
@@ -171,6 +172,11 @@ namespace Webstore.Data
             }).ToList();
 
             context.Inventory.AddRange(inventories);
+            await context.SaveChangesAsync();
+
+            // Seed FAQs for AI Chat
+            var faqs = AISeedData.GetFAQs();
+            context.FAQs.AddRange(faqs);
             await context.SaveChangesAsync();
         }
 
