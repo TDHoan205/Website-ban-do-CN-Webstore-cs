@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Webstore.Data;
 using Webstore.Models;
@@ -11,10 +14,12 @@ namespace Webstore.Controllers
     public class ShopController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public ShopController(ApplicationDbContext context)
+        public ShopController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // GET: /Shop - Trang chủ shop
@@ -26,10 +31,8 @@ namespace Webstore.Controllers
                 .Include(p => p.Supplier)
                 .ToList();
 
-            // Sản phẩm mới: top 8 sản phẩm mới nhất (ProductId cao nhất)
-            var maxProductId = allProducts.Any() ? allProducts.Max(p => p.ProductId) : 0;
+            // Sản phẩm mới: ưu tiên sản phẩm vừa được thêm gần nhất
             var newProducts = allProducts
-                .Where(p => p.ProductId > maxProductId - 8 || p.IsNew)
                 .OrderByDescending(p => p.ProductId)
                 .Take(8)
                 .ToList();
@@ -149,6 +152,7 @@ namespace Webstore.Controllers
         // POST: /Shop/AddToCart - Thêm vào giỏ hàng
         // Yêu cầu đăng nhập trước khi thêm vào giỏ hàng
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public IActionResult AddToCart(int productId, int quantity = 1)
         {
             // Kiểm tra đăng nhập - yêu cầu user phải đăng nhập trước khi thêm vào giỏ
@@ -163,8 +167,12 @@ namespace Webstore.Controllers
                 };
                 HttpContext.Session.SetString("PendingCartAction",
                     System.Text.Json.JsonSerializer.Serialize(pendingAction));
-                return Json(new { success = false, requiresLogin = true,
-                    message = "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng" });
+                return Json(new
+                {
+                    success = false,
+                    requiresLogin = true,
+                    message = "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng"
+                });
             }
 
             var product = _context.Products
@@ -262,6 +270,7 @@ namespace Webstore.Controllers
         }
 
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public IActionResult UpdateCart(int productId, int quantity)
         {
             var cart = GetCartItems();
@@ -298,6 +307,7 @@ namespace Webstore.Controllers
         }
 
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public IActionResult RemoveFromCart(int productId)
         {
             var cart = GetCartItems();
@@ -322,10 +332,17 @@ namespace Webstore.Controllers
             var paymentSection = HttpContext.RequestServices.GetService<IConfiguration>()?.GetSection("PaymentInfo");
             ViewBag.PaymentInfo = new
             {
-                BankName = paymentSection?["BankName"] ?? "Vietcombank",
+                BankName = paymentSection?["BankName"] ?? "MB Bank",
+                BankBin = paymentSection?["BankBin"] ?? "mbbank",
                 AccountNumber = paymentSection?["AccountNumber"] ?? "123456789012",
                 AccountName = paymentSection?["AccountName"] ?? "WEBSTORE SHOP"
             };
+
+            var sandboxEnabled = _configuration.GetValue<bool>("PaymentSandbox:Enabled");
+            var tmnCode = _configuration.GetSection("VnPay")["TmnCode"];
+            var hashSecret = _configuration.GetSection("VnPay")["HashSecret"];
+            ViewBag.IsSandboxPayment = sandboxEnabled &&
+                (string.IsNullOrWhiteSpace(tmnCode) || string.IsNullOrWhiteSpace(hashSecret));
 
             // If no cart items, just go back to cart
             if (!cartItems.Any())
@@ -367,6 +384,7 @@ namespace Webstore.Controllers
 
         // POST: /Shop/PlaceOrder - Đặt hàng
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public IActionResult PlaceOrder([FromBody] PlaceOrderRequest req)
         {
             if (req == null)
@@ -451,6 +469,29 @@ namespace Webstore.Controllers
 
                 // KHÔNG clear cart ở đây - chỉ clear khi payment thực sự xác nhận thành công
                 // Cart sẽ được clear bởi ConfirmPayment endpoint sau khi user xác nhận đã chuyển khoản
+                if (string.Equals(req.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
+                {
+                    var paymentUrl = BuildVnPayPaymentUrl(order);
+                    if (string.IsNullOrWhiteSpace(paymentUrl))
+                    {
+                        paymentUrl = BuildSandboxPaymentUrl(order);
+                        if (string.IsNullOrWhiteSpace(paymentUrl))
+                        {
+                            return Json(new { success = false, message = "Không thể khởi tạo cổng thanh toán. Vui lòng kiểm tra cấu hình VNPAY." });
+                        }
+                    }
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Khởi tạo thanh toán thành công.",
+                        orderId = order.OrderId,
+                        paymentMethod = "vnpay",
+                        requiresRedirect = true,
+                        paymentUrl
+                    });
+                }
+
                 return Json(new { success = true, message = "Đặt hàng thành công!", orderId = order.OrderId });
             }
             catch (Microsoft.Data.SqlClient.SqlException)
@@ -463,8 +504,162 @@ namespace Webstore.Controllers
             }
         }
 
+        // GET: /Shop/PaymentReturn - Return URL từ VNPAY sau khi user thanh toán xong
+        [HttpGet]
+        public IActionResult PaymentReturn()
+        {
+            var hashSecret = _configuration.GetSection("VnPay")["HashSecret"];
+            if (string.IsNullOrWhiteSpace(hashSecret))
+            {
+                TempData["Error"] = "Thiếu cấu hình HashSecret của VNPAY.";
+                return RedirectToAction("Checkout");
+            }
+
+            var data = ExtractVnPayResponseData(Request.Query);
+            if (!IsValidVnPaySignature(data, hashSecret))
+            {
+                TempData["Error"] = "Xác thực chữ ký thanh toán thất bại.";
+                return RedirectToAction("Checkout");
+            }
+
+            if (!int.TryParse(data.GetValueOrDefault("vnp_TxnRef"), out var orderId))
+            {
+                TempData["Error"] = "Không tìm thấy mã đơn hàng hợp lệ.";
+                return RedirectToAction("Checkout");
+            }
+
+            var order = _context.Orders.FirstOrDefault(o => o.OrderId == orderId);
+            if (order == null)
+            {
+                TempData["Error"] = "Đơn hàng không tồn tại.";
+                return RedirectToAction("Checkout");
+            }
+
+            var responseCode = data.GetValueOrDefault("vnp_ResponseCode");
+            var transactionStatus = data.GetValueOrDefault("vnp_TransactionStatus");
+            var isSuccess = responseCode == "00" && transactionStatus == "00";
+
+            if (isSuccess && order.Status != "Confirmed")
+            {
+                order.Status = "Confirmed";
+                _context.SaveChanges();
+            }
+
+            if (isSuccess && User.Identity?.IsAuthenticated == true && GetCurrentAccountId() == order.AccountId)
+            {
+                ClearCart();
+            }
+
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                var returnUrl = Url.Action("OrderDetail", "Shop", new { id = orderId, payment = isSuccess ? "success" : "failed" }) ?? "/Shop/OrderHistory";
+                return RedirectToAction("Login", "Auth", new { returnUrl });
+            }
+
+            if (GetCurrentAccountId() != order.AccountId)
+            {
+                return RedirectToAction("OrderHistory");
+            }
+
+            return RedirectToAction("OrderDetail", new { id = orderId, payment = isSuccess ? "success" : "failed" });
+        }
+
+        // GET: /Shop/PaymentIpn - Callback server-to-server từ VNPAY
+        [HttpGet]
+        [IgnoreAntiforgeryToken]
+        public IActionResult PaymentIpn()
+        {
+            var hashSecret = _configuration.GetSection("VnPay")["HashSecret"];
+            if (string.IsNullOrWhiteSpace(hashSecret))
+            {
+                return Json(new { RspCode = "99", Message = "Missing configuration" });
+            }
+
+            var data = ExtractVnPayResponseData(Request.Query);
+            if (!IsValidVnPaySignature(data, hashSecret))
+            {
+                return Json(new { RspCode = "97", Message = "Invalid signature" });
+            }
+
+            if (!int.TryParse(data.GetValueOrDefault("vnp_TxnRef"), out var orderId))
+            {
+                return Json(new { RspCode = "01", Message = "Order not found" });
+            }
+
+            var order = _context.Orders.FirstOrDefault(o => o.OrderId == orderId);
+            if (order == null)
+            {
+                return Json(new { RspCode = "01", Message = "Order not found" });
+            }
+
+            if (!long.TryParse(data.GetValueOrDefault("vnp_Amount"), out var amountRaw) || amountRaw <= 0)
+            {
+                return Json(new { RspCode = "04", Message = "Invalid amount" });
+            }
+
+            var paidAmount = amountRaw / 100m;
+            if (Math.Abs(order.TotalAmount - paidAmount) > 0.01m)
+            {
+                return Json(new { RspCode = "04", Message = "Invalid amount" });
+            }
+
+            if (order.Status == "Confirmed")
+            {
+                return Json(new { RspCode = "02", Message = "Order already confirmed" });
+            }
+
+            var responseCode = data.GetValueOrDefault("vnp_ResponseCode");
+            var transactionStatus = data.GetValueOrDefault("vnp_TransactionStatus");
+            var isSuccess = responseCode == "00" && transactionStatus == "00";
+
+            if (isSuccess)
+            {
+                order.Status = "Confirmed";
+                _context.SaveChanges();
+            }
+
+            return Json(new { RspCode = "00", Message = "Confirm Success" });
+        }
+
+        // GET: /Shop/SandboxAutoPay - Giả lập thanh toán tự động cho môi trường demo/sinh viên
+        [HttpGet]
+        public IActionResult SandboxAutoPay(int orderId)
+        {
+            var sandboxEnabled = _configuration.GetValue<bool>("PaymentSandbox:Enabled");
+            if (!sandboxEnabled)
+            {
+                return RedirectToAction("Checkout");
+            }
+
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                var returnUrl = Url.Action("SandboxAutoPay", "Shop", new { orderId }) ?? "/Shop/Checkout";
+                return RedirectToAction("Login", "Auth", new { returnUrl });
+            }
+
+            var accountId = GetCurrentAccountId();
+            var order = _context.Orders.FirstOrDefault(o => o.OrderId == orderId && o.AccountId == accountId);
+            if (order == null)
+            {
+                TempData["Error"] = "Không tìm thấy đơn hàng cần thanh toán.";
+                return RedirectToAction("OrderHistory");
+            }
+
+            if (order.Status != "Confirmed")
+            {
+                order.Status = "Confirmed";
+                _context.SaveChanges();
+
+                ClearCart();
+                TempData["Success"] = "Demo: hệ thống đã tự động xác nhận thanh toán thành công.";
+            }
+
+            return RedirectToAction("OrderDetail", new { id = orderId, payment = "success" });
+        }
+
         // POST: /Shop/ConfirmPayment - Xác nhận thanh toán thực sự (clear cart sau khi user xác nhận đã chuyển khoản)
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public IActionResult ConfirmPayment(int orderId)
         {
             if (orderId <= 0)
@@ -509,6 +704,89 @@ namespace Webstore.Controllers
             catch (Exception)
             {
                 return Json(new { success = false, message = "Có lỗi xảy ra khi xác nhận thanh toán." });
+            }
+        }
+
+        // GET: /Shop/CheckPaymentStatus - Kiểm tra trạng thái thanh toán qua Sepay API
+        [HttpGet]
+        public async Task<IActionResult> CheckPaymentStatus(string transferCode, decimal amount)
+        {
+            if (string.IsNullOrWhiteSpace(transferCode) || amount <= 0)
+            {
+                return Json(new { paid = false, message = "Thông tin không hợp lệ." });
+            }
+
+            var sepayApiKey = _configuration.GetSection("Sepay")["ApiKey"];
+            var sepayAccountNumber = _configuration.GetSection("Sepay")["AccountNumber"];
+
+            // If Sepay is not configured, fall back to sandbox mode (auto-success for demo)
+            if (string.IsNullOrWhiteSpace(sepayApiKey))
+            {
+                var sandboxEnabled = _configuration.GetValue<bool>("PaymentSandbox:Enabled");
+                if (sandboxEnabled)
+                {
+                    // In sandbox/demo mode without Sepay, never return paid=true automatically
+                    // User must use the manual confirm button
+                    return Json(new { paid = false, message = "Sepay chưa được cấu hình. Dùng nút xác nhận thủ công.", sandbox = true });
+                }
+                return Json(new { paid = false, message = "Chưa cấu hình API thanh toán tự động." });
+            }
+
+            try
+            {
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {sepayApiKey}");
+                httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+                // Query Sepay API for recent transactions matching our account
+                var apiUrl = $"https://my.sepay.vn/userapi/transactions/list?account_number={sepayAccountNumber}&limit=20";
+                var response = await httpClient.GetAsync(apiUrl);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Json(new { paid = false, message = "Không thể kết nối Sepay API." });
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var jsonDoc = System.Text.Json.JsonDocument.Parse(content);
+
+                if (!jsonDoc.RootElement.TryGetProperty("transactions", out var transactions))
+                {
+                    return Json(new { paid = false });
+                }
+
+                var roundedAmount = Math.Round(amount, 0, MidpointRounding.AwayFromZero);
+
+                foreach (var tx in transactions.EnumerateArray())
+                {
+                    // Check transaction content contains our transfer code
+                    var txContent = tx.TryGetProperty("transaction_content", out var contentProp)
+                        ? contentProp.GetString() ?? ""
+                        : "";
+
+                    var txAmount = 0m;
+                    if (tx.TryGetProperty("amount_in", out var amountProp))
+                    {
+                        decimal.TryParse(amountProp.ToString(), out txAmount);
+                    }
+
+                    // Match: transfer code found in content AND amount matches
+                    if (txContent.Contains(transferCode, StringComparison.OrdinalIgnoreCase)
+                        && Math.Abs(txAmount - roundedAmount) < 1m)
+                    {
+                        return Json(new { paid = true, message = "Thanh toán thành công!" });
+                    }
+                }
+
+                return Json(new { paid = false });
+            }
+            catch (TaskCanceledException)
+            {
+                return Json(new { paid = false, message = "Hết thời gian kết nối Sepay." });
+            }
+            catch (Exception)
+            {
+                return Json(new { paid = false, message = "Lỗi kiểm tra thanh toán." });
             }
         }
 
@@ -581,6 +859,147 @@ namespace Webstore.Controllers
             HttpContext.Session.Remove("Cart");
         }
 
+        private string BuildVnPayPaymentUrl(Order order)
+        {
+            var vnpay = _configuration.GetSection("VnPay");
+            var tmnCode = vnpay["TmnCode"];
+            var hashSecret = vnpay["HashSecret"];
+            var baseUrl = vnpay["BaseUrl"] ?? "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+            var version = vnpay["Version"] ?? "2.1.0";
+            var command = vnpay["Command"] ?? "pay";
+            var currCode = vnpay["CurrCode"] ?? "VND";
+            var locale = vnpay["Locale"] ?? "vn";
+            var returnPath = vnpay["ReturnUrl"] ?? "/Shop/PaymentReturn";
+
+            if (string.IsNullOrWhiteSpace(tmnCode) || string.IsNullOrWhiteSpace(hashSecret))
+            {
+                return string.Empty;
+            }
+
+            var now = DateTime.Now;
+            var amount = (long)Math.Round(order.TotalAmount * 100m, 0, MidpointRounding.AwayFromZero);
+            var returnUrl = returnPath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? returnPath
+                : $"{Request.Scheme}://{Request.Host}{(returnPath.StartsWith('/') ? returnPath : "/" + returnPath)}";
+
+            var ipAddr = HttpContext.Connection.RemoteIpAddress?.ToString();
+            if (string.IsNullOrWhiteSpace(ipAddr))
+            {
+                ipAddr = "127.0.0.1";
+            }
+
+            var vnpParams = new SortedDictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["vnp_Version"] = version,
+                ["vnp_Command"] = command,
+                ["vnp_TmnCode"] = tmnCode,
+                ["vnp_Amount"] = amount.ToString(),
+                ["vnp_CreateDate"] = now.ToString("yyyyMMddHHmmss"),
+                ["vnp_CurrCode"] = currCode,
+                ["vnp_IpAddr"] = ipAddr,
+                ["vnp_Locale"] = locale,
+                ["vnp_OrderInfo"] = $"Thanh toan don hang {order.OrderId}",
+                ["vnp_OrderType"] = "other",
+                ["vnp_ReturnUrl"] = returnUrl,
+                ["vnp_TxnRef"] = order.OrderId.ToString(),
+                ["vnp_ExpireDate"] = now.AddMinutes(15).ToString("yyyyMMddHHmmss")
+            };
+
+            var signData = BuildVnPayQuery(vnpParams, false);
+            var secureHash = ComputeHmacSha512(hashSecret, signData);
+            vnpParams["vnp_SecureHash"] = secureHash;
+
+            return $"{baseUrl}?{BuildVnPayQuery(vnpParams, true)}";
+        }
+
+        private string BuildSandboxPaymentUrl(Order order)
+        {
+            var sandboxEnabled = _configuration.GetValue<bool>("PaymentSandbox:Enabled");
+            if (!sandboxEnabled)
+            {
+                return string.Empty;
+            }
+
+            return Url.Action("SandboxAutoPay", "Shop", new { orderId = order.OrderId }, Request.Scheme) ?? string.Empty;
+        }
+
+        private static string BuildVnPayQuery(SortedDictionary<string, string> data, bool encode)
+        {
+            return string.Join("&", data
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                .Select(kv => $"{kv.Key}={(encode ? Uri.EscapeDataString(kv.Value) : kv.Value)}"));
+        }
+
+        private static string ComputeHmacSha512(string key, string data)
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            var dataBytes = Encoding.UTF8.GetBytes(data);
+            using var hmac = new HMACSHA512(keyBytes);
+            var hashBytes = hmac.ComputeHash(dataBytes);
+            return Convert.ToHexString(hashBytes).ToLowerInvariant();
+        }
+
+        private static Dictionary<string, string> ExtractVnPayResponseData(IQueryCollection query)
+        {
+            var data = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var key in query.Keys)
+            {
+                if (key.StartsWith("vnp_", StringComparison.OrdinalIgnoreCase))
+                {
+                    data[key] = query[key].ToString();
+                }
+            }
+            return data;
+        }
+
+        private static bool IsValidVnPaySignature(Dictionary<string, string> data, string hashSecret)
+        {
+            if (!data.TryGetValue("vnp_SecureHash", out var secureHash) || string.IsNullOrWhiteSpace(secureHash))
+            {
+                return false;
+            }
+
+            var signingData = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (var kv in data)
+            {
+                if (kv.Key.Equals("vnp_SecureHash", StringComparison.OrdinalIgnoreCase) ||
+                    kv.Key.Equals("vnp_SecureHashType", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                signingData[kv.Key] = kv.Value;
+            }
+
+            var raw = BuildVnPayQuery(signingData, false);
+            var expectedHash = ComputeHmacSha512(hashSecret, raw);
+            return secureHash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void RemoveOrderedItemsFromSessionCart(int orderId)
+        {
+            var orderedProductIds = _context.OrderItems
+                .Where(oi => oi.OrderId == orderId)
+                .Select(oi => oi.ProductId)
+                .ToList();
+
+            if (!orderedProductIds.Any())
+            {
+                return;
+            }
+
+            var cartItems = GetCartItems();
+            cartItems.RemoveAll(c => orderedProductIds.Contains(c.ProductId));
+
+            if (cartItems.Any())
+            {
+                SaveCartItems(cartItems);
+            }
+            else
+            {
+                ClearCart();
+            }
+        }
+
         // GET: /Shop/Support - Trang hỗ trợ
         public IActionResult Support()
         {
@@ -631,7 +1050,7 @@ namespace Webstore.Controllers
         }
 
         // GET: /Shop/OrderDetail/{id} - Chi tiết đơn hàng
-        public IActionResult OrderDetail(int id)
+        public IActionResult OrderDetail(int id, string? payment = null)
         {
             if (User.Identity?.IsAuthenticated != true)
             {
@@ -648,6 +1067,8 @@ namespace Webstore.Controllers
             {
                 return NotFound();
             }
+
+            ViewBag.PaymentResult = payment;
 
             return View(order);
         }
