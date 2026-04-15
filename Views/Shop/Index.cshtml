@@ -132,60 +132,6 @@
     </div>
 </section>
 
-<!-- Hot Products -->
-<section class="py-5" style="background: white;" id="hot-products">
-    <div class="container">
-        <div class="section-header">
-            <div>
-                <h2 class="section-title"><i class="fas fa-fire" style="color:#EF4444;"></i> Hot deals</h2>
-                <p class="section-subtitle">Những sản phẩm bán chạy nhất tuần</p>
-            </div>
-            <a asp-controller="Shop" asp-action="Products" class="btn btn-outline-danger">
-                Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
-            </a>
-        </div>
-        <div class="row g-4">
-            @foreach (var product in ViewBag.HotProducts)
-            {
-                <div class="col-lg-3 col-md-4 col-sm-6">
-                    <div class="product-card hot-card">
-                        <div class="hot-badge-new"><i class="fas fa-fire"></i> Hot</div>
-                        <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId" class="product-card-img">
-                            @if (!string.IsNullOrEmpty(product.ImageUrl))
-                            {
-                                <img src="@product.ImageUrl" alt="@product.Name" />
-                            }
-                            else
-                            {
-                                <i class="fas fa-box fa-3x text-muted"></i>
-                            }
-                            <div class="product-overlay"><i class="fas fa-eye"></i></div>
-                        </a>
-                        <div class="product-card-body">
-                            <div class="product-card-cat">@product.Category?.Name</div>
-                            <h5 class="product-card-title">
-                                <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId">@product.Name</a>
-                            </h5>
-                            <div class="product-card-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                                <span class="ms-1 text-muted" style="font-size:0.75rem;">(4.5)</span>
-                            </div>
-                            <div class="product-card-price">@product.Price.ToString("N0") ₫</div>
-                            <button class="btn btn-add-cart" onclick="addToCart(@product.ProductId)">
-                                <i class="fas fa-cart-plus"></i> Thêm vào giỏ
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-</section>
-
 <!-- Features -->
 <section class="py-5" style="background: white;">
     <div class="container">
@@ -409,21 +355,6 @@
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(-8px); }
     }
-
-    /* Hot badge */
-    .hot-badge-new {
-        position: absolute;
-        top: 12px; left: 12px;
-        background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
-        color: white;
-        padding: 4px 14px;
-        border-radius: 50px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        z-index: 5;
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-    }
-    .hot-card { border: 2px solid #FEE2E2; }
 
     /* New badge */
     .product-badge-new {
