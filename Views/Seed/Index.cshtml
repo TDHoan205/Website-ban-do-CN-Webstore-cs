@@ -225,30 +225,31 @@
 
 <style>
     .card {
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: var(--shadow-sm);
         border: none;
     }
-    
+
     .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         color: white;
         border: none;
     }
-    
+
     .table th {
-        background-color: #f8f9fa;
+        background-color: var(--surface-alt);
         border-top: none;
         font-weight: 600;
     }
-    
+
     .badge {
         font-size: 0.8rem;
+        border-radius: var(--radius-sm);
     }
-    
+
     code {
-        background-color: #f8f9fa;
+        background-color: var(--surface-alt);
         padding: 2px 6px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         font-size: 0.9rem;
     }
 </style>

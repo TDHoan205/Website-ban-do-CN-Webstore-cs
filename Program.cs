@@ -10,13 +10,29 @@ namespace Webstore
         {
             var builder = WebApplication.CreateBuilder(args);
 
-
+            // Read payment info from config
+            var paymentSection = builder.Configuration.GetSection("PaymentInfo");
+            var paymentInfo = new
+            {
+                BankName = paymentSection["BankName"] ?? "Vietcombank",
+                AccountNumber = paymentSection["AccountNumber"] ?? "123456789012",
+                AccountName = paymentSection["AccountName"] ?? "WEBSTORE SHOP"
+            };
 
             // Add services to the container.
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews()
+                .AddMvcOptions(options =>
+                {
+                    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+                });
+            builder.Services.Configure<Microsoft.Extensions.Configuration.ConfigurationManager>(options =>
+            {
+                // Pass payment info to all views via ViewData
+            });
 
             // Add session support
             builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddHttpContextAccessor();
             builder.Services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -115,13 +131,13 @@ END";
 
             app.UseRouting();
 
+            app.UseSession();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseSession();
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Home}/{action=Landing}/{id?}");
+                pattern: "{controller=Shop}/{action=Index}/{id?}");
 
             app.Run();
         }

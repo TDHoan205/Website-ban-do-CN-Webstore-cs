@@ -24,7 +24,7 @@
                     <div class="cart-toolbar">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="selectAllCart" checked style="width:20px;height:20px;accent-color:var(--primary);">
-                            <label class="form-check-label fw-bold" for="selectAllCart" style="font-size:0.9rem;">Chọn tất cả (@Model.Count sản phẩm)</label>
+                            <label class="form-check-label fw-bold" for="selectAllCart" style="font-size:0.9rem;">Chọn tất cả (<span id="totalItemsCount">@Model.Count</span> sản phẩm)</label>
                         </div>
                         <button type="button" class="btn-clear-cart" onclick="clearSelected()">
                             <i class="fas fa-trash-alt me-1"></i>Xóa đã chọn
@@ -36,32 +36,34 @@
                         @foreach (var item in Model)
                         {
                             var lineTotal = ((item.Product?.Price ?? 0m) * item.Quantity).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
-                            <div class="cart-item" data-line-total="@lineTotal" data-quantity="@item.Quantity">
+                            <div class="cart-item" data-product-id="@item.ProductId" data-price="@((item.Product?.Price ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture))" data-quantity="@item.Quantity">
                                 <div class="cart-item-left">
                                     <input type="checkbox" class="select-for-checkout form-check-input" value="@item.ProductId" checked style="accent-color:var(--primary);" />
                                 </div>
                                 <div class="cart-item-img">
                                     @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
                                     {
-                                        <img src="@item.Product.ImageUrl" alt="@item.Product?.Name" />
+                                        <img src="@item.Product.ImageUrl" alt="@Html.Encode(item.Product?.Name)" />
                                     }
                                     else
                                     {
-                                        <div class="img-placeholder"><i class="fas fa-box text-muted"></i></div>
+                                        <div class="img-placeholder">
+                                            <i class="fas fa-box" style="font-size:1.5rem;"></i>
+                                        </div>
                                     }
                                 </div>
                                 <div class="cart-item-info">
-                                    <h5 class="cart-item-name">@item.Product?.Name</h5>
+                                    <h5 class="cart-item-name">@Html.Encode(item.Product?.Name)</h5>
                                     <div class="cart-item-cat">@item.Product?.Category?.Name</div>
                                     <div class="cart-item-price">@((item.Product?.Price ?? 0m).ToString("N0")) ₫</div>
                                 </div>
                                 <div class="cart-item-qty">
                                     <div class="qty-controls">
-                                        <button type="button" class="qty-btn" onclick="updateCartItem(@item.ProductId, @(item.Quantity - 1))">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, -1)">
                                             <i class="fas fa-minus"></i>
                                         </button>
                                         <input type="number" class="qty-input" value="@item.Quantity" readonly id="qty-@item.ProductId">
-                                        <button type="button" class="qty-btn" onclick="updateCartItem(@item.ProductId, @(item.Quantity + 1))">
+                                        <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, 1)">
                                             <i class="fas fa-plus"></i>
                                         </button>
                                     </div>
@@ -87,41 +89,41 @@
                 </div>
             </div>
 
-            <!-- Order Summary -->
-            <div class="col-lg-4">
-                <div class="summary-card">
-                    <div class="summary-header">
-                        <h5><i class="fas fa-receipt me-2"></i>Tóm tắt đơn hàng</h5>
-                    </div>
-                    <div class="summary-body">
-                        <div class="summary-row">
-                            <span>Số sản phẩm</span>
-                            <span class="fw-bold" id="selectedCount">@Model.Sum(c => c.Quantity)</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>Tạm tính</span>
-                            <span id="selectedAmount">@totalAmount.ToString("N0") ₫</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>Phí vận chuyển</span>
-                            <span class="text-success fw-bold">Miễn phí</span>
-                        </div>
-                        <div class="summary-divider"></div>
-                        <div class="summary-row summary-total">
-                            <span>Tổng cộng</span>
-                            <span class="total-price" id="totalPrice">@totalAmount.ToString("N0") ₫</span>
-                        </div>
+                    <!-- Order Summary -->
+                    <div class="col-lg-4">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h5><i class="fas fa-receipt me-2"></i>Tóm tắt đơn hàng</h5>
+                            </div>
+                            <div class="summary-body">
+                                <div class="summary-row">
+                                    <span>Số sản phẩm</span>
+                                    <span class="fw-bold" id="selectedCount">0</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Tạm tính</span>
+                                    <span id="selectedAmount">0 ₫</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Phí vận chuyển</span>
+                                    <span class="text-success fw-bold">Miễn phí</span>
+                                </div>
+                                <div class="summary-divider"></div>
+                                <div class="summary-row summary-total">
+                                    <span>Tổng cộng</span>
+                                    <span class="total-price" id="totalPrice">0 ₫</span>
+                                </div>
 
-                        <button type="button" class="btn btn-checkout" id="checkoutSelectedBtn" onclick="goCheckout()">
-                            <i class="fas fa-credit-card me-2"></i>Thanh toán ngay
-                        </button>
+                                <button type="button" class="btn btn-checkout" id="checkoutSelectedBtn" onclick="goCheckout()">
+                                    <i class="fas fa-credit-card me-2"></i>Thanh toán ngay
+                                </button>
 
-                        <div class="summary-security">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Thanh toán an toàn, bảo mật</span>
+                                <div class="summary-security">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Thanh toán an toàn, bảo mật</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
                 <!-- Features -->
                 <div class="summary-features mt-3">
@@ -158,19 +160,6 @@
 </div>
 
 <style>
-    /* Page Header */
-    .page-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        padding: 28px 0;
-    }
-    .page-title {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: white;
-        margin: 0 0 4px;
-    }
-    .page-subtitle { color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-
     /* Cart Card */
     .cart-card {
         background: white;
@@ -443,19 +432,60 @@
 </style>
 
 <script>
-    function updateCartItem(productId, quantity) {
-        if (quantity < 1) return;
+    // =====================================================
+    // Thay đổi số lượng (đọc qty hiện tại từ data-attribute)
+    // =====================================================
+    function changeQuantity(productId, delta) {
+        var item = document.querySelector('.cart-item[data-product-id="' + productId + '"]');
+        if (!item) return;
+        var currentQty = parseInt(item.dataset.quantity) || 0;
+        var newQty = currentQty + delta;
+        if (newQty <= 0) {
+            removeCartItem(productId);
+            return;
+        }
+        // Cập nhật UI ngay lập tức
+        item.dataset.quantity = newQty;
+        var price = parseFloat(item.dataset.price) || 0;
+        var qtyInput = item.querySelector('.qty-input');
+        var lineTotalEl = item.querySelector('.line-total');
+        if (qtyInput) qtyInput.value = newQty;
+        if (lineTotalEl) lineTotalEl.textContent = formatCurrency(price * newQty);
+        updateCartSummary();
+
+        // Gửi lên server
         fetch('@Url.Action("UpdateCart", "Shop")', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'productId=' + productId + '&quantity=' + quantity
+            body: 'productId=' + productId + '&quantity=' + newQty
         }).then(function(res) { return res.json(); })
           .then(function(data) {
-              if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
-              else { window.location.reload(); }
-          }).catch(function() { window.location.reload(); });
+              if (!data) return;
+              // Server trả về redirectUrl khi xóa item (qty=0) => reload
+              if (data.redirectUrl) {
+                  window.location.href = data.redirectUrl;
+                  return;
+              }
+              // Nếu server điều chỉnh lại số lượng (ví dụ vượt tồn kho)
+              if (data.success === false && data.message) {
+                  if (window.showToast) window.showToast('warning', data.message);
+                  else alert(data.message);
+              }
+              if (data.newQuantity !== undefined && data.newQuantity !== null) {
+                  var correctedQty = parseInt(data.newQuantity);
+                  item.dataset.quantity = correctedQty;
+                  if (qtyInput) qtyInput.value = correctedQty;
+                  if (lineTotalEl) lineTotalEl.textContent = formatCurrency(price * correctedQty);
+                  updateCartSummary();
+              }
+          }).catch(function(err) {
+              console.error('UpdateCart error:', err);
+          });
     }
 
+    // =====================================================
+    // Xóa sản phẩm khỏi giỏ hàng
+    // =====================================================
     function removeCartItem(productId) {
         if (!confirm('Xóa sản phẩm này khỏi giỏ hàng?')) return;
         fetch('@Url.Action("RemoveFromCart", "Shop")', {
@@ -469,9 +499,16 @@
           }).catch(function() { window.location.reload(); });
     }
 
+    // =====================================================
+    // Xóa nhiều sản phẩm đã chọn
+    // =====================================================
     function clearSelected() {
         var checked = document.querySelectorAll('.select-for-checkout:checked');
-        if (checked.length === 0) { alert('Vui lòng chọn sản phẩm để xóa.'); return; }
+        if (checked.length === 0) {
+            if (window.showToast) window.showToast('warning', 'Vui lòng chọn sản phẩm để xóa.');
+            else alert('Vui lòng chọn sản phẩm để xóa.');
+            return;
+        }
         if (!confirm('Xóa ' + checked.length + ' sản phẩm đã chọn?')) return;
         var promises = [];
         checked.forEach(function(cb) {
@@ -484,33 +521,83 @@
         Promise.all(promises).then(function() { window.location.reload(); });
     }
 
+    // =====================================================
+    // Thanh toán: chỉ gửi sản phẩm đã chọn
+    // =====================================================
     function goCheckout() {
         var selected = Array.from(document.querySelectorAll('.select-for-checkout:checked'))
             .map(function(cb) { return cb.value; })
             .filter(function(v) { return v && v.trim().length > 0; });
         if (!selected || selected.length === 0) {
-            alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
+            if (window.showToast) {
+                window.showToast('warning', 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
+            } else {
+                alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
+            }
             return;
         }
         window.location.href = '@Url.Action("Checkout", "Shop")?selected=' + selected.join(',');
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        var selectAll = document.getElementById('selectAllCart');
-        var checkboxes = document.querySelectorAll('.select-for-checkout');
+    // =====================================================
+    // Tóm tắt đơn hàng: CHỈ tính sản phẩm được tick chọn
+    // =====================================================
+    function updateCartSummary() {
+        var checkedBoxes = document.querySelectorAll('.select-for-checkout:checked');
+        var totalQty = 0;
+        var totalAmount = 0;
 
+        checkedBoxes.forEach(function(cb) {
+            var item = cb.closest('.cart-item');
+            if (item) {
+                var price = parseFloat(item.dataset.price) || 0;
+                var qty = parseInt(item.dataset.quantity) || 0;
+                totalQty += qty;
+                totalAmount += price * qty;
+            }
+        });
+
+        var qtyEl = document.getElementById('selectedCount');
+        var amountEl = document.getElementById('selectedAmount');
+        var totalEl = document.getElementById('totalPrice');
+        if (qtyEl) qtyEl.textContent = totalQty;
+        if (amountEl) amountEl.textContent = formatCurrency(totalAmount);
+        if (totalEl) totalEl.textContent = formatCurrency(totalAmount);
+    }
+
+    // =====================================================
+    // Format tiền tệ VND
+    // =====================================================
+    function formatCurrency(amount) {
+        return amount.toLocaleString('vi-VN') + ' ₫';
+    }
+
+    // =====================================================
+    // Khởi tạo khi trang load
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tính tóm tắt lần đầu
+        updateCartSummary();
+
+        var selectAll = document.getElementById('selectAllCart');
+        var checkboxes = document.querySelectorAll('.cart-items .select-for-checkout');
+
+        // Chọn tất cả / bỏ chọn tất cả
         if (selectAll) {
             selectAll.addEventListener('change', function() {
                 checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+                updateCartSummary();
             });
         }
 
+        // Khi tick/bỏ tick từng sản phẩm => cập nhật tóm tắt
         checkboxes.forEach(function(cb) {
             cb.addEventListener('change', function() {
                 if (selectAll) {
                     var allChecked = Array.from(checkboxes).every(function(c) { return c.checked; });
                     selectAll.checked = allChecked;
                 }
+                updateCartSummary();
             });
         });
     });

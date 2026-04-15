@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Webstore.Data;
 using Webstore.Models;
 
@@ -18,48 +20,46 @@ namespace Webstore.Controllers
         // GET: /Shop - Trang chủ shop
         public IActionResult Index()
         {
-            // Sản phẩm mới nhất (8 sản phẩm có ProductId lớn nhất)
-            var newProducts = _context.Products
+            // Lấy tất cả sản phẩm với category và supplier
+            var allProducts = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
+                .ToList();
+
+            // Sản phẩm mới: top 8 sản phẩm mới nhất (ProductId cao nhất)
+            var maxProductId = allProducts.Any() ? allProducts.Max(p => p.ProductId) : 0;
+            var newProducts = allProducts
+                .Where(p => p.ProductId > maxProductId - 8 || p.IsNew)
                 .OrderByDescending(p => p.ProductId)
                 .Take(8)
                 .ToList();
 
-            // Sản phẩm hot deal (bán chạy nhất dựa trên số lượng đã order)
-            var hotProducts = _context.OrderItems
+            // Sản phẩm hot: dựa trên số lượng đã order HOẶC flag IsHot
+            var hotByOrders = _context.OrderItems
                 .GroupBy(oi => oi.ProductId)
                 .OrderByDescending(g => g.Sum(oi => oi.Quantity))
                 .Take(8)
                 .Select(g => g.Key)
                 .ToList();
 
-            var productsHot = _context.Products
-                .Include(p => p.Category)
-                .Include(p => p.Supplier)
-                .Where(p => hotProducts.Contains(p.ProductId))
+            var hotProducts = allProducts
+                .Where(p => hotByOrders.Contains(p.ProductId) || p.IsHot)
+                .DistinctBy(p => p.ProductId)
+                .OrderByDescending(p => p.IsHot)
+                .Take(8)
                 .ToList();
 
-            // Sắp xếp theo thứ tự hot
-            productsHot = productsHot
-                .OrderBy(p => hotProducts.IndexOf(p.ProductId))
+            // Sản phẩm deal: flag IsDeal
+            var dealProducts = allProducts
+                .Where(p => p.IsDeal)
+                .Take(8)
                 .ToList();
 
-            // Nếu chưa có đơn hàng nào, lấy sản phẩm ngẫu nhiên làm hot
-            if (!productsHot.Any())
-            {
-                productsHot = _context.Products
-                    .Include(p => p.Category)
-                    .Include(p => p.Supplier)
-                    .OrderByDescending(p => p.ProductId)
-                    .Take(8)
-                    .ToList();
-            }
-
-            var categories = _context.Categories.Take(6).ToList();
+            var categories = _context.Categories.Take(8).ToList();
 
             ViewBag.NewProducts = newProducts;
-            ViewBag.HotProducts = productsHot;
+            ViewBag.HotProducts = hotProducts;
+            ViewBag.DealProducts = dealProducts;
             ViewBag.Categories = categories;
 
             return View();
@@ -147,9 +147,26 @@ namespace Webstore.Controllers
         }
 
         // POST: /Shop/AddToCart - Thêm vào giỏ hàng
+        // Yêu cầu đăng nhập trước khi thêm vào giỏ hàng
         [HttpPost]
         public IActionResult AddToCart(int productId, int quantity = 1)
         {
+            // Kiểm tra đăng nhập - yêu cầu user phải đăng nhập trước khi thêm vào giỏ
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                // Lưu trạng thái giỏ hàng vào session để khôi phục sau khi đăng nhập
+                var pendingAction = new PendingCartAction
+                {
+                    ProductId = productId,
+                    Quantity = quantity,
+                    ReturnUrl = Request.Headers.Referer.ToString()
+                };
+                HttpContext.Session.SetString("PendingCartAction",
+                    System.Text.Json.JsonSerializer.Serialize(pendingAction));
+                return Json(new { success = false, requiresLogin = true,
+                    message = "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng" });
+            }
+
             var product = _context.Products
                 .Include(p => p.Inventory)
                 .FirstOrDefault(p => p.ProductId == productId);
@@ -159,12 +176,13 @@ namespace Webstore.Controllers
                 return Json(new { success = false, message = "Sản phẩm không tồn tại" });
             }
 
-            // Kiểm tra tồn kho (tạm thời bỏ qua)
-            // var inventory = product.Inventory.FirstOrDefault();
-            // if (inventory == null || inventory.Quantity < quantity)
-            // {
-            //     return Json(new { success = false, message = "Không đủ hàng trong kho" });
-            // }
+            // Kiểm tra tồn kho trước khi thêm vào giỏ hàng
+            var inventory = product.Inventory;
+            if (inventory == null || inventory.QuantityInStock < quantity)
+            {
+                var available = inventory?.QuantityInStock ?? 0;
+                return Json(new { success = false, message = $"Không đủ hàng trong kho. Còn {available} sản phẩm." });
+            }
 
             // Thêm vào session cart
             var cart = GetCartItems();
@@ -190,6 +208,59 @@ namespace Webstore.Controllers
             return Json(new { success = true, message = "Đã thêm vào giỏ hàng", cartCount = cart.Sum(c => c.Quantity) });
         }
 
+        // POST: /Shop/RestorePendingCart - Khôi phục giỏ hàng sau khi đăng nhập
+        [HttpPost]
+        public IActionResult RestorePendingCart()
+        {
+            var pendingJson = HttpContext.Session.GetString("PendingCartAction");
+            if (string.IsNullOrEmpty(pendingJson))
+            {
+                return Json(new { success = false, cartCount = GetCartItems().Sum(c => c.Quantity) });
+            }
+
+            var pending = System.Text.Json.JsonSerializer.Deserialize<PendingCartAction>(pendingJson,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (pending == null || pending.ProductId <= 0)
+            {
+                HttpContext.Session.Remove("PendingCartAction");
+                return Json(new { success = false, cartCount = GetCartItems().Sum(c => c.Quantity) });
+            }
+
+            var product = _context.Products
+                .Include(p => p.Inventory)
+                .FirstOrDefault(p => p.ProductId == pending.ProductId);
+
+            if (product != null)
+            {
+                var qty = pending.Quantity > 0 ? pending.Quantity : 1;
+                var inventory = product.Inventory;
+                if (inventory == null || inventory.QuantityInStock < qty)
+                {
+                    qty = inventory?.QuantityInStock ?? 1;
+                    if (qty <= 0) qty = 1;
+                }
+
+                var cart = GetCartItems();
+                var existingItem = cart.FirstOrDefault(c => c.ProductId == pending.ProductId);
+                if (existingItem != null)
+                    existingItem.Quantity += qty;
+                else
+                    cart.Add(new CartItem { ProductId = pending.ProductId, Quantity = qty, AddedDate = DateTime.Now });
+                SaveCartItems(cart);
+            }
+
+            HttpContext.Session.Remove("PendingCartAction");
+            return Json(new { success = true, cartCount = GetCartItems().Sum(c => c.Quantity) });
+        }
+
+        private class PendingCartAction
+        {
+            public int ProductId { get; set; }
+            public int Quantity { get; set; }
+            public string? ReturnUrl { get; set; }
+        }
+
         [HttpPost]
         public IActionResult UpdateCart(int productId, int quantity)
         {
@@ -201,15 +272,29 @@ namespace Webstore.Controllers
                 if (quantity <= 0)
                 {
                     cart.Remove(item);
+                    SaveCartItems(cart);
+                    return Json(new { success = true, redirectUrl = Url.Action("Cart") });
                 }
                 else
                 {
+                    var product = _context.Products.Include(p => p.Inventory).FirstOrDefault(p => p.ProductId == productId);
+                    if (product != null && product.Inventory != null)
+                    {
+                        if (quantity > product.Inventory.QuantityInStock)
+                        {
+                            quantity = product.Inventory.QuantityInStock;
+                            item.Quantity = quantity;
+                            SaveCartItems(cart);
+                            return Json(new { success = false, message = $"Số lượng vượt quá tồn kho. Còn lại {quantity} sản phẩm.", newQuantity = quantity });
+                        }
+                    }
+
                     item.Quantity = quantity;
+                    SaveCartItems(cart);
                 }
-                SaveCartItems(cart);
             }
 
-            return Json(new { success = true, redirectUrl = Url.Action("Cart") });
+            return Json(new { success = true, newQuantity = quantity });
         }
 
         [HttpPost]
@@ -232,6 +317,15 @@ namespace Webstore.Controllers
         public IActionResult Checkout(string? selected)
         {
             var cartItems = GetCartItems();
+
+            // Load payment info from configuration
+            var paymentSection = HttpContext.RequestServices.GetService<IConfiguration>()?.GetSection("PaymentInfo");
+            ViewBag.PaymentInfo = new
+            {
+                BankName = paymentSection?["BankName"] ?? "Vietcombank",
+                AccountNumber = paymentSection?["AccountNumber"] ?? "123456789012",
+                AccountName = paymentSection?["AccountName"] ?? "WEBSTORE SHOP"
+            };
 
             // If no cart items, just go back to cart
             if (!cartItems.Any())
@@ -287,30 +381,46 @@ namespace Webstore.Controllers
                 return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin bắt buộc (họ tên, số điện thoại, địa chỉ)." });
             }
 
-            if (!System.Text.RegularExpressions.Regex.IsMatch(req.CustomerPhone.Trim(), @"^0\d{9}$"))
+            if (!Regex.IsMatch(req.CustomerPhone.Trim(), @"^0\d{9}$"))
             {
                 return Json(new { success = false, message = "Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng (10 chữ số, bắt đầu bằng 0)." });
             }
 
-            var cartItems = GetCartItems();
-            if (!cartItems.Any())
+            // Validate address: at least 10 characters, max 200
+            if (req.CustomerAddress.Trim().Length < 10 || req.CustomerAddress.Trim().Length > 200)
             {
-                return Json(new { success = false, message = "Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng." });
+                return Json(new { success = false, message = "Địa chỉ giao hàng không hợp lệ. Vui lòng nhập địa chỉ đầy đủ (10-200 ký tự)." });
             }
 
-            // Lấy account id từ user đã đăng nhập
-            int accountId = 1;
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var parsedAccountId))
+            // Validate name: at least 3 characters, no special characters
+            if (req.CustomerName.Trim().Length < 2 || !Regex.IsMatch(req.CustomerName.Trim(), @"^[\p{L}\s]+$", RegexOptions.Compiled))
             {
-                accountId = parsedAccountId;
+                return Json(new { success = false, message = "Họ và tên không hợp lệ. Vui lòng nhập đúng họ tên (ít nhất 2 ký tự, không chứa ký tự đặc biệt)." });
+            }
+
+            // Limit Notes length to prevent abuse
+            if (req.Notes != null && req.Notes.Length > 500)
+            {
+                return Json(new { success = false, message = "Ghi chú quá dài (tối đa 500 ký tự)." });
+            }
+
+            var cartItems = GetCartItems();
+
+            if (req.SelectedProductIds != null && req.SelectedProductIds.Any())
+            {
+                cartItems = cartItems.Where(c => req.SelectedProductIds.Contains(c.ProductId)).ToList();
+            }
+
+            if (!cartItems.Any())
+            {
+                return Json(new { success = false, message = "Không có sản phẩm nào để đặt hàng." });
             }
 
             try
             {
                 var order = new Order
                 {
-                    AccountId = accountId,
+                    AccountId = GetCurrentAccountId(),
                     OrderDate = DateTime.Now,
                     Status = "Pending",
                     CustomerName = req.CustomerName.Trim(),
@@ -339,18 +449,66 @@ namespace Webstore.Controllers
 
                 _context.SaveChanges();
 
-                ClearCart();
-
+                // KHÔNG clear cart ở đây - chỉ clear khi payment thực sự xác nhận thành công
+                // Cart sẽ được clear bởi ConfirmPayment endpoint sau khi user xác nhận đã chuyển khoản
                 return Json(new { success = true, message = "Đặt hàng thành công!", orderId = order.OrderId });
             }
-            catch (Microsoft.Data.SqlClient.SqlException ex)
+            catch (Microsoft.Data.SqlClient.SqlException)
             {
-                // Database connection/network error
                 return Json(new { success = false, message = "Thanh toán thất bại do lỗi kết nối cơ sở dữ liệu. Vui lòng thử lại sau." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Json(new { success = false, message = "Thanh toán thất bại. Vui lòng thử lại hoặc liên hệ hỗ trợ." });
+            }
+        }
+
+        // POST: /Shop/ConfirmPayment - Xác nhận thanh toán thực sự (clear cart sau khi user xác nhận đã chuyển khoản)
+        [HttpPost]
+        public IActionResult ConfirmPayment(int orderId)
+        {
+            if (orderId <= 0)
+            {
+                return Json(new { success = false, message = "Mã đơn hàng không hợp lệ." });
+            }
+
+            var accountId = GetCurrentAccountId();
+            var order = _context.Orders.FirstOrDefault(o => o.OrderId == orderId && o.AccountId == accountId);
+            if (order == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về bạn." });
+            }
+
+            // Prevent double confirmation
+            if (order.Status == "Confirmed")
+            {
+                return Json(new { success = false, message = "Đơn hàng đã được xác nhận thanh toán trước đó." });
+            }
+
+            try
+            {
+                // Cập nhật trạng thái đơn hàng
+                order.Status = "Confirmed";
+                _context.SaveChanges();
+
+                // Clear items that were purchased from cart
+                var orderedProductIds = _context.OrderItems.Where(oi => oi.OrderId == orderId).Select(oi => oi.ProductId).ToList();
+                var cartItems = GetCartItems();
+                cartItems.RemoveAll(c => orderedProductIds.Contains(c.ProductId));
+                if (cartItems.Any())
+                {
+                    SaveCartItems(cartItems);
+                }
+                else
+                {
+                    ClearCart();
+                }
+
+                return Json(new { success = true, message = "Xác nhận thanh toán thành công!" });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, message = "Có lỗi xảy ra khi xác nhận thanh toán." });
             }
         }
 
@@ -362,6 +520,22 @@ namespace Webstore.Controllers
         }
 
         // Helper methods
+        private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+        };
+
+        private int GetCurrentAccountId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var accountId))
+            {
+                return accountId;
+            }
+            return 1;
+        }
+
         private List<CartItem> GetCartItems()
         {
             var cartJson = HttpContext.Session.GetString("Cart");
@@ -370,13 +544,7 @@ namespace Webstore.Controllers
                 return new List<CartItem>();
             }
 
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-            };
-
-            var cartItems = System.Text.Json.JsonSerializer.Deserialize<List<CartItem>>(cartJson, options);
+            var cartItems = System.Text.Json.JsonSerializer.Deserialize<List<CartItem>>(cartJson, JsonOptions);
             if (cartItems == null) return new List<CartItem>();
 
             // Load product details (don't keep EF tracked children in session)
@@ -394,12 +562,6 @@ namespace Webstore.Controllers
 
         private void SaveCartItems(List<CartItem> cartItems)
         {
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
-            };
-
             // Create a lightweight copy without navigation properties to avoid cycles and large payloads
             var lightweight = cartItems.Select(ci => new CartItem
             {
@@ -410,7 +572,7 @@ namespace Webstore.Controllers
                 AddedDate = ci.AddedDate
             }).ToList();
 
-            var cartJson = System.Text.Json.JsonSerializer.Serialize(lightweight, options);
+            var cartJson = System.Text.Json.JsonSerializer.Serialize(lightweight, JsonOptions);
             HttpContext.Session.SetString("Cart", cartJson);
         }
 
@@ -459,13 +621,7 @@ namespace Webstore.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var accountId = 1;
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var parsedAccountId))
-            {
-                accountId = parsedAccountId;
-            }
-
+            var accountId = GetCurrentAccountId();
             var orders = _context.Orders
                 .Where(o => o.AccountId == accountId)
                 .OrderByDescending(o => o.OrderDate)
@@ -482,13 +638,7 @@ namespace Webstore.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var accountId = 1;
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var parsedAccountId))
-            {
-                accountId = parsedAccountId;
-            }
-
+            var accountId = GetCurrentAccountId();
             var order = _context.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
@@ -510,13 +660,7 @@ namespace Webstore.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var accountId = 1;
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var parsedAccountId))
-            {
-                accountId = parsedAccountId;
-            }
-
+            var accountId = GetCurrentAccountId();
             var account = _context.Accounts.Find(accountId);
             if (account == null)
             {
@@ -535,27 +679,33 @@ namespace Webstore.Controllers
                 return Json(new { success = false, message = "Vui lòng đăng nhập." });
             }
 
-            if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phone))
+            if (string.IsNullOrWhiteSpace(fullName))
             {
-                return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin bắt buộc (họ tên, số điện thoại)." });
+                return Json(new { success = false, message = "Vui lòng nhập họ và tên." });
             }
 
-            if (!string.IsNullOrWhiteSpace(email) && !System.Text.RegularExpressions.Regex.IsMatch(email.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return Json(new { success = false, message = "Vui lòng nhập số điện thoại." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(email) && !Regex.IsMatch(email.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
             {
                 return Json(new { success = false, message = "Email không hợp lệ. Vui lòng nhập đúng định dạng." });
             }
 
-            if (!string.IsNullOrWhiteSpace(phone) && !System.Text.RegularExpressions.Regex.IsMatch(phone.Trim(), @"^0\d{9}$"))
+            if (!Regex.IsMatch(phone.Trim(), @"^0\d{9}$"))
             {
-                return Json(new { success = false, message = "Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng (10-12 chữ số)." });
+                return Json(new { success = false, message = "Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng (10 chữ số, bắt đầu bằng 0)." });
             }
 
-            int accountId = 1;
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var parsedAccountId))
+            // Validate name: at least 2 chars
+            if (fullName.Trim().Length < 2)
             {
-                accountId = parsedAccountId;
+                return Json(new { success = false, message = "Họ và tên quá ngắn (ít nhất 2 ký tự)." });
             }
+
+            var accountId = GetCurrentAccountId();
 
             var account = _context.Accounts.Find(accountId);
             if (account == null)

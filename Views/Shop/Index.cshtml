@@ -68,7 +68,7 @@
                 <div class="col-lg-2 col-md-3 col-sm-4 col-6">
                     <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId" class="category-card">
                         <div class="category-card-icon">
-                            <i class="fas fa-@(GetCategoryIcon(category.Name))"></i>
+                            <i class="fas fa-@GetCategoryIcon(category.Name)"></i>
                         </div>
                         <span class="category-card-title">@category.Name</span>
                     </a>
@@ -83,57 +83,79 @@
     <div class="container">
         <div class="section-header">
             <div>
-                <h2 class="section-title"><i class="fas fa-bolt" style="color:#0EA5E9;"></i> Sản phẩm mới</h2>
+                <h2 class="section-title"><i class="fas fa-bolt" style="color:var(--primary-light);"></i> Sản phẩm mới</h2>
                 <p class="section-subtitle">Hàng mới về - Cập nhật liên tục</p>
             </div>
             <a asp-controller="Shop" asp-action="Products" class="btn btn-outline-primary">
                 Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
             </a>
         </div>
-        <div class="row g-4">
-            @foreach (var product in ViewBag.NewProducts)
-            {
-                <div class="col-lg-3 col-md-4 col-sm-6">
-                    <div class="product-card">
-                        <div class="product-badge-new"><i class="fas fa-bolt"></i> Mới</div>
-                        <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId" class="product-card-img">
-                            @if (!string.IsNullOrEmpty(product.ImageUrl))
-                            {
-                                <img src="@product.ImageUrl" alt="@product.Name" />
-                            }
-                            else
-                            {
-                                <i class="fas fa-box fa-3x text-muted"></i>
-                            }
-                            <div class="product-overlay"><i class="fas fa-eye"></i></div>
-                        </a>
-                        <div class="product-card-body">
-                            <div class="product-card-cat">@product.Category?.Name</div>
-                            <h5 class="product-card-title">
-                                <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId">@product.Name</a>
-                            </h5>
-                            <div class="product-card-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                                <span class="ms-1 text-muted" style="font-size:0.75rem;">(4.5)</span>
-                            </div>
-                            <div class="product-card-price">@product.Price.ToString("N0") ₫</div>
-                            <button class="btn btn-add-cart" onclick="addToCart(@product.ProductId)">
-                                <i class="fas fa-cart-plus"></i> Thêm vào giỏ
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
     </div>
 </section>
 
+<!-- Special Offers -->
+@if (ViewBag.DealProducts != null && ((List<Webstore.Models.Product>)ViewBag.DealProducts).Any())
+{
+    var dealProducts = (List<Webstore.Models.Product>)ViewBag.DealProducts;
+    <section class="py-5" id="special-offers" style="background:white;">
+        <div class="container">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title"><i class="fas fa-tags" style="color:var(--warning);"></i> Ưu đãi đặc biệt</h2>
+                    <p class="section-subtitle">Giảm giá cực sốc - Ưu đãi có hạn</p>
+                </div>
+                <a asp-controller="Shop" asp-action="Products" class="btn btn-outline-warning">
+                    Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="row g-4">
+                @foreach (var product in dealProducts)
+                {
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <div class="product-card">
+                            <div class="deal-badge"><i class="fas fa-percentage"></i> Ưu đãi</div>
+                            <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId" class="product-card-img">
+                                @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                {
+                                    <img src="@product.ImageUrl" alt="@product.Name" />
+                                }
+                                else
+                                {
+                                    <div class="img-placeholder">
+                                        <i class="fas fa-box" style="font-size:3rem;"></i>
+                                        <span class="placeholder-name">@Html.Encode(product.Name)</span>
+                                    </div>
+                                }
+                                <div class="product-overlay"><i class="fas fa-eye"></i></div>
+                            </a>
+                            <div class="product-card-body">
+                                <div class="product-card-cat">@product.Category?.Name</div>
+                                <h5 class="product-card-title">
+                                    <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId">@Html.Encode(product.Name)</a>
+                                </h5>
+                                <div class="product-card-rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                            <span class="ms-1 text-muted rating-count">(4.5)</span>
+                                </div>
+                                <div class="product-card-price">@product.Price.ToString("N0") ₫</div>
+                                <button class="btn btn-add-cart" onclick="addToCart(@product.ProductId)">
+                                    <i class="fas fa-cart-plus"></i> Thêm vào giỏ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
 <!-- Features -->
-<section class="py-5" style="background: white;">
+<section class="py-5" style="background:white;">
     <div class="container">
         <div class="section-header">
             <div>
@@ -356,18 +378,32 @@
         50% { transform: translateY(-8px); }
     }
 
-    /* New badge */
-    .product-badge-new {
+    /* Deal badge */
+    .deal-badge {
         position: absolute;
         top: 12px; left: 12px;
-        background: linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%);
+        background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%);
         color: white;
         padding: 4px 14px;
         border-radius: 50px;
         font-size: 0.75rem;
         font-weight: 700;
         z-index: 5;
-        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    }
+
+    /* New badge */
+    .product-badge-new {
+        position: absolute;
+        top: 12px; left: 12px;
+        background: linear-gradient(135deg, var(--primary-light) 0%, #38BDF8 100%);
+        color: white;
+        padding: 4px 14px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        z-index: 5;
+        box-shadow: 0 2px 8px rgba(0, 180, 216, 0.4);
     }
 
     /* Feature Box */
@@ -402,6 +438,11 @@
     }
     .feature-box h5 { font-weight: 700; margin-bottom: 8px; }
     .feature-box p { font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+
+    /* Rating count in product cards */
+    .rating-count {
+        font-size: 0.75rem;
+    }
 
     /* CTA Section */
     .cta-section {
@@ -457,17 +498,21 @@
 @functions {
     string GetCategoryIcon(string categoryName)
     {
-        return categoryName.ToLower() switch
-        {
-            var name when name.Contains("điện thoại") || name.Contains("phone") => "mobile-alt",
-            var name when name.Contains("laptop") || name.Contains("máy tính") => "laptop",
-            var name when name.Contains("quần áo") || name.Contains("thời trang") => "tshirt",
-            var name when name.Contains("giày") || name.Contains("dép") => "shoe-prints",
-            var name when name.Contains("sách") || name.Contains("book") => "book",
-            var name when name.Contains("thể thao") || name.Contains("sport") => "dumbbell",
-            var name when name.Contains("mỹ phẩm") || name.Contains("beauty") => "spa",
-            var name when name.Contains("nhà bếp") || name.Contains("kitchen") => "utensils",
-            _ => "box"
-        };
+        var name = categoryName.ToLower();
+        if (name.Contains("điện thoại") || name.Contains("phone") || name.Contains("di động")) return "mobile-alt";
+        if (name.Contains("laptop") || name.Contains("máy tính") || name.Contains("notebook")) return "laptop";
+        if (name.Contains("tablet") || name.Contains("ipad") || name.Contains("bảng")) return "tablet-alt";
+        if (name.Contains("phụ kiện") || name.Contains("accessory") || name.Contains("accessories")) return "plug";
+        if (name.Contains("gaming") || name.Contains("game") || name.Contains("chơi game")) return "gamepad";
+        if (name.Contains("đồng hồ") || name.Contains("watch") || name.Contains("wearable")) return "clock";
+        if (name.Contains("âm thanh") || name.Contains("audio") || name.Contains("tai nghe") || name.Contains("headphone")) return "headphones";
+        if (name.Contains("máy ảnh") || name.Contains("camera") || name.Contains("quay phim")) return "camera";
+        if (name.Contains("linh kiện") || name.Contains("component") || name.Contains("cpu") || name.Contains("ram")) return "microchip";
+        if (name.Contains("mạng") || name.Contains("network") || name.Contains("wifi") || name.Contains("router")) return "wifi";
+        if (name.Contains("màn hình") || name.Contains("monitor") || name.Contains("display")) return "desktop";
+        if (name.Contains("quần áo") || name.Contains("thời trang") || name.Contains("áo")) return "tshirt";
+        if (name.Contains("sách") || name.Contains("book")) return "book";
+        if (name.Contains("thể thao") || name.Contains("sport")) return "dumbbell";
+        return "box";
     }
 }

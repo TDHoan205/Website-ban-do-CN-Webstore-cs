@@ -7,59 +7,73 @@
     <div class="auth-card">
         <div class="auth-header">
             <div class="auth-logo">
-                <i class="fas fa-store fa-3x text-primary mb-3"></i>
+                <div class="auth-icon-wrapper">
+                    <i class="fas fa-store"></i>
+                </div>
                 <h2 class="auth-title">Chào mừng trở lại!</h2>
-                <p class="auth-subtitle">Đăng nhập để tiếp tục sử dụng Webstore</p>
+                <p class="auth-subtitle">Đăng nhập để tiếp tục mua sắm</p>
             </div>
         </div>
 
         @if (TempData["Error"] != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert-msg alert-danger-msg">
+                <i class="fas fa-exclamation-triangle"></i>@TempData["Error"]
             </div>
         }
 
         @if (TempData["Success"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert-msg alert-success-msg">
+                <i class="fas fa-check-circle"></i>@TempData["Success"]
             </div>
         }
 
-        <form method="post" asp-action="Login" class="auth-form">
-            <div class="form-floating mb-3">
-                <input name="username" class="form-control" id="username" placeholder="Tên đăng nhập" required />
-                <label for="username">
-                    <i class="fas fa-user me-2"></i>Tên đăng nhập
-                </label>
+        @if (!string.IsNullOrEmpty(Context.Session.GetString("PendingCartAction")))
+        {
+            <div class="alert-msg alert-info-auth">
+                <i class="fas fa-info-circle"></i>
+                <span>Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.</span>
             </div>
-            
-            <div class="form-floating mb-3">
-                <input name="password" type="password" class="form-control" id="password" placeholder="Mật khẩu" required />
-                <label for="password">
-                    <i class="fas fa-lock me-2"></i>Mật khẩu
-                </label>
+        }
+
+        <form method="post" asp-action="Login" class="auth-form" id="loginForm"
+              onsubmit="return handleLoginSubmit(event);">
+            @Html.AntiForgeryToken()
+            <div class="input-group-custom mb-3">
+                <div class="input-icon-wrapper">
+                    <i class="fas fa-user"></i>
+                </div>
+                <input name="username" class="input-with-icon" id="username" placeholder="Tên đăng nhập" required />
             </div>
 
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="rememberMe">
-                <label class="form-check-label" for="rememberMe">
-                    Ghi nhớ đăng nhập
-                </label>
+            <div class="input-group-custom mb-3">
+                <div class="input-icon-wrapper">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <input name="password" type="password" class="input-with-icon" id="password" placeholder="Mật khẩu"
+                       required />
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check-custom">
+                    <input class="form-check-input-custom" type="checkbox" id="rememberMe">
+                    <label class="form-check-label-custom" for="rememberMe">
+                        Ghi nhớ đăng nhập
+                    </label>
+                </div>
+                <a href="#" class="forgot-link">Quên mật khẩu?</a>
             </div>
 
             <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
-            
-            <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
-                <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+
+            <button type="submit" class="btn btn-auth-submit mb-3" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i>Đăng nhập
             </button>
 
             <div class="text-center">
-                <p class="mb-0">Chưa có tài khoản? 
-                    <a asp-action="Register" class="text-primary fw-bold text-decoration-none">
+                <p class="auth-form-footer mb-0">Chưa có tài khoản?
+                    <a asp-action="Register" class="text-link">
                         Đăng ký ngay
                     </a>
                 </p>
@@ -68,97 +82,84 @@
     </div>
 </div>
 
-<style>
-    .auth-container {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-    }
+@section Scripts {
+    <script>
+        // AJAX login để khôi phục cart sau khi đăng nhập
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            var form = document.getElementById('loginForm');
+            var submitBtn = form.querySelector('button[type="submit"]');
+            var originalText = submitBtn.innerHTML;
 
-    .auth-card {
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        padding: 40px;
-        width: 100%;
-        max-width: 450px;
-        animation: slideUp 0.6s ease-out;
-    }
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
 
-    @@keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
+            var formData = new FormData(form);
+            var csrfToken = form.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'RequestVerificationToken': csrfToken
+                }
+            }).then(function (res) {
+                if (!res.ok) {
+                    // Nếu server trả về 400 (AntiForgery fail) hoặc lỗi khác
+                    return res.text().then(function(text) {
+                        try { return JSON.parse(text); } catch(e) {
+                            throw new Error('Server trả về lỗi ' + res.status);
+                        }
+                    });
+                }
+                return res.json();
+            }).then(function (data) {
+                // Đăng nhập thành công
+                if (data.success) {
+                    // Khôi phục cart trước khi redirect
+                    restorePendingCartOnLogin(csrfToken).then(function () {
+                        window.location.href = data.redirectUrl;
+                    });
+                } else {
+                    // Đăng nhập thất bại
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    var errorMsg = data.error || 'Đăng nhập thất bại';
+                    var existingError = form.querySelector('.alert-danger-msg');
+                    if (existingError) existingError.remove();
+                    var alertHtml = '<div class="alert-msg alert-danger-msg"><i class="fas fa-exclamation-triangle"></i>' + errorMsg + '</div>';
+                    form.insertBefore(createElementFromHTML(alertHtml), form.firstChild);
+                }
+            }).catch(function (error) {
+                console.error('Login error:', error);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                var existingError = form.querySelector('.alert-danger-msg');
+                if (existingError) existingError.remove();
+                var alertHtml = '<div class="alert-msg alert-danger-msg"><i class="fas fa-exclamation-triangle"></i>Có lỗi xảy ra, vui lòng thử lại</div>';
+                form.insertBefore(createElementFromHTML(alertHtml), form.firstChild);
+            });
+            return false;
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
+
+        function createElementFromHTML(html) {
+            var div = document.createElement('div');
+            div.innerHTML = html.trim();
+            return div.firstChild;
         }
-    }
 
-    .auth-header {
-        text-align: center;
-        margin-bottom: 30px;
-    }
-
-    .auth-title {
-        color: #333;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-
-    .auth-subtitle {
-        color: #666;
-        margin-bottom: 0;
-    }
-
-    .form-floating > .form-control {
-        border: 2px solid #e9ecef;
-        border-radius: 10px;
-        padding: 1rem 0.75rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-floating > .form-control:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-
-    .form-floating > label {
-        color: #666;
-        font-weight: 500;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 10px;
-        padding: 12px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-    }
-
-    .alert {
-        border-radius: 10px;
-        border: none;
-    }
-
-    .form-check-input:checked {
-        background-color: #667eea;
-        border-color: #667eea;
-    }
-
-    .form-check-label {
-        color: #666;
-        font-weight: 500;
-    }
-</style>
-
+        function restorePendingCartOnLogin(csrfToken) {
+            return fetch('@Url.Action("RestorePendingCart", "Shop")', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'RequestVerificationToken': csrfToken || ''
+                }
+            }).then(function (res) { return res.json(); }).catch(function (err) {
+                console.warn('Restore cart error:', err);
+                return {};
+            });
+        }
+    </script>
+}

@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Webstore Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
@@ -25,6 +28,7 @@
             --success: #10B981;
             --danger: #EF4444;
             --warning: #F59E0B;
+            --info: #3B82F6;
             --shadow-sm: 0 1px 3px rgba(0, 119, 182, 0.08);
             --shadow-md: 0 4px 12px rgba(0, 119, 182, 0.12);
             --shadow-lg: 0 8px 30px rgba(0, 119, 182, 0.15);
@@ -37,7 +41,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            font-family: 'Be Vietnam Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--surface-alt);
             color: var(--text-primary);
             line-height: 1.6;
@@ -480,6 +484,11 @@
         .dropdown-menu .dropdown-item:hover { background: var(--primary-lightest); color: var(--primary); }
         .dropdown-menu .dropdown-item:hover i { color: var(--primary); }
         .dropdown-divider { margin: 6px 0; }
+
+        .sidebar-footer-link {
+            padding: 16px 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 </head>
 <body>
@@ -580,7 +589,7 @@
                 }
             </ul>
 
-            <div style="padding:16px 12px; border-top:1px solid rgba(255,255,255,0.1);">
+            <div class="sidebar-footer-link">
                 <a class="sidebar-link" asp-controller="Shop" asp-action="Index">
                     <i class="fas fa-external-link-alt"></i>
                     <span>Xem cửa hàng</span>
@@ -615,7 +624,7 @@
                                     <small>@(User.IsInRole("Admin") ? "Quản trị viên" : "Nhân viên")</small>
                                 </div>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end" role="menu">
                                 @if (User.IsInRole("Admin"))
                                 {
                                     <li><a class="dropdown-item" asp-controller="Shop" asp-action="Index"><i class="fas fa-store"></i>Cửa hàng</a></li>
@@ -623,6 +632,7 @@
                                 }
                                 <li>
                                     <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
                                         <button type="submit" class="dropdown-item text-danger w-100 text-start">
                                             <i class="fas fa-sign-out-alt"></i>Đăng xuất
                                         </button>

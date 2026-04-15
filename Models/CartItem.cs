@@ -10,9 +10,9 @@ namespace Webstore.Models
         [Column("cart_item_id")]
         public int CartItemId { get; set; }
 
-        [Required]
+        // Nullable: cart can be anonymous (session-based)
         [Column("account_id")]
-        public int AccountId { get; set; }
+        public int? AccountId { get; set; }
 
         [Required]
         [Column("product_id")]
@@ -20,6 +20,7 @@ namespace Webstore.Models
 
         [Required]
         [Column("quantity")]
+        [Range(1, 999)]
         public int Quantity { get; set; }
 
         [Column("added_date")]
@@ -27,7 +28,7 @@ namespace Webstore.Models
 
         // Navigation properties
         [ForeignKey("AccountId")]
-        public virtual Account Account { get; set; } = null!;
+        public virtual Account? Account { get; set; }
 
         [ForeignKey("ProductId")]
         public virtual Product? Product { get; set; }

@@ -4,15 +4,51 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
+        :root {
+            --primary: #0077B6;
+            --primary-dark: #005f8a;
+            --primary-light: #00B4D8;
+            --primary-lighter: #90E0EF;
+            --primary-lightest: #CAF0F8;
+            --accent: #023E8A;
+            --accent-light: #0096C7;
+            --surface: #ffffff;
+            --surface-alt: #F0F8FF;
+            --text-primary: #1a1a2e;
+            --text-secondary: #5C6B7A;
+            --text-muted: #9CA8B3;
+            --border: #E1E8ED;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --info: #3B82F6;
+            --shadow-sm: 0 1px 3px rgba(0, 119, 182, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 119, 182, 0.12);
+            --shadow-lg: 0 8px 30px rgba(0, 119, 182, 0.15);
+            --shadow-xl: 0 20px 60px rgba(0, 119, 182, 0.2);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        body {
+            font-family: 'Be Vietnam Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; transition: var(--transition); }
+        a:hover { color: var(--primary); }
 
         .navbar {
             background: rgba(255, 255, 255, 0.95) !important;
@@ -27,17 +63,17 @@
 
         .nav-link {
             font-weight: 500;
-            transition: color 0.3s ease;
+            transition: var(--transition);
         }
 
         .nav-link:hover {
-            color: #667eea !important;
+            color: var(--primary) !important;
         }
 
         .btn {
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         .btn:hover {
@@ -45,7 +81,7 @@
         }
 
         .hero-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-lightest) 0%, var(--primary-lighter) 50%, var(--primary-lighter) 100%);
             position: relative;
             overflow: hidden;
         }
@@ -67,33 +103,35 @@
         }
 
         .features-section {
-            background: #f8f9fa;
+            background: white;
         }
 
         .feature-card {
             background: white;
             padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: var(--transition);
             height: 100%;
         }
 
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-lighter);
         }
 
         .feature-icon {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 1.5rem;
-            transition: transform 0.3s ease;
+            transition: var(--transition);
         }
 
         .feature-icon i {
@@ -106,35 +144,35 @@
         }
 
         .cta-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 50%, var(--primary-light) 100%);
         }
 
         .btn-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+            background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%);
             border: none;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            color: white;
         }
 
         .btn-warning:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(255, 193, 7, 0.3);
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3);
+            color: white;
         }
 
         .footer {
-            background: #2c3e50;
+            background: var(--accent);
             color: white;
         }
 
         .footer a {
-            color: #ecf0f1;
+            color: rgba(255,255,255,0.7);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: var(--transition);
         }
 
-        .footer a:hover {
-            color: #3498db;
-        }
+        .footer a:hover { color: var(--primary-lighter); }
     </style>
 </head>
 <body>
@@ -222,10 +260,10 @@
             <hr class="my-4">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="mb-0">&copy; 2025 Webstore. Tất cả quyền được bảo lưu.</p>
+                    <p class="mb-0">&copy; @DateTime.Now.Year Webstore. Tất cả quyền được bảo lưu.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <p class="mb-0">Được phát triển với <i class="fas fa-heart text-danger"></i> bởi Webstore Team</p>
+                    <p class="mb-0">Được phát triển với <i class="fas fa-heart" style="color:var(--danger);"></i> bởi Webstore Team</p>
                 </div>
             </div>
         </div>
