@@ -7,18 +7,11 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-database me-2"></i>Quản lý dữ liệu mẫu</h2>
-                <div class="btn-group">
-                    <form asp-action="ResetData" method="post" class="d-inline">
-                        <button type="submit" class="btn btn-warning" onclick="return confirm('Bạn có chắc muốn reset toàn bộ dữ liệu?')">
-                            <i class="fas fa-trash me-2"></i>Reset dữ liệu
-                        </button>
-                    </form>
-                    <form asp-action="AddSampleAccounts" method="post" class="d-inline">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-plus me-2"></i>Thêm tài khoản mẫu
-                        </button>
-                    </form>
-                </div>
+                        <form asp-action="ResetData" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-warning" onclick="return confirm('Bạn có chắc muốn reset toàn bộ dữ liệu?')">
+                                <i class="fas fa-trash me-2"></i>Reset dữ liệu
+                            </button>
+                        </form>
             </div>
 
             @if (TempData["Success"] != null)
