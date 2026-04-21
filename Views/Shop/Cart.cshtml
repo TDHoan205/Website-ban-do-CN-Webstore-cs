@@ -40,17 +40,19 @@
                             {
                                 var lineTotal = ((item.Product?.Price ?? 0m) * item.Quantity).ToString("F2",
                         System.Globalization.CultureInfo.InvariantCulture);
-                                <div class="cart-item" data-product-id="@item.ProductId"
-                                     data-price="@((item.Product?.Price ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                var price = item.VariantId.HasValue && item.Variant != null ? item.Variant.Price : (item.Product?.Price ?? 0m);
+                                <div class="cart-item" data-product-id="@item.ProductId" data-variant-id="@(item.VariantId ?? 0)"
+                                     data-price="@(price.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                      data-quantity="@item.Quantity">
                                     <div class="cart-item-left">
-                                        <input type="checkbox" class="select-for-checkout form-check-input" value="@item.ProductId"
+                                        <input type="checkbox" class="select-for-checkout form-check-input" 
+                                               data-product-id="@item.ProductId" data-variant-id="@(item.VariantId ?? 0)"
                                                checked style="accent-color:var(--primary);" />
                                     </div>
                                     <div class="cart-item-img">
                                         @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
                                         {
-                                            <img src="@item.Product.ImageUrl" alt="@Html.Encode(item.Product?.Name)" />
+                                            <img src="@item.Product.ImageUrl" alt="@(item.Product?.Name)" />
                                         }
                                         else
                                         {
@@ -60,18 +62,25 @@
                                         }
                                     </div>
                                     <div class="cart-item-info">
-                                        <h5 class="cart-item-name">@Html.Encode(item.Product?.Name)</h5>
+                                        <h5 class="cart-item-name">@(item.Product?.Name)</h5>
+                                        @if (item.VariantId.HasValue && item.Variant != null)
+                                        {
+                                            <div class="cart-item-variant text-primary fw-bold" style="font-size: 0.85rem;">
+                                                <i class="fas fa-cog me-1"></i>
+                                                @(item.Variant.Color) @(!string.IsNullOrEmpty(item.Variant.Storage) ? " / " + item.Variant.Storage : "")
+                                            </div>
+                                        }
                                         <div class="cart-item-cat">@item.Product?.Category?.Name</div>
-                                        <div class="cart-item-price">@((item.Product?.Price ?? 0m).ToString("N0")) ₫</div>
+                                        <div class="cart-item-price">@(price.ToString("N0")) ₫</div>
                                     </div>
                                     <div class="cart-item-qty">
                                         <div class="qty-controls">
-                                            <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, -1)">
+                                            <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, @(item.VariantId ?? 0), -1)">
                                                 <i class="fas fa-minus"></i>
                                             </button>
                                             <input type="number" class="qty-input" value="@item.Quantity" readonly
-                                                   id="qty-@item.ProductId">
-                                            <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, 1)">
+                                                   id="qty-@item.ProductId-@(item.VariantId ?? 0)">
+                                            <button type="button" class="qty-btn" onclick="changeQuantity(@item.ProductId, @(item.VariantId ?? 0), 1)">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
@@ -81,7 +90,7 @@
                                             ₫</span>
                                         </div>
                                         <div class="cart-item-actions">
-                                            <button class="btn-remove-item" onclick="removeCartItem(@item.ProductId)"
+                                            <button class="btn-remove-item" onclick="removeCartItem(@item.ProductId, @(item.VariantId ?? 0))"
                                                     title="Xóa sản phẩm">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
@@ -586,13 +595,17 @@
             // =====================================================
             // Thay đổi số lượng (đọc qty hiện tại từ data-attribute)
             // =====================================================
-            function changeQuantity(productId, delta) {
-                var item = document.querySelector('.cart-item[data-product-id="' + productId + '"]');
+            function changeQuantity(productId, variantId, delta) {
+                var selector = '.cart-item[data-product-id="' + productId + '"]';
+                if (variantId > 0) {
+                    selector += '[data-variant-id="' + variantId + '"]';
+                }
+                var item = document.querySelector(selector);
                 if (!item) return;
                 var currentQty = parseInt(item.dataset.quantity) || 0;
                 var newQty = currentQty + delta;
                 if (newQty <= 0) {
-                    removeCartItem(productId);
+                    removeCartItem(productId, variantId);
                     return;
                 }
                 // Cập nhật UI ngay lập tức
@@ -612,7 +625,7 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRF-TOKEN': token
                     },
-                    body: 'productId=' + productId + '&quantity=' + newQty
+                    body: 'productId=' + productId + '&variantId=' + variantId + '&quantity=' + newQty
                 }).then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (!data) return;
@@ -641,7 +654,7 @@
             // =====================================================
             // Xóa sản phẩm khỏi giỏ hàng
             // =====================================================
-            function removeCartItem(productId) {
+            function removeCartItem(productId, variantId) {
                 if (!confirm('Xóa sản phẩm này khỏi giỏ hàng?')) return;
                 var token = getAntiForgeryToken();
                 fetch('@Url.Action("RemoveFromCart", "Shop")', {
@@ -650,7 +663,7 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRF-TOKEN': token
                     },
-                    body: 'productId=' + productId
+                    body: 'productId=' + productId + '&variantId=' + variantId
                 }).then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
@@ -678,7 +691,7 @@
                             'Content-Type': 'application/x-www-form-urlencoded',
                             'X-CSRF-TOKEN': token
                         },
-                        body: 'productId=' + cb.value
+                        body: 'productId=' + cb.getAttribute('data-product-id') + '&variantId=' + cb.getAttribute('data-variant-id')
                     }));
                 });
                 Promise.all(promises).then(function () { window.location.reload(); });
@@ -688,10 +701,15 @@
             // Thanh toán: chỉ gửi sản phẩm đã chọn
             // =====================================================
             function goCheckout() {
-                var selected = Array.from(document.querySelectorAll('.select-for-checkout:checked'))
-                    .map(function (cb) { return cb.value; })
-                    .filter(function (v) { return v && v.trim().length > 0; });
-                if (!selected || selected.length === 0) {
+                var selectedItems = Array.from(document.querySelectorAll('.select-for-checkout:checked'))
+                    .map(function (cb) { 
+                        return { 
+                            p: cb.getAttribute('data-product-id'), 
+                            v: cb.getAttribute('data-variant-id') 
+                        }; 
+                    });
+
+                if (selectedItems.length === 0) {
                     if (window.showToast) {
                         window.showToast('warning', 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
                     } else {
@@ -699,7 +717,10 @@
                     }
                     return;
                 }
-                window.location.href = '@Url.Action("Checkout", "Shop")?selected=' + selected.join(',');
+
+                // Encode as JSON or simpler format for query string
+                var selectedParam = selectedItems.map(i => i.p + '-' + i.v).join(',');
+                window.location.href = '@Url.Action("Checkout", "Shop")?selected=' + selectedParam;
             }
 
             // =====================================================

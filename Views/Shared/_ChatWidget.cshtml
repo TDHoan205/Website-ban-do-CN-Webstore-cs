@@ -1,37 +1,37 @@
 @*
-    Chat Widget Partial View
-    Nhúng vào _Layout.cshtml: @await Html.PartialAsync("_ChatWidget")
+    Chat Widget Partial View - Professional Edition
 *@
 
 <style>
-    /* Chat Widget Styles */
+    /* Chat Widget Styles - TechStore Brand */
     .chat-widget-container {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        bottom: 24px;
+        right: 24px;
         z-index: 9999;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
     }
 
     .chat-toggle-btn {
-        width: 60px;
-        height: 60px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
         border: none;
         color: white;
-        font-size: 24px;
+        font-size: 26px;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
     }
 
     .chat-toggle-btn:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        transform: scale(1.08);
+        box-shadow: 0 12px 32px rgba(2, 132, 199, 0.5);
     }
 
     .chat-toggle-btn .chat-icon {
@@ -40,6 +40,7 @@
 
     .chat-toggle-btn .close-icon {
         display: block;
+        font-size: 20px;
     }
 
     .chat-toggle-btn.expanded .chat-icon {
@@ -50,15 +51,29 @@
         display: none;
     }
 
+    .chat-toggle-btn .pulse-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: rgba(2, 132, 199, 0.3);
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1.4); opacity: 0; }
+    }
+
     .chat-window {
         position: absolute;
         bottom: 80px;
         right: 0;
-        width: 380px;
-        height: 520px;
+        width: 400px;
+        height: 560px;
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         display: none;
         flex-direction: column;
         overflow: hidden;
@@ -66,24 +81,18 @@
 
     .chat-window.active {
         display: flex;
-        animation: slideUp 0.3s ease;
+        animation: slideUp 0.35s ease;
     }
 
     @@keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .chat-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
         color: white;
-        padding: 16px 20px;
+        padding: 20px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -92,24 +101,37 @@
     .chat-header-info {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 14px;
     }
 
     .chat-avatar {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         background: rgba(255, 255, 255, 0.2);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 24px;
+        position: relative;
+    }
+
+    .chat-avatar::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: #10B981;
+        border-radius: 50%;
+        border: 2px solid white;
     }
 
     .chat-header-text h4 {
         margin: 0;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: 17px;
+        font-weight: 700;
     }
 
     .chat-header-text span {
@@ -123,30 +145,37 @@
     }
 
     .chat-header-btn {
-        background: transparent;
+        background: rgba(255, 255, 255, 0.15);
         border: none;
         color: white;
         cursor: pointer;
-        padding: 8px;
-        border-radius: 8px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 13px;
         transition: background 0.2s;
     }
 
     .chat-header-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.25);
     }
 
     .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 16px;
-        background: #f8f9fa;
+        padding: 20px;
+        background: #F8FAFC;
     }
 
     .message {
-        margin-bottom: 12px;
+        margin-bottom: 14px;
         display: flex;
         flex-direction: column;
+        animation: messageIn 0.3s ease;
+    }
+
+    @@keyframes messageIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .message.user {
@@ -158,40 +187,40 @@
     }
 
     .message-bubble {
-        max-width: 80%;
-        padding: 10px 14px;
-        border-radius: 16px;
+        max-width: 85%;
+        padding: 12px 16px;
+        border-radius: 18px;
         font-size: 14px;
-        line-height: 1.5;
+        line-height: 1.55;
         white-space: pre-wrap;
         word-wrap: break-word;
     }
 
     .message.user .message-bubble {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
         color: white;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 6px;
     }
 
     .message.ai .message-bubble,
     .message.admin .message-bubble {
         background: white;
-        color: #333;
-        border-bottom-left-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        color: #1E293B;
+        border-bottom-left-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .message.system .message-bubble {
-        background: #fff3cd;
-        color: #856404;
+        background: #FEF3C7;
+        color: #92400E;
         font-size: 13px;
         text-align: center;
-        border-radius: 8px;
+        border-radius: 12px;
     }
 
     .message-time {
         font-size: 11px;
-        color: #999;
+        color: #94A3B8;
         margin-top: 4px;
         padding: 0 4px;
     }
@@ -199,158 +228,167 @@
     .message-typing {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
+        gap: 6px;
+        padding: 14px 18px;
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 18px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         width: fit-content;
     }
 
     .typing-dot {
         width: 8px;
         height: 8px;
-        background: #999;
+        background: #0284c7;
         border-radius: 50%;
         animation: typing 1.4s infinite;
     }
 
-    .typing-dot:nth-child(2) {
-        animation-delay: 0.2s;
-    }
-
-    .typing-dot:nth-child(3) {
-        animation-delay: 0.4s;
-    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
     @@keyframes typing {
-        0%, 60%, 100% {
-            transform: translateY(0);
-        }
-        30% {
-            transform: translateY(-4px);
-        }
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-6px); }
     }
 
     .product-suggestion {
         background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 12px;
-        margin-top: 8px;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 14px;
+        margin-top: 10px;
         cursor: pointer;
         transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .product-suggestion:hover {
-        border-color: #667eea;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        border-color: #0284c7;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+        transform: translateX(4px);
     }
 
     .product-suggestion img {
-        width: 60px;
-        height: 60px;
-        object-fit: cover;
-        border-radius: 8px;
-        margin-right: 12px;
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+        border-radius: 10px;
+        background: #F1F5F9;
     }
 
-    .product-suggestion-content {
-        flex: 1;
-    }
+    .product-suggestion-content { flex: 1; }
 
     .product-suggestion-name {
         font-weight: 600;
-        color: #333;
+        color: #1E293B;
         margin-bottom: 4px;
+        font-size: 14px;
     }
 
     .product-suggestion-price {
-        color: #667eea;
-        font-weight: 600;
+        color: #0284c7;
+        font-weight: 700;
+        font-size: 15px;
+    }
+
+    .product-suggestion-cat {
+        color: #64748B;
+        font-size: 12px;
     }
 
     .escalate-btn {
-        background: #ff6b6b;
+        background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
         color: white;
         border: none;
-        padding: 8px 16px;
-        border-radius: 20px;
+        padding: 10px 18px;
+        border-radius: 22px;
         font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        margin-top: 8px;
-        transition: background 0.2s;
+        margin-top: 12px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .escalate-btn:hover {
-        background: #ff5252;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
     }
 
     .quick-replies {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 8px;
+        margin-top: 12px;
     }
 
     .quick-reply-btn {
         background: white;
-        border: 1px solid #667eea;
-        color: #667eea;
-        padding: 6px 12px;
-        border-radius: 16px;
+        border: 1.5px solid #0284c7;
+        color: #0284c7;
+        padding: 8px 14px;
+        border-radius: 20px;
         font-size: 12px;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .quick-reply-btn:hover {
-        background: #667eea;
+        background: #0284c7;
         color: white;
     }
 
     .chat-input-container {
-        padding: 16px;
+        padding: 16px 20px;
         background: white;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid #E2E8F0;
     }
 
     .chat-input-wrapper {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         align-items: flex-end;
     }
 
     .chat-input {
         flex: 1;
-        border: 1px solid #e0e0e0;
+        border: 2px solid #E2E8F0;
         border-radius: 24px;
-        padding: 12px 16px;
+        padding: 12px 18px;
         font-size: 14px;
         outline: none;
         transition: border-color 0.2s;
+        font-family: inherit;
     }
 
     .chat-input:focus {
-        border-color: #667eea;
+        border-color: #0284c7;
     }
 
     .chat-send-btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
         border: none;
         color: white;
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.2s;
+        transition: all 0.2s;
+        flex-shrink: 0;
     }
 
     .chat-send-btn:hover {
         transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
     }
 
     .chat-send-btn:disabled {
@@ -358,30 +396,86 @@
         cursor: not-allowed;
     }
 
-    /* Notification badge */
-    .chat-notification-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ff6b6b;
-        color: white;
+    .chat-send-btn svg {
         width: 20px;
         height: 20px;
+    }
+
+    .chat-notification-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #EF4444;
+        color: white;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
-        font-size: 11px;
-        display: flex;
+        font-size: 12px;
+        display: none;
         align-items: center;
         justify-content: center;
+        font-weight: 700;
+        border: 2px solid white;
+        animation: badgePop 0.3s ease;
+    }
+
+    @@keyframes badgePop {
+        0% { transform: scale(0); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    .welcome-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .welcome-suggestion-btn {
+        background: linear-gradient(135deg, rgba(2, 132, 199, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+        border: 1px solid rgba(2, 132, 199, 0.2);
+        color: #0284c7;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 12px;
         font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .welcome-suggestion-btn:hover {
+        background: #0284c7;
+        color: white;
+        border-color: #0284c7;
+    }
+
+    .error-message {
+        background: #FEE2E2;
+        color: #DC2626;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     /* Mobile responsive */
     @@media (max-width: 480px) {
         .chat-window {
-            width: calc(100vw - 20px);
-            height: calc(100vh - 100px);
-            right: -10px;
-            bottom: 70px;
+            width: calc(100vw - 16px);
+            height: calc(100vh - 120px);
+            right: -8px;
+            bottom: 76px;
+        }
+
+        .chat-toggle-btn {
+            width: 56px;
+            height: 56px;
+            bottom: 16px;
+            right: 16px;
         }
     }
 </style>
@@ -391,18 +485,15 @@
         @Html.AntiForgeryToken()
     </form>
 
-    <!-- Notification Badge -->
-    <div class="chat-notification-badge" id="chatBadge" style="display: none;">0</div>
+    <div class="chat-notification-badge" id="chatBadge">0</div>
 
-    <!-- Toggle Button -->
     <button class="chat-toggle-btn expanded" id="chatToggle" onclick="toggleChat()">
+        <span class="pulse-ring"></span>
         <span class="chat-icon">💬</span>
         <span class="close-icon">✕</span>
     </button>
 
-    <!-- Chat Window -->
     <div class="chat-window" id="chatWindow">
-        <!-- Header -->
         <div class="chat-header">
             <div class="chat-header-info">
                 <div class="chat-avatar">🤖</div>
@@ -413,23 +504,20 @@
             </div>
             <div class="chat-header-actions">
                 <button class="chat-header-btn" onclick="clearChat()" title="Xóa cuộc trò chuyện">
-                    🗑️
+                    🗑️ Xóa
                 </button>
             </div>
         </div>
 
-        <!-- Messages -->
         <div class="chat-messages" id="chatMessages">
-            <!-- Messages will be appended here -->
         </div>
 
-        <!-- Input -->
         <div class="chat-input-container">
             <div class="chat-input-wrapper">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Nhập tin nhắn..."
-                       onkeypress="handleKeyPress(event)">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Nhập tin nhắn..." 
+                       onkeypress="handleKeyPress(event)" autocomplete="off">
                 <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
@@ -447,16 +535,41 @@
     let isTyping = false;
     let pollInterval = null;
     let unreadCount = 0;
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
 
     document.addEventListener('DOMContentLoaded', function () {
         if (chatSessionId) {
             loadChatHistory();
         } else {
-            addMessage('ai', 'Xin chào! 👋 Mình là trợ lý AI của TechStore.\n\nMình có thể giúp bạn:\n• Tìm sản phẩm công nghệ\n• Tư vấn mua hàng\n• Thông tin bảo hành\n• Giao hàng & thanh toán\n\nBạn cần mình hỗ trợ gì hôm nay?');
+            showWelcomeMessage();
         }
-
         startPolling();
     });
+
+    function showWelcomeMessage() {
+        const welcomeHtml = `
+            <div class="message ai">
+                <div class="message-bubble">Xin chào! 👋 Mình là trợ lý AI của TechStore.
+
+Mình có thể giúp bạn:
+• Tìm sản phẩm công nghệ phù hợp
+• Tư vấn mua hàng thông minh
+• Thông tin bảo hành, đổi trả
+• Giao hàng & thanh toán
+
+Bạn cần mình hỗ trợ gì hôm nay?</div>
+                <div class="message-time">${formatTime(new Date())}</div>
+                <div class="welcome-suggestions">
+                    <button class="welcome-suggestion-btn" onclick="sendQuickReply('Tư vấn mua laptop')">💻 Tư vấn laptop</button>
+                    <button class="welcome-suggestion-btn" onclick="sendQuickReply('Điện thoại nào tốt nhất?')">📱 Tư vấn điện thoại</button>
+                    <button class="welcome-suggestion-btn" onclick="sendQuickReply('Chính sách bảo hành')">🛡️ Chính sách bảo hành</button>
+                    <button class="welcome-suggestion-btn" onclick="sendQuickReply('Cách thanh toán')">💳 Thanh toán</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('chatMessages').innerHTML = welcomeHtml;
+    }
 
     function toggleChat() {
         const btn = document.getElementById('chatToggle');
@@ -467,9 +580,9 @@
         if (isChatOpen) {
             btn.classList.remove('expanded');
             windowElement.classList.add('active');
-            document.getElementById('chatInput').focus();
             document.getElementById('chatBadge').style.display = 'none';
             unreadCount = 0;
+            document.getElementById('chatInput').focus();
         } else {
             btn.classList.add('expanded');
             windowElement.classList.remove('active');
@@ -510,7 +623,7 @@
 
             if (!data.success) {
                 hideTyping();
-                addMessage('ai', data.error || 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.');
+                addMessage('ai', 'Xin lỗi, có lỗi xảy ra: ' + (data.error || 'Vui lòng thử lại sau.'));
                 return;
             }
 
@@ -519,12 +632,8 @@
                 localStorage.setItem('chatSessionId', chatSessionId);
             }
 
-            if (data.userMessageId) {
-                lastMessageId = Math.max(lastMessageId, Number(data.userMessageId));
-            }
-            if (data.aiMessageId) {
-                lastMessageId = Math.max(lastMessageId, Number(data.aiMessageId));
-            }
+            if (data.userMessageId) lastMessageId = Math.max(lastMessageId, Number(data.userMessageId));
+            if (data.aiMessageId) lastMessageId = Math.max(lastMessageId, Number(data.aiMessageId));
 
             hideTyping();
             addMessage('ai', data.message);
@@ -536,9 +645,52 @@
             if (data.shouldEscalate) {
                 addEscalateButton();
             }
+
+            retryCount = 0;
         } catch (error) {
             hideTyping();
-            addMessage('ai', 'Xin lỗi, không thể kết nối. Vui lòng thử lại.');
+            retryCount++;
+            
+            if (retryCount <= MAX_RETRIES) {
+                addMessage('ai', '🔄 Đang kết nối lại...');
+                setTimeout(() => sendMessageRetry(message), 1000);
+            } else {
+                addMessage('ai', '⚠️ Không thể kết nối với AI. Vui lòng thử lại sau hoặc liên hệ hotline.');
+                retryCount = 0;
+            }
+        }
+    }
+
+    async function sendMessageRetry(originalMessage) {
+        try {
+            const response = await fetch('/Chat/SendMessage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    sessionId: chatSessionId,
+                    message: originalMessage
+                })
+            });
+
+            const data = await response.json();
+            hideTyping();
+
+            if (data.success) {
+                addMessage('ai', data.message);
+                if (data.products && data.products.length > 0) {
+                    addProductSuggestions(data.products);
+                }
+                retryCount = 0;
+            } else {
+                addMessage('ai', 'Xin lỗi, dịch vụ AI đang bận. Vui lòng thử lại sau.');
+            }
+        } catch (error) {
+            hideTyping();
+            addMessage('ai', '⚠️ Kết nối thất bại. Vui lòng liên hệ hotline: 0123 456 789');
+            retryCount = 0;
         }
     }
 
@@ -547,33 +699,44 @@
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
 
-        const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const bubbleHtml = type === 'user' 
+            ? `<div class="message-bubble">${escapeHtml(text)}</div>`
+            : `<div class="message-bubble">${formatAIResponse(text)}</div>`;
+
         messageDiv.innerHTML = `
-            <div class="message-bubble">${escapeHtml(text)}</div>
-            <div class="message-time">${time}</div>
+            ${bubbleHtml}
+            <div class="message-time">${formatTime(new Date())}</div>
         `;
 
         container.appendChild(messageDiv);
         container.scrollTop = container.scrollHeight;
     }
 
+    function formatAIResponse(text) {
+        // Convert markdown-style formatting to HTML
+        let formatted = escapeHtml(text);
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formatted = formatted.replace(/\n•/g, '\n<br>•');
+        formatted = formatted.replace(/\n/g, '<br>');
+        return formatted;
+    }
+
     function addProductSuggestions(products) {
         const container = document.getElementById('chatMessages');
-
+        
         products.slice(0, 3).forEach(product => {
             const productDiv = document.createElement('div');
             productDiv.className = 'product-suggestion';
-            productDiv.onclick = () => window.location.href = `/Shop/Product/${product.id}`;
+            productDiv.onclick = () => window.location.href = `/Shop/Product/${product.productId}`;
 
             const formattedPrice = new Intl.NumberFormat('vi-VN').format(product.price) + 'đ';
             productDiv.innerHTML = `
-                <div style="display: flex; align-items: center;">
-                    <img src="${product.imageUrl || '/images/products/placeholder.svg'}" alt="${product.name}">
-                    <div class="product-suggestion-content">
-                        <div class="product-suggestion-name">${product.name}</div>
-                        <div class="product-suggestion-price">${formattedPrice}</div>
-                        <div style="font-size: 12px; color: #666;">${product.category || ''}</div>
-                    </div>
+                <img src="${product.imageUrl || '/images/products/placeholder.svg'}" alt="${escapeHtml(product.name)}" 
+                     onerror="this.src='/images/products/placeholder.svg'">
+                <div class="product-suggestion-content">
+                    <div class="product-suggestion-name">${escapeHtml(product.name)}</div>
+                    <div class="product-suggestion-price">${formattedPrice}</div>
+                    ${product.category ? `<div class="product-suggestion-cat">${escapeHtml(product.category)}</div>` : ''}
                 </div>
             `;
 
@@ -586,14 +749,11 @@
     function addEscalateButton() {
         const container = document.getElementById('chatMessages');
         const btnDiv = document.createElement('div');
-        btnDiv.style.marginTop = '8px';
-
         btnDiv.innerHTML = `
             <button class="escalate-btn" onclick="escalateToAdmin()">
                 👨‍💼 Gặp quản trị viên
             </button>
         `;
-
         container.appendChild(btnDiv);
         container.scrollTop = container.scrollHeight;
     }
@@ -614,9 +774,11 @@
             const data = await response.json();
             if (data.success) {
                 addMessage('system', 'Yêu cầu của bạn đã được chuyển đến quản trị viên. Vui lòng chờ trong giây lát.');
+            } else {
+                addMessage('ai', 'Không thể chuyển yêu cầu. Vui lòng thử lại sau.');
             }
         } catch (error) {
-            addMessage('ai', 'Không thể kết nối với quản trị viên. Vui lòng thử lại sau.');
+            addMessage('ai', 'Kết nối thất bại. Vui lòng gọi hotline: 0123 456 789');
         }
     }
 
@@ -650,14 +812,19 @@
             const response = await fetch(`/Chat/GetHistory?sessionId=${chatSessionId}`);
             const data = await response.json();
 
-            if (data.success && data.messages) {
+            if (data.success && data.messages && data.messages.length > 0) {
+                const container = document.getElementById('chatMessages');
+                container.innerHTML = '';
+                
                 data.messages.forEach(msg => {
                     lastMessageId = Math.max(lastMessageId, Number(msg.messageId || 0));
                     addMessage(msg.senderType, msg.message);
                 });
+            } else {
+                showWelcomeMessage();
             }
         } catch (error) {
-            console.log('Could not load chat history');
+            showWelcomeMessage();
         }
     }
 
@@ -669,22 +836,17 @@
                 const response = await fetch(`/Chat/GetNewMessages?sessionId=${chatSessionId}&lastMessageId=${lastMessageId}`);
                 const data = await response.json();
 
-                if (!(data.success && data.messages && data.messages.length > 0)) {
-                    return;
-                }
+                if (!(data.success && data.messages && data.messages.length > 0)) return;
 
                 const newMessages = data.messages.filter(msg => Number(msg.messageId || 0) > lastMessageId);
                 newMessages.forEach(msg => {
                     lastMessageId = Math.max(lastMessageId, Number(msg.messageId || 0));
-
-                    if (msg.senderType === 'user') {
-                        return;
-                    }
-
-                    if (isChatOpen) {
-                        addMessage(msg.senderType, msg.message);
-                    } else {
-                        unreadCount += 1;
+                    if (msg.senderType !== 'user') {
+                        if (isChatOpen) {
+                            addMessage(msg.senderType, msg.message);
+                        } else {
+                            unreadCount++;
+                        }
                     }
                 });
 
@@ -692,9 +854,9 @@
                     showNotificationBadge(unreadCount);
                 }
             } catch (error) {
-                console.log('Polling error');
+                // Silent fail for polling
             }
-        }, 3000);
+        }, 4000);
     }
 
     function showNotificationBadge(count) {
@@ -709,10 +871,14 @@
             chatSessionId = null;
             lastMessageId = 0;
             unreadCount = 0;
-            document.getElementById('chatMessages').innerHTML = '';
             document.getElementById('chatBadge').style.display = 'none';
-            addMessage('ai', 'Cuộc trò chuyện đã được xóa. Bạn cần mình hỗ trợ gì thêm?');
+            showWelcomeMessage();
         }
+    }
+
+    function sendQuickReply(message) {
+        document.getElementById('chatInput').value = message;
+        sendMessage();
     }
 
     function getCsrfToken() {
@@ -721,13 +887,13 @@
     }
 
     function escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    function sendQuickReply(message) {
-        document.getElementById('chatInput').value = message;
-        sendMessage();
+    function formatTime(date) {
+        return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     }
 </script>

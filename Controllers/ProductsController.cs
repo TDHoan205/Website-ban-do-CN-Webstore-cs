@@ -1,68 +1,50 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Webstore.Data;
 using Webstore.Models;
 using Webstore.Utilities;
+using Webstore.Services;
 
 namespace Webstore.Controllers
 {
     [Authorize(Roles = "Admin,Employee")]
     public class ProductsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IProductService _productService;
+        private readonly ISupplierService _supplierService;
         private readonly IWebHostEnvironment _hostEnvironment;
 
-        public ProductsController(ApplicationDbContext context, IWebHostEnvironment hostEnvironment)
+        public ProductsController(IProductService productService, ISupplierService supplierService, IWebHostEnvironment hostEnvironment)
         {
-            _context = context;
+            _productService = productService;
+            _supplierService = supplierService;
             _hostEnvironment = hostEnvironment;
         }
 
         // GET: /Products
         public async Task<IActionResult> Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
-            var query = _context.Products.Include(p => p.Category).Include(p => p.Supplier).AsQueryable();
+            // Note: IProductService currently has GetProductsAsync but it returns a PaginatedList specialized for Shop.
+            // For Admin, we might want a slightly different view, but for now let's reuse or use the repo directly if needed.
+            // Actually, stay consistent: use the service.
             
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(p => p.Name.Contains(search)
-                                       || (p.Description != null && p.Description.Contains(search))
-                                       || (p.Category != null && p.Category.Name.Contains(search))
-                                       || (p.Supplier != null && p.Supplier.Name.Contains(search)));
-            }
+            var categoryId = (int?)null; // No category filter by default in admin index unless specified
+            var pList = await _productService.GetProductsAsync(search, categoryId, sortOrder, pageNumber, pageSize);
 
-            // Sorting
             ViewBag.NameSortParm = sortOrder == "name" ? "name_desc" : "name";
             ViewBag.PriceSortParm = sortOrder == "price" ? "price_desc" : "price";
-            ViewBag.CategorySortParm = sortOrder == "category" ? "category_desc" : "category";
-            ViewBag.SupplierSortParm = sortOrder == "supplier" ? "supplier_desc" : "supplier";
-
-            query = sortOrder switch
-            {
-                "name_desc" => query.OrderByDescending(p => p.Name),
-                "price" => query.OrderBy(p => p.Price),
-                "price_desc" => query.OrderByDescending(p => p.Price),
-                "category" => query.OrderBy(p => p.Category != null ? p.Category.Name : ""),
-                "category_desc" => query.OrderByDescending(p => p.Category != null ? p.Category.Name : ""),
-                "supplier" => query.OrderBy(p => p.Supplier != null ? p.Supplier.Name : ""),
-                "supplier_desc" => query.OrderByDescending(p => p.Supplier != null ? p.Supplier.Name : ""),
-                _ => query.OrderBy(p => p.Name)
-            };
-
-            var products = await PagedList<Product>.CreateAsync(query, pageNumber, pageSize);
             
             ViewBag.Search = search;
             ViewBag.SortOrder = sortOrder;
             ViewBag.PageSize = pageSize;
             
-            return View(products);
+            return View(pList);
         }
 
         private async Task LoadLookups()
         {
-            ViewBag.Categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
-            ViewBag.Suppliers = await _context.Suppliers.OrderBy(s => s.Name).ToListAsync();
+            ViewBag.Categories = await _productService.GetAllCategoriesAsync();
+            ViewBag.Suppliers = await _supplierService.GetAllAsync();
         }
 
         // GET: /Products/Create
@@ -77,24 +59,21 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Name,Description,Price,CategoryId,SupplierId")] Product product, IFormFile? imageFile)
         {
-            await LoadLookups();
+            if (!ModelState.IsValid)
+            {
+                await LoadLookups();
+                return View(product);
+            }
 
             product.Name = ProductDescriptionText.NormalizePlainText(product.Name) ?? string.Empty;
             product.Description = ProductDescriptionText.SanitizeDescriptionHtmlNullable(product.Description);
 
-            if (!ModelState.IsValid)
-            {
-                return View(product);
-            }
-
-            // Xử lý upload ảnh
             if (imageFile != null && imageFile.Length > 0)
             {
                 product.ImageUrl = await SaveImage(imageFile);
             }
 
-            _context.Add(product);
-            await _context.SaveChangesAsync();
+            await _productService.CreateProductAsync(product);
             TempData["Success"] = "Tạo sản phẩm thành công";
             return RedirectToAction(nameof(Index));
         }
@@ -103,7 +82,7 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
-            var product = await _context.Products.FindAsync(id);
+            var product = await _productService.GetProductByIdAsync(id.Value);
             if (product == null) return NotFound();
             await LoadLookups();
             return View(product);
@@ -115,43 +94,32 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Edit(int id, [Bind("ProductId,Name,Description,Price,CategoryId,SupplierId,ImageUrl")] Product product, IFormFile? imageFile)
         {
             if (id != product.ProductId) return NotFound();
-            await LoadLookups();
-
-            product.Name = ProductDescriptionText.NormalizePlainText(product.Name) ?? string.Empty;
-            product.Description = ProductDescriptionText.SanitizeDescriptionHtmlNullable(product.Description);
 
             if (!ModelState.IsValid)
             {
+                await LoadLookups();
                 return View(product);
             }
 
             try
             {
-                // Xử lý upload ảnh mới
+                product.Name = ProductDescriptionText.NormalizePlainText(product.Name) ?? string.Empty;
+                product.Description = ProductDescriptionText.SanitizeDescriptionHtmlNullable(product.Description);
+
                 if (imageFile != null && imageFile.Length > 0)
                 {
-                    // Xóa ảnh cũ nếu có
-                    if (!string.IsNullOrEmpty(product.ImageUrl))
-                    {
-                        DeleteImage(product.ImageUrl);
-                    }
+                    if (!string.IsNullOrEmpty(product.ImageUrl)) DeleteImage(product.ImageUrl);
                     product.ImageUrl = await SaveImage(imageFile);
                 }
 
-                _context.Update(product);
-                await _context.SaveChangesAsync();
+                await _productService.UpdateProductAsync(product);
                 TempData["Success"] = "Cập nhật sản phẩm thành công";
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!await _context.Products.AnyAsync(e => e.ProductId == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                TempData["Error"] = "Lỗi khi cập nhật: " + ex.Message;
+                await LoadLookups();
+                return View(product);
             }
             return RedirectToAction(nameof(Index));
         }
@@ -160,8 +128,7 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-            var product = await _context.Products.Include(p => p.Category).Include(p => p.Supplier)
-                .FirstOrDefaultAsync(m => m.ProductId == id);
+            var product = await _productService.GetProductByIdAsync(id.Value);
             if (product == null) return NotFound();
             return View(product);
         }
@@ -171,54 +138,35 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
-
-            // Xóa ảnh nếu có
-            if (!string.IsNullOrEmpty(product.ImageUrl))
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product != null)
             {
-                DeleteImage(product.ImageUrl);
+                if (!string.IsNullOrEmpty(product.ImageUrl)) DeleteImage(product.ImageUrl);
+                await _productService.DeleteProductAsync(id);
+                TempData["Success"] = "Xóa sản phẩm thành công";
             }
-
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Xóa sản phẩm thành công";
             return RedirectToAction(nameof(Index));
         }
 
-        // Helper methods cho upload ảnh
         private async Task<string> SaveImage(IFormFile imageFile)
         {
-            // Tạo tên file unique
             string uniqueFileName = Guid.NewGuid().ToString() + "_" + imageFile.FileName;
             string uploadsFolder = Path.Combine(_hostEnvironment.WebRootPath, "images", "products");
-            
-            // Tạo thư mục nếu chưa tồn tại
-            if (!Directory.Exists(uploadsFolder))
-            {
-                Directory.CreateDirectory(uploadsFolder);
-            }
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             string filePath = Path.Combine(uploadsFolder, uniqueFileName);
             using (var fileStream = new FileStream(filePath, FileMode.Create))
             {
                 await imageFile.CopyToAsync(fileStream);
             }
-
-            // Trả về đường dẫn tương đối để lưu vào database
             return "/images/products/" + uniqueFileName;
         }
 
         private void DeleteImage(string imageUrl)
         {
             if (string.IsNullOrEmpty(imageUrl)) return;
-
             string filePath = Path.Combine(_hostEnvironment.WebRootPath, imageUrl.TrimStart('/'));
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
+            if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
         }
     }
 }
-

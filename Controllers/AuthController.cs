@@ -11,11 +11,11 @@ namespace Webstore.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly Webstore.Services.IAccountService _accountService;
 
-        public AuthController(ApplicationDbContext context)
+        public AuthController(Webstore.Services.IAccountService accountService)
         {
-            _context = context;
+            _accountService = accountService;
         }
 
         [HttpGet]
@@ -39,57 +39,25 @@ namespace Webstore.Controllers
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
                 var errorMsg = "Vui lòng nhập đầy đủ thông tin";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
             }
 
-            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Username == username);
+            var isValid = await _accountService.ValidateCredentialsAsync(username, password);
+            if (!isValid)
+            {
+                var errorMsg = "Sai thông tin đăng nhập";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
+                return View();
+            }
+
+            var account = await _accountService.GetAccountByUsernameAsync(username);
             if (account == null)
             {
-                var errorMsg = "Sai thông tin đăng nhập";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
-                TempData["Error"] = errorMsg;
-                return View();
-            }
-
-            // Kiểm tra password đã hash với salt
-            bool ok = false;
-            if (!string.IsNullOrEmpty(account.PasswordHash) && account.PasswordHash.Contains(':'))
-            {
-                // Định dạng salt:hash
-                var parts = account.PasswordHash.Split(':');
-                if (parts.Length == 2)
-                {
-                    var salt = parts[0];
-                    var storedHash = parts[1];
-                    var inputHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
-                    ok = CryptographicOperations.FixedTimeEquals(
-                        Convert.FromHexString(inputHash),
-                        Convert.FromHexString(storedHash));
-                }
-            }
-            else if (!string.IsNullOrEmpty(account.PasswordHash))
-            {
-                // Fallback: password lưu dạng plaintext (database cũ)
-                ok = account.PasswordHash == password;
-                if (ok)
-                {
-                    // Tự động nâng cấp lên dạng hash
-                    var newSalt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
-                    var newHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, newSalt);
-                    account.PasswordHash = newSalt + ":" + newHash;
-                    await _context.SaveChangesAsync();
-                }
-            }
-
-            if (!ok)
-            {
-                var errorMsg = "Sai thông tin đăng nhập";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                var errorMsg = "Lỗi hệ thống: không tìm thấy tài khoản sau khi xác thực";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
             }
@@ -103,47 +71,23 @@ namespace Webstore.Controllers
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
-
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
-            };
+            var authProperties = new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) };
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-            // Xác định redirect URL
-            var redirectUrl = string.Empty;
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                redirectUrl = returnUrl;
-            else if (account.Role == "Admin" || account.Role == "Employee")
-                redirectUrl = Url.Action("Index", "Home") ?? "/";
-            else
-                redirectUrl = Url.Action("Index", "Shop") ?? "/";
+            var redirectUrl = account.Role == "Admin" || account.Role == "Employee" 
+                ? Url.Action("Index", "Home") : Url.Action("Index", "Shop");
+            
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) redirectUrl = returnUrl;
 
-            // Nếu là AJAX request (X-Requested-With header), trả về JSON để client xử lý
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
-                return Json(new { success = true, redirectUrl = redirectUrl });
-            }
-
-            // Traditional form submit - redirect
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return Redirect(returnUrl);
-
-            if (account.Role == "Admin" || account.Role == "Employee")
-                return RedirectToAction("Index", "Home");
-            else
-                return RedirectToAction("Index", "Shop");
+            if (isAjax) return Json(new { success = true, redirectUrl = redirectUrl });
+            return Redirect(redirectUrl!);
         }
 
         [HttpGet]
         public IActionResult Register()
         {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                return RedirectToAction("Index", "Home");
-            }
+            if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Index", "Home");
             return View();
         }
 
@@ -151,60 +95,28 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(Account input, string password)
         {
-            if (string.IsNullOrWhiteSpace(password))
-            {
-                ModelState.AddModelError("", "Mật khẩu không được để trống");
-                return View(input);
-            }
-
-            if (password.Length < 6)
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
             {
                 ModelState.AddModelError("", "Mật khẩu phải có ít nhất 6 ký tự");
                 return View(input);
             }
 
-            // Kiểm tra username đã tồn tại chưa
-            var exists = await _context.Accounts.AnyAsync(a => a.Username == input.Username);
-            if (exists)
+            if (await _accountService.GetAccountByUsernameAsync(input.Username) != null)
             {
                 ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
                 return View(input);
             }
 
-            // Kiểm tra email nếu có
-            if (!string.IsNullOrEmpty(input.Email))
-            {
-                var emailExists = await _context.Accounts.AnyAsync(a => a.Email == input.Email);
-                if (emailExists)
-                {
-                    ModelState.AddModelError("Email", "Email đã được sử dụng");
-                    return View(input);
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return View(input);
-            }
-
             try
             {
-                // Tạo salt và hash password
-                var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
-                var passwordHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
-
-                input.PasswordHash = salt + ":" + passwordHash;
-                if (string.IsNullOrEmpty(input.Role)) input.Role = "Customer";
-
-                _context.Accounts.Add(input);
-                await _context.SaveChangesAsync();
+                await _accountService.RegisterAsync(input, password);
 
                 TempData["Success"] = "Đăng ký thành công, vui lòng đăng nhập";
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "Có lỗi xảy ra khi đăng ký: " + ex.Message);
+                ModelState.AddModelError("", "Lỗi đăng ký: " + ex.Message);
                 return View(input);
             }
         }

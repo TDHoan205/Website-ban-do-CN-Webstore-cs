@@ -285,6 +285,7 @@
                     <div class="summary-items-list">
                         @foreach (var item in Model)
                         {
+                            var price = item.VariantId.HasValue && item.Variant != null ? item.Variant.Price : (item.Product?.Price ?? 0m);
                             <div class="summary-item">
                                 <div class="summary-item-img">
                                     @if (!string.IsNullOrEmpty(item.Product?.ImageUrl))
@@ -300,10 +301,16 @@
                                 </div>
                                 <div class="summary-item-info">
                                     <span class="summary-item-name">@item.Product?.Name</span>
+                                    @if (item.VariantId.HasValue && item.Variant != null)
+                                    {
+                                        <span class="summary-item-variant text-primary" style="font-size:0.75rem; font-weight: 600;">
+                                            @(item.Variant.Color) @(!string.IsNullOrEmpty(item.Variant.Storage) ? " / " + item.Variant.Storage : "")
+                                        </span>
+                                    }
                                     <span class="summary-item-qty">x @item.Quantity</span>
                                 </div>
                                 <div class="summary-item-price">
-                                    @(((item.Product?.Price ?? 0m) * item.Quantity).ToString("N0")) ₫
+                                    @((price * item.Quantity).ToString("N0")) ₫
                                 </div>
                             </div>
                         }
@@ -907,7 +914,8 @@
             customerAddress: addressEl.value.trim(),
             notes: document.getElementById('notes').value.trim(),
             paymentMethod: 'qr',
-            selectedProductIds: [@string.Join(",", Model.Select(m => m.ProductId))]
+            selectedProductIds: [@string.Join(",", Model.Select(m => m.ProductId))],
+            selectedVariantIds: [@string.Join(",", Model.Select(m => m.VariantId ?? 0))]
         };
 
         fetch('@Url.Action("PlaceOrder", "Shop")', {

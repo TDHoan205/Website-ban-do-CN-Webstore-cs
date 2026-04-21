@@ -1,28 +1,29 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Webstore.Data;
 using Webstore.Models;
+using Webstore.Services;
 
 namespace Webstore.Controllers
 {
     [Authorize(Roles = "Admin,Employee")]
     public class CategoriesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICategoryService _categoryService;
 
-        public CategoriesController(ApplicationDbContext context)
+        public CategoriesController(ICategoryService categoryService)
         {
-            _context = context;
+            _categoryService = categoryService;
         }
 
         // GET: /Categories
         public async Task<IActionResult> Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
-            var query = _context.Categories.AsQueryable();
+            var allCategories = await _categoryService.GetAllAsync();
+            var query = allCategories.AsQueryable();
+
             if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(c => c.Name.Contains(search));
+                query = query.Where(c => c.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
             }
 
             // Sorting
@@ -34,14 +35,15 @@ namespace Webstore.Controllers
                 _ => query.OrderBy(c => c.Name)
             };
 
-           var categories = await PagedList<Category>.CreateAsync(query, pageNumber, pageSize);
-
+            var totalItems = query.Count();
+            var items = query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            var pagedList = new PagedList<Category>(items, totalItems, pageNumber, pageSize);
             
             ViewBag.Search = search;
             ViewBag.SortOrder = sortOrder;
             ViewBag.PageSize = pageSize;
             
-            return View(categories);
+            return View(pagedList);
         }
 
         // GET: /Categories/Create
@@ -61,15 +63,14 @@ namespace Webstore.Controllers
             }
 
             // Unique Name validation
-            var exists = await _context.Categories.AnyAsync(c => c.Name == category.Name);
-            if (exists)
+            var all = await _categoryService.GetAllAsync();
+            if (all.Any(c => c.Name == category.Name))
             {
                 ModelState.AddModelError("Name", "Tên danh mục đã tồn tại.");
                 return View(category);
             }
 
-            _context.Add(category);
-            await _context.SaveChangesAsync();
+            await _categoryService.CreateAsync(category);
             TempData["Success"] = "Tạo danh mục thành công";
             return RedirectToAction(nameof(Index));
         }
@@ -77,16 +78,11 @@ namespace Webstore.Controllers
         // GET: /Categories/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
-            {
-                return NotFound();
-            }
+            var category = await _categoryService.GetByIdAsync(id.Value);
+            if (category == null) return NotFound();
+
             return View(category);
         }
 
@@ -95,19 +91,15 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("CategoryId,Name")] Category category)
         {
-            if (id != category.CategoryId)
-            {
-                return NotFound();
-            }
+            if (id != category.CategoryId) return NotFound();
 
             if (!ModelState.IsValid)
             {
                 return View(category);
             }
 
-            var nameExists = await _context.Categories
-                .AnyAsync(c => c.Name == category.Name && c.CategoryId != category.CategoryId);
-            if (nameExists)
+            var all = await _categoryService.GetAllAsync();
+            if (all.Any(c => c.Name == category.Name && c.CategoryId != category.CategoryId))
             {
                 ModelState.AddModelError("Name", "Tên danh mục đã tồn tại.");
                 return View(category);
@@ -115,20 +107,13 @@ namespace Webstore.Controllers
 
             try
             {
-                _context.Update(category);
-                await _context.SaveChangesAsync();
+                await _categoryService.UpdateAsync(category);
                 TempData["Success"] = "Cập nhật danh mục thành công";
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception)
             {
-                if (!await _context.Categories.AnyAsync(e => e.CategoryId == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (await _categoryService.GetByIdAsync(id) == null) return NotFound();
+                throw;
             }
 
             return RedirectToAction(nameof(Index));
@@ -137,16 +122,10 @@ namespace Webstore.Controllers
         // GET: /Categories/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var category = await _context.Categories.FirstOrDefaultAsync(m => m.CategoryId == id);
-            if (category == null)
-            {
-                return NotFound();
-            }
+            var category = await _categoryService.GetByIdAsync(id.Value);
+            if (category == null) return NotFound();
 
             return View(category);
         }
@@ -156,17 +135,9 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null)
-            {
-                return NotFound();
-            }
-
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
+            await _categoryService.DeleteAsync(id);
             TempData["Success"] = "Xóa danh mục thành công";
             return RedirectToAction(nameof(Index));
         }
     }
 }
-

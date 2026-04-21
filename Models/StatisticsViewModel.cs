@@ -5,6 +5,7 @@ namespace Webstore.Models
         // Basic counts
         public int ProductCount { get; set; }
         public int OrderCount { get; set; }
+        public int TotalOrders => OrderCount;
         public int SupplierCount { get; set; }
         public int AccountCount { get; set; }
         public int InventoryEntries { get; set; }

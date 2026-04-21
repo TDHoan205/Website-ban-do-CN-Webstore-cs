@@ -61,7 +61,7 @@ cd webstore
 Mở **SQL Server Management Studio** hoặc **Azure Data Studio** và chạy script:
 
 ```sql
--- Tệp: create_database.sql
+-- Tệp: database/create_database.sql
 ```
 
 Hoặc sử dụng Package Manager Console:
