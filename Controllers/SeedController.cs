@@ -2,12 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
-<<<<<<< Updated upstream
-=======
 using Webstore.Models;
 using Webstore.Models.AI;
 using Webstore.Models.Security;
->>>>>>> Stashed changes
 
 namespace Webstore.Controllers
 {
