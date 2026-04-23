@@ -43,6 +43,13 @@ namespace Webstore.Models
         [Column("role")]
         public string Role { get; set; } = "Customer";
 
+        [StringLength(64)]
+        [Column("reset_token")]
+        public string? ResetToken { get; set; }
+
+        [Column("reset_token_expiry")]
+        public DateTime? ResetTokenExpiry { get; set; }
+
         // Navigation properties
         public virtual Employee? Employee { get; set; }
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

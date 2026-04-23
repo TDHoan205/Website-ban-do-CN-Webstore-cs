@@ -8,6 +8,19 @@ GO
 USE TechShopWebsite1;
 GO
 
+-- Migration: Add password reset columns if they don't exist
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'reset_token')
+BEGIN
+    ALTER TABLE Accounts ADD reset_token NVARCHAR(64) NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'reset_token_expiry')
+BEGIN
+    ALTER TABLE Accounts ADD reset_token_expiry DATETIME NULL;
+END
+GO
+
 -- Create Categories Table
 CREATE TABLE Categories (
     category_id INT PRIMARY KEY IDENTITY(1,1),
@@ -36,7 +49,9 @@ CREATE TABLE Accounts (
     phone NVARCHAR(20),
     address NVARCHAR(255),
     is_active BIT NOT NULL DEFAULT 1,
-    role NVARCHAR(20) NOT NULL DEFAULT 'Customer'
+    role NVARCHAR(20) NOT NULL DEFAULT 'Customer',
+    reset_token NVARCHAR(64) NULL,
+    reset_token_expiry DATETIME NULL
 );
 GO
 

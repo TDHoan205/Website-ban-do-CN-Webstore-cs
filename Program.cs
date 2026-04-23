@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Webstore.Services;
 using Webstore.Services.AI;
 
 namespace Webstore
@@ -63,6 +64,10 @@ namespace Webstore
             builder.Services.AddScoped<IntentDetectionService>();
             builder.Services.AddScoped<RAGEngineService>();
             builder.Services.AddScoped<AIResponseService>();
+
+            // Register Email Service
+            builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+            builder.Services.AddScoped<EmailService>();
 
             var app = builder.Build();
 
