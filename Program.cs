@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Webstore.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Webstore.Services;
 using Webstore.Services.AI;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -108,6 +109,7 @@ namespace Webstore
             builder.Services.AddScoped<Webstore.Services.IStatisticsService, Webstore.Services.StatisticsService>();
             builder.Services.AddScoped<Webstore.Services.IAccountService, Webstore.Services.AccountService>();
             builder.Services.AddScoped<Webstore.Services.ICategoryService, Webstore.Services.CategoryService>();
+            builder.Services.AddSingleton<IEmailService, Webstore.Services.EmailService>();
 
             var app = builder.Build();
 

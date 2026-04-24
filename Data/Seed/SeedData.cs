@@ -220,8 +220,137 @@ namespace Webstore.Data
             context.Products.AddRange(products);
             await context.SaveChangesAsync();
 
-            // ========== INVENTORY (50 mẫu - 1 cho mỗi sản phẩm) ==========
+            // ========== PRODUCT VARIANTS ==========
             var productList = await context.Products.ToListAsync();
+
+            // iPhone 15 Pro Max - Colors and Storage
+            var iphone15promax = productList.FirstOrDefault(p => p.Name.Contains("iPhone 15 Pro Max"));
+            if (iphone15promax != null)
+            {
+                var iphoneVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Black", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 25 },
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Black", Storage = "512GB", RAM = "8GB", Price = 39990000, StockQuantity = 15 },
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Black", Storage = "1TB", RAM = "8GB", Price = 44990000, StockQuantity = 10 },
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan White", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 20 },
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan White", Storage = "512GB", RAM = "8GB", Price = 39990000, StockQuantity = 12 },
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Natural", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 18 },
+                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Blue", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 22 },
+                };
+                context.ProductVariants.AddRange(iphoneVariants);
+            }
+
+            // MacBook Pro 14 - RAM and Storage options
+            var macbookPro = productList.FirstOrDefault(p => p.Name.Contains("MacBook Pro 14"));
+            if (macbookPro != null)
+            {
+                var macbookVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "512GB", RAM = "18GB", Price = 49990000, StockQuantity = 10 },
+                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "1TB", RAM = "18GB", Price = 54990000, StockQuantity = 8 },
+                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "512GB", RAM = "36GB", Price = 57990000, StockQuantity = 5 },
+                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "1TB", RAM = "36GB", Price = 62990000, StockQuantity = 4 },
+                };
+                context.ProductVariants.AddRange(macbookVariants);
+            }
+
+            // Samsung Galaxy S24 Ultra - Storage variants
+            var galaxyS24Ultra = productList.FirstOrDefault(p => p.Name.Contains("Galaxy S24 Ultra"));
+            if (galaxyS24Ultra != null)
+            {
+                var samsungVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Black", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 30 },
+                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Black", Storage = "512GB", RAM = "12GB", Price = 33990000, StockQuantity = 18 },
+                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Gray", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 25 },
+                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Violet", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 20 },
+                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Yellow", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 15 },
+                };
+                context.ProductVariants.AddRange(samsungVariants);
+            }
+
+            // Dell XPS 15 - RAM and Storage
+            var dellXps = productList.FirstOrDefault(p => p.Name.Contains("Dell XPS 15"));
+            if (dellXps != null)
+            {
+                var dellVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = dellXps.ProductId, Storage = "512GB", RAM = "16GB", Price = 59990000, StockQuantity = 8 },
+                    new ProductVariant { ProductId = dellXps.ProductId, Storage = "1TB", RAM = "32GB", Price = 69990000, StockQuantity = 5 },
+                    new ProductVariant { ProductId = dellXps.ProductId, Storage = "2TB", RAM = "64GB", Price = 89990000, StockQuantity = 3 },
+                };
+                context.ProductVariants.AddRange(dellVariants);
+            }
+
+            // iPad Pro 12.9 - Storage options
+            var ipadPro = productList.FirstOrDefault(p => p.Name.Contains("iPad Pro 12.9"));
+            if (ipadPro != null)
+            {
+                var ipadVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "256GB", RAM = "8GB", Price = 32990000, StockQuantity = 15 },
+                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "512GB", RAM = "8GB", Price = 37990000, StockQuantity = 10 },
+                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "1TB", RAM = "16GB", Price = 47990000, StockQuantity = 6 },
+                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "2TB", RAM = "16GB", Price = 57990000, StockQuantity = 3 },
+                };
+                context.ProductVariants.AddRange(ipadVariants);
+            }
+
+            // Sony WH-1000XM5 - Colors
+            var sonyHeadphones = productList.FirstOrDefault(p => p.Name.Contains("Sony WH-1000XM5"));
+            if (sonyHeadphones != null)
+            {
+                var sonyColorVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = sonyHeadphones.ProductId, Color = "Black", Price = 9990000, StockQuantity = 25 },
+                    new ProductVariant { ProductId = sonyHeadphones.ProductId, Color = "Silver", Price = 9990000, StockQuantity = 20 },
+                    new ProductVariant { ProductId = sonyHeadphones.ProductId, Color = "Midnight Blue", Price = 10490000, StockQuantity = 12 },
+                };
+                context.ProductVariants.AddRange(sonyColorVariants);
+            }
+
+            // AirPods Pro 2
+            var airpodsPro = productList.FirstOrDefault(p => p.Name.Contains("AirPods Pro 2"));
+            if (airpodsPro != null)
+            {
+                var airpodsVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = airpodsPro.ProductId, Color = "White", Price = 6490000, StockQuantity = 40 },
+                };
+                context.ProductVariants.AddRange(airpodsVariants);
+            }
+
+            // Xiaomi 13T Pro - Storage variants
+            var xiaomi13t = productList.FirstOrDefault(p => p.Name.Contains("Xiaomi 13T Pro"));
+            if (xiaomi13t != null)
+            {
+                var xiaomiVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Alpine Blue", Storage = "256GB", RAM = "12GB", Price = 19990000, StockQuantity = 20 },
+                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Alpine Blue", Storage = "512GB", RAM = "12GB", Price = 21990000, StockQuantity = 12 },
+                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Black", Storage = "256GB", RAM = "12GB", Price = 19990000, StockQuantity = 18 },
+                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Meadow Green", Storage = "256GB", RAM = "12GB", Price = 19990000, StockQuantity = 15 },
+                };
+                context.ProductVariants.AddRange(xiaomiVariants);
+            }
+
+            // Galaxy Tab S9 Ultra
+            var tabS9Ultra = productList.FirstOrDefault(p => p.Name.Contains("Galaxy Tab S9 Ultra"));
+            if (tabS9Ultra != null)
+            {
+                var tabVariants = new List<ProductVariant>
+                {
+                    new ProductVariant { ProductId = tabS9Ultra.ProductId, Color = "Graphite", Storage = "256GB", RAM = "12GB", Price = 28990000, StockQuantity = 10 },
+                    new ProductVariant { ProductId = tabS9Ultra.ProductId, Color = "Graphite", Storage = "512GB", RAM = "16GB", Price = 32990000, StockQuantity = 6 },
+                    new ProductVariant { ProductId = tabS9Ultra.ProductId, Color = "Beige", Storage = "256GB", RAM = "12GB", Price = 28990000, StockQuantity = 8 },
+                };
+                context.ProductVariants.AddRange(tabVariants);
+            }
+
+            await context.SaveChangesAsync();
+
+            // ========== INVENTORY (50 mẫu - 1 cho mỗi sản phẩm) ==========
+            productList = await context.Products.ToListAsync();
             var inventories = productList.Select((p, index) => new Inventory
             {
                 ProductId = p.ProductId,

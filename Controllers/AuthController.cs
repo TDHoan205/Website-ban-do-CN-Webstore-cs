@@ -1,21 +1,21 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Webstore.Data;
 using Webstore.Models;
+using Webstore.Services;
 
 namespace Webstore.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly Webstore.Services.IAccountService _accountService;
+        private readonly IAccountService _accountService;
+        private readonly IEmailService _emailService;
 
-        public AuthController(Webstore.Services.IAccountService accountService)
+        public AuthController(IAccountService accountService, IEmailService emailService)
         {
             _accountService = accountService;
+            _emailService = emailService;
         }
 
         [HttpGet]
@@ -38,7 +38,7 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                var errorMsg = "Vui lòng nhập đầy đủ thông tin";
+                var errorMsg = "Vui long nhap day du thong tin";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -47,7 +47,7 @@ namespace Webstore.Controllers
             var isValid = await _accountService.ValidateCredentialsAsync(username, password);
             if (!isValid)
             {
-                var errorMsg = "Sai thông tin đăng nhập";
+                var errorMsg = "Sai thong tin dang nhap";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -56,7 +56,7 @@ namespace Webstore.Controllers
             var account = await _accountService.GetAccountByUsernameAsync(username);
             if (account == null)
             {
-                var errorMsg = "Lỗi hệ thống: không tìm thấy tài khoản sau khi xác thực";
+                var errorMsg = "Loi he thong: khong tim thay tai khoan sau khi xac thuc";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -75,9 +75,9 @@ namespace Webstore.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-            var redirectUrl = account.Role == "Admin" || account.Role == "Employee" 
+            var redirectUrl = account.Role == "Admin" || account.Role == "Employee"
                 ? Url.Action("Index", "Home") : Url.Action("Index", "Shop");
-            
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) redirectUrl = returnUrl;
 
             if (isAjax) return Json(new { success = true, redirectUrl = redirectUrl });
@@ -97,13 +97,13 @@ namespace Webstore.Controllers
         {
             if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
             {
-                ModelState.AddModelError("", "Mật khẩu phải có ít nhất 6 ký tự");
+                ModelState.AddModelError("", "Mat khau phai co it nhat 6 ky tu");
                 return View(input);
             }
 
             if (await _accountService.GetAccountByUsernameAsync(input.Username) != null)
             {
-                ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
+                ModelState.AddModelError("Username", "Ten dang nhap da ton tai");
                 return View(input);
             }
 
@@ -111,14 +111,135 @@ namespace Webstore.Controllers
             {
                 await _accountService.RegisterAsync(input, password);
 
-                TempData["Success"] = "Đăng ký thành công, vui lòng đăng nhập";
+                TempData["Success"] = "Dang ky thanh cong, vui long dang nhap";
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "Lỗi đăng ký: " + ex.Message);
+                ModelState.AddModelError("", "Loi dang ky: " + ex.Message);
                 return View(input);
             }
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@') || !email.Contains('.'))
+            {
+                var errorMsg = "Vui long nhap dia chi email hop le";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
+                return View();
+            }
+
+            // Always show success message to prevent email enumeration
+            var account = await _accountService.GetAccountByEmailAsync(email);
+
+            if (account != null)
+            {
+                // Generate reset token
+                await _accountService.GenerateResetTokenAsync(email);
+
+                // Build reset link
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var resetLink = $"{baseUrl}/Auth/ResetPassword?token={Uri.EscapeDataString(account.ResetToken ?? "")}&email={Uri.EscapeDataString(email)}";
+
+                // Send email
+                await _emailService.SendPasswordResetEmailAsync(email, resetLink);
+            }
+
+            if (isAjax)
+            {
+                return Json(new { success = true, message = "Neu email ton tai trong he thong, huong dan dat lai mat khau da duoc gui." });
+            }
+
+            TempData["Success"] = "Neu email ton tai trong he thong, huong dan dat lai mat khau da duoc gui.";
+            return RedirectToAction("Login");
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword(string? token, string? email)
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
+            {
+                TempData["Error"] = "Lien ket dat lai mat khau khong hop le.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            ViewBag.Token = token;
+            ViewBag.Email = email;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(string email, string token, string newPassword, string confirmPassword)
+        {
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            {
+                var errorMsg = "Mat khau moi phai co it nhat 6 ky tu";
+                ViewBag.Token = token;
+                ViewBag.Email = email;
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                ModelState.AddModelError("", errorMsg);
+                return View();
+            }
+
+            if (newPassword != confirmPassword)
+            {
+                var errorMsg = "Mat khau xac nhan khong khop";
+                ViewBag.Token = token;
+                ViewBag.Email = email;
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                ModelState.AddModelError("", errorMsg);
+                return View();
+            }
+
+            var isValid = await _accountService.ValidateResetTokenAsync(email, token);
+            if (!isValid)
+            {
+                var errorMsg = "Lien ket dat lai mat khau khong hop le hoac da het han.";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
+                return RedirectToAction("ForgotPassword");
+            }
+
+            var success = await _accountService.ResetPasswordAsync(email, token, newPassword);
+            if (!success)
+            {
+                var errorMsg = "Khong the dat lai mat khau. Vui long thu lai.";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
+                return RedirectToAction("ForgotPassword");
+            }
+
+            if (isAjax)
+            {
+                return Json(new { success = true, message = "Dat lai mat khau thanh cong! Vui long dang nhap voi mat khau moi." });
+            }
+
+            TempData["Success"] = "Dat lai mat khau thanh cong! Vui long dang nhap voi mat khau moi.";
+            return RedirectToAction("Login");
         }
 
         [HttpPost]
@@ -135,6 +256,5 @@ namespace Webstore.Controllers
             return View();
         }
     }
-
 }
 
