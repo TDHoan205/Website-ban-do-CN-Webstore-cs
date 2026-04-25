@@ -5,664 +5,430 @@
 
 <!-- Hero Banner -->
 <section class="hero-section">
-    <div class="container">
-        <div class="row align-items-center">
+    <div class="hero-overlay"></div>
+    <div class="hero-particles"></div>
+    <div class="container position-relative">
+        <div class="row align-items-center min-vh-80">
             <div class="col-lg-6">
-                <div class="hero-badge">
-                    <i class="fas fa-truck"></i> Miễn phí vận chuyển toàn quốc
+                <div class="hero-badge-modern">
+                    <span class="badge-icon"><i class="fas fa-robot"></i></span>
+                    <span>AI Assistant powered</span>
                 </div>
-                <h1 class="hero-title">Mua sắm thông minh,<br><span class="highlight">tiết kiệm mỗi ngày</span></h1>
-                <p class="hero-desc">Khám phá hàng ngàn sản phẩm chính hãng với giá tốt nhất. Chất lượng đảm bảo, giao
-                    hàng nhanh chóng, đổi trả dễ dàng.</p>
-                    <div class="hero-actions">
-                        <a asp-controller="Shop" asp-action="Products" class="btn btn-hero-primary">
-                            <i class="fas fa-shopping-bag me-2"></i>Mua hàng ngay
-                        </a>
-                        <a asp-controller="Shop" asp-action="Products" class="btn btn-hero-outline">
-                            <i class="fas fa-th-large me-2"></i>Xem sản phẩm
-                        </a>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="stat-item">
-                            <span class="stat-number">10K+</span>
-                            <span class="stat-label">Sản phẩm</span>
-                        </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-item">
-                            <span class="stat-number">5K+</span>
-                            <span class="stat-label">Khách hàng</span>
-                        </div>
-                        <div class="stat-divider"></div>
-                        <div class="stat-item">
-                            <span class="stat-number">4.9</span>
-                            <span class="stat-label">Đánh giá</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 text-center">
-                    <div class="hero-visual">
-                        <div class="hero-circle"></div>
-                        <div class="hero-icon-wrapper">
-                            <i class="fas fa-shopping-cart"></i>
-                        </div>
-                        <div class="floating-badge fb-1"><i class="fas fa-shield-alt"></i> Chính hãng</div>
-                        <div class="floating-badge fb-2"><i class="fas fa-truck"></i> Giao nhanh</div>
-                        <div class="floating-badge fb-3"><i class="fas fa-undo"></i> Đổi trả</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Categories -->
-    <section class="py-5">
-        <div class="container">
-            <div class="section-header">
-                <div>
-                    <h2 class="section-title"><i class="fas fa-th"></i> Danh mục sản phẩm</h2>
-                    <p class="section-subtitle">Khám phá các danh mục sản phẩm đa dạng</p>
-                </div>
-            </div>
-            <div class="row g-3">
-                @foreach (var category in ViewBag.Categories)
-                {
-                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
-                        <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
-                           class="category-card">
-                            <div class="category-card-icon">
-                                <i class="fas fa-@GetCategoryIcon(category.Name)"></i>
-                            </div>
-                            <span class="category-card-title">@category.Name</span>
-                        </a>
-                    </div>
-                }
-            </div>
-        </div>
-    </section>
-
-    <!-- New Products -->
-    <section class="py-5" id="new-products">
-        <div class="container">
-            <div class="section-header">
-                <div>
-                    <h2 class="section-title"><i class="fas fa-bolt" style="color:var(--primary-light);"></i> Sản phẩm mới
-                    </h2>
-                    <p class="section-subtitle">Hàng mới về - Cập nhật liên tục</p>
-                </div>
-                <a asp-controller="Shop" asp-action="Products" class="btn btn-outline-primary">
-                    Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Special Offers -->
-    @if (ViewBag.DealProducts != null && ((List<Webstore.Models.Product>)ViewBag.DealProducts).Any())
-    {
-        var dealProducts = (List<Webstore.Models.Product>)ViewBag.DealProducts;
-        <section class="py-5" id="special-offers" style="background:white;">
-            <div class="container">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title"><i class="fas fa-tags" style="color:var(--warning);"></i> Ưu đãi đặc biệt</h2>
-                        <p class="section-subtitle">Giảm giá cực sốc - Ưu đãi có hạn</p>
-                    </div>
-                    <a asp-controller="Shop" asp-action="Products" class="btn btn-outline-warning">
-                        Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+                <h1 class="hero-title-modern">
+                    Khám phá
+                    <span class="text-gradient-hero">Công nghệ</span>
+                    <br />Thông minh hơn
+                </h1>
+                <p class="hero-desc-modern">
+                    Hệ thống AI tư vấn thông minh giúp bạn tìm kiếm sản phẩm hoàn hảo. 
+                    Cam kết chính hãng với bảo hành đáng tin cậy.
+                </p>
+                <div class="hero-actions-modern">
+                    <a asp-controller="Shop" asp-action="Products" class="btn-hero-primary-modern">
+                        <i class="fas fa-shopping-bag me-2"></i>
+                        <span>Mua sắm ngay</span>
+                    </a>
+                    <a href="#featured-products" class="btn-hero-secondary-modern">
+                        <i class="fas fa-play-circle me-2"></i>
+                        <span>Xem sản phẩm</span>
                     </a>
                 </div>
-                <div class="row g-4">
-                    @foreach (var product in dealProducts)
-                    {
-                        <div class="col-lg-3 col-md-4 col-sm-6">
-                            <div class="product-card">
-                                <div class="deal-badge"><i class="fas fa-percentage"></i> Ưu đãi</div>
-                                <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId"
-                                   class="product-card-img">
-                                    @if (!string.IsNullOrEmpty(product.ImageUrl))
-                                    {
-                                        <img src="@product.ImageUrl" alt="@product.Name" />
-                                    }
-                                    else
-                                    {
-                                        <div class="img-placeholder">
-                                            <i class="fas fa-box" style="font-size:3rem;"></i>
-                                            <span class="placeholder-name">@Html.Encode(product.Name)</span>
-                                        </div>
-                                    }
-                                    <div class="product-overlay"><i class="fas fa-eye"></i></div>
-                                </a>
-                                <div class="product-card-body">
-                                    <div class="product-card-cat">@product.Category?.Name</div>
-                                    <h5 class="product-card-title">
-                                        <a asp-controller="Shop" asp-action="Product"
-                                           asp-route-id="@product.ProductId">@Html.Encode(product.Name)</a>
-                                    </h5>
-                                    <div class="product-card-rating">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star-half-alt"></i>
-                                        <span class="ms-1 text-muted rating-count">(4.5)</span>
+                <div class="hero-stats-modern">
+                    <div class="stat-item-modern">
+                        <span class="stat-number-modern">500+</span>
+                        <span class="stat-label-modern">Sản phẩm</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item-modern">
+                        <span class="stat-number-modern">10K+</span>
+                        <span class="stat-label-modern">Khách hàng</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item-modern">
+                        <span class="stat-number-modern">4.9</span>
+                        <span class="stat-label-modern">Đánh giá</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hero-visual-wrapper">
+                    <div class="hero-main-visual">
+                        <div class="main-product-display">
+                            <div class="product-glow"></div>
+                            <div class="product-circle-bg"></div>
+                            <div class="featured-product-card">
+                                <img src="/images/products/iPhone_15_Pro_Max.png" alt="iPhone 15 Pro Max" class="featured-product-img" />
+                                <div class="product-card-overlay">
+                                    <span class="product-badge-float badge-new">Mới</span>
+                                    <div class="product-card-info">
+                                        <span class="product-name-float">iPhone 15 Pro Max</span>
+                                        <span class="product-price-float">34.990.000đ</span>
                                     </div>
-                                    <div class="product-card-price">@product.Price.ToString("N0") ₫</div>
-                                    <button class="btn btn-add-cart" onclick="addToCart(@product.ProductId)">
-                                        <i class="fas fa-cart-plus"></i> Thêm vào giỏ
-                                    </button>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="floating-items">
+                            <div class="float-icon fi-1"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="float-icon fi-2"><i class="fas fa-laptop"></i></div>
+                            <div class="float-icon fi-3"><i class="fas fa-headphones-alt"></i></div>
+                            <div class="float-icon fi-4"><i class="fas fa-tablet-alt"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hero-wave">
+        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#eef3f8"/>
+        </svg>
+    </div>
+</section>
+
+<!-- Trust Badges -->
+<section class="trust-section">
+    <div class="container">
+        <div class="trust-badges-wrapper">
+            <div class="trust-badge-item">
+                <div class="trust-badge-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="trust-badge-content">
+                    <span class="trust-badge-title">Chính hãng 100%</span>
+                    <span class="trust-badge-desc">Cam kết authentic</span>
+                </div>
+            </div>
+            <div class="trust-badge-item">
+                <div class="trust-badge-icon"><i class="fas fa-truck"></i></div>
+                <div class="trust-badge-content">
+                    <span class="trust-badge-title">Giao hàng nhanh</span>
+                    <span class="trust-badge-desc">Miễn phí từ 500K</span>
+                </div>
+            </div>
+            <div class="trust-badge-item">
+                <div class="trust-badge-icon"><i class="fas fa-undo-alt"></i></div>
+                <div class="trust-badge-content">
+                    <span class="trust-badge-title">Đổi trả 7 ngày</span>
+                    <span class="trust-badge-desc">Không phí phát sinh</span>
+                </div>
+            </div>
+            <div class="trust-badge-item">
+                <div class="trust-badge-icon"><i class="fas fa-headset"></i></div>
+                <div class="trust-badge-content">
+                    <span class="trust-badge-title">Hỗ trợ 24/7</span>
+                    <span class="trust-badge-desc">Luôn sẵn sàng</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories -->
+<section class="py-5" id="categories">
+    <div class="container">
+        <div class="section-header-modern">
+            <div class="section-title-group">
+                <span class="section-label">Khám phá</span>
+                <h2 class="section-title-modern">
+                    <i class="fas fa-th-large section-title-icon"></i>
+                    Danh mục sản phẩm
+                </h2>
+                <p class="section-subtitle-modern">Tìm kiếm sản phẩm theo nhu cầu của bạn</p>
+            </div>
+            <a asp-controller="Shop" asp-action="Products" class="btn-view-all">
+                Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="categories-grid">
+            @foreach (var category in ViewBag.Categories)
+            {
+                <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
+                   class="category-card-modern">
+                    <div class="category-icon-wrap">
+                        <i class="fas fa-@GetCategoryIcon(category.Name)"></i>
+                    </div>
+                    <span class="category-name-modern">@category.Name</span>
+                    <div class="category-card-shimmer"></div>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products - New Arrivals -->
+@{
+    var newProducts = (ViewBag.NewProducts as List<Webstore.Models.Product>) ?? new List<Webstore.Models.Product>();
+    var newProductsPage = (int)(ViewBag.NewProductsPage ?? 1);
+    var newProductsTotalPages = (int)Math.Ceiling(newProducts.Count / 8.0);
+    var displayNewProducts = newProducts.Skip((newProductsPage - 1) * 8).Take(8).ToList();
+}
+<section class="py-5 section-featured" id="featured-products">
+    <div class="container">
+        <div class="section-header-modern">
+            <div class="section-title-group">
+                <span class="section-label section-label-new">Mới nhất</span>
+                <h2 class="section-title-modern">
+                    <i class="fas fa-bolt section-title-icon text-warning"></i>
+                    Sản phẩm mới về
+                </h2>
+                <p class="section-subtitle-modern">Cập nhật xu hướng công nghệ mới nhất</p>
+            </div>
+            <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="1" class="btn-view-all">
+                Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        @if (displayNewProducts.Any())
+        {
+            <div class="products-carousel-wrapper">
+                <div class="products-carousel">
+                    @foreach (var product in displayNewProducts)
+                    {
+                        <div class="product-carousel-item">
+                            @await Html.PartialAsync("Partials/_ProductCard", product)
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            @if (newProductsTotalPages > 1)
+            {
+                <div class="section-pagination">
+                    @if (newProductsPage > 1)
+                    {
+                        <a href="?newPage=@(newProductsPage - 1)#featured-products" class="btn-pagination">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    }
+                    <span class="pagination-info">Trang @newProductsPage / @newProductsTotalPages</span>
+                    @if (newProductsPage < newProductsTotalPages)
+                    {
+                        <a href="?newPage=@(newProductsPage + 1)#featured-products" class="btn-pagination">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>Chưa có sản phẩm mới</p>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Special Offers Banner -->
+@if (ViewBag.DealProducts != null && ((List<Webstore.Models.Product>)ViewBag.DealProducts).Any())
+{
+    var dealProducts = (List<Webstore.Models.Product>)ViewBag.DealProducts;
+    <section class="py-5 section-deals-modern">
+        <div class="container">
+            <div class="deals-banner">
+                <div class="deals-banner-content">
+                    <span class="deals-label"><i class="fas fa-fire me-2"></i>Flash Sale</span>
+                    <h2 class="deals-title">Giảm giá cực sốc</h2>
+                    <p class="deals-desc">Ưu đãi có hạn - Nhanh tay chớp ngay!</p>
+                    <a asp-controller="Shop" asp-action="Products" class="btn-deals">
+                        Mua ngay <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+                <div class="deals-banner-products">
+                    @foreach (var product in dealProducts.Take(3))
+                    {
+                        <div class="deal-mini-card">
+                            <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/products/placeholder.svg" : product.ImageUrl)" 
+                                 alt="@product.Name" class="deal-mini-img" />
+                            <div class="deal-mini-info">
+                                <span class="deal-mini-name">@product.Name</span>
+                                <span class="deal-mini-price">@product.Price.ToString("N0")đ</span>
                             </div>
                         </div>
                     }
                 </div>
             </div>
-        </section>
-    }
-
-    <!-- Features -->
-    <section class="py-5" style="background:white;">
-        <div class="container">
-            <div class="section-header">
-                <div>
-                    <h2 class="section-title"><i class="fas fa-award"></i> Tại sao chọn chúng tôi</h2>
-                    <p class="section-subtitle">Cam kết dịch vụ hàng đầu</p>
-                </div>
-            </div>
-            <div class="row g-4">
-                <div class="col-lg-3 col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-icon"><i class="fas fa-shipping-fast"></i></div>
-                        <h5>Giao hàng nhanh</h5>
-                        <p>Giao hàng trong 24h cho đơn hàng nội thành. Miễn phí vận chuyển cho đơn từ 500K.</p>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                        <h5>Chính hãng 100%</h5>
-                        <p>Tất cả sản phẩm đều chính hãng, có đầy đủ hóa đơn và bảo hành chính hãng.</p>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-icon"><i class="fas fa-undo"></i></div>
-                        <h5>Đổi trả dễ dàng</h5>
-                        <p>Chính sách đổi trả trong 7 ngày nếu sản phẩm không đúng như mô tả.</p>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="feature-box">
-                        <div class="feature-icon"><i class="fas fa-headset"></i></div>
-                        <h5>Hỗ trợ 24/7</h5>
-                        <p>Đội ngũ tư vấn chuyên nghiệp hỗ trợ khách hàng mọi lúc, mọi nơi.</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
+}
 
-    <!-- CTA Banner -->
-    <section class="cta-section">
+<!-- Hot Products -->
+@{
+    var hotProducts = (ViewBag.HotProducts as List<Webstore.Models.Product>) ?? new List<Webstore.Models.Product>();
+    var hotProductsPage = (int)(ViewBag.HotProductsPage ?? 1);
+    var hotProductsTotalPages = (int)Math.Ceiling(hotProducts.Count / 8.0);
+    var displayHotProducts = hotProducts.Skip((hotProductsPage - 1) * 8).Take(8).ToList();
+}
+@if (hotProducts.Any())
+{
+    <section class="py-5 section-hot" id="hot-products">
         <div class="container">
-            <div class="cta-inner">
-                <div class="cta-content">
-                    <h2>Bạn cần hỗ trợ?</h2>
-                    <p>Liên hệ với chúng tôi ngay để được tư vấn về sản phẩm và dịch vụ</p>
+            <div class="section-header-modern">
+                <div class="section-title-group">
+                    <span class="section-label section-label-hot">Xu hướng</span>
+                    <h2 class="section-title-modern">
+                        <i class="fas fa-fire section-title-icon text-danger"></i>
+                        Sản phẩm hot
+                    </h2>
+                    <p class="section-subtitle-modern">Những sản phẩm được yêu thích nhất</p>
                 </div>
-                <div class="cta-actions">
-                    <a asp-controller="Shop" asp-action="Support" class="btn btn-cta-light">
-                        <i class="fas fa-headset me-2"></i>Liên hệ hỗ trợ
-                    </a>
-                    <a href="tel:0123456789" class="btn btn-cta-phone">
-                        <i class="fas fa-phone-alt me-2"></i>0123 456 789
-                    </a>
-                </div>
+                <a asp-controller="Shop" asp-action="Products" class="btn-view-all">
+                    Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+                </a>
             </div>
+            @if (displayHotProducts.Any())
+            {
+                <div class="products-carousel-wrapper">
+                    <div class="products-carousel">
+                        @foreach (var product in displayHotProducts)
+                        {
+                            <div class="product-carousel-item">
+                                @await Html.PartialAsync("Partials/_ProductCard", product)
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                @if (hotProductsTotalPages > 1)
+                {
+                    <div class="section-pagination">
+                        @if (hotProductsPage > 1)
+                        {
+                            <a href="?hotPage=@(hotProductsPage - 1)#hot-products" class="btn-pagination">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        }
+                        <span class="pagination-info">Trang @hotProductsPage / @hotProductsTotalPages</span>
+                        @if (hotProductsPage < hotProductsTotalPages)
+                        {
+                            <a href="?hotPage=@(hotProductsPage + 1)#hot-products" class="btn-pagination">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        }
+                    </div>
+                }
+            }
         </div>
     </section>
+}
 
-    <style>
-        /* Hero Section */
-        .hero-section {
-            background: linear-gradient(160deg, var(--primary-lightest) 0%, white 50%, var(--primary-lightest) 100%);
-            padding: 60px 0 80px;
-            overflow: hidden;
-        }
+<!-- Why Choose Us -->
+<section class="py-5 section-why">
+    <div class="container">
+        <div class="section-header-modern text-center mx-auto" style="max-width: 600px;">
+            <span class="section-label">Cam kết</span>
+            <h2 class="section-title-modern">
+                <i class="fas fa-award section-title-icon text-primary"></i>
+                Tại sao chọn chúng tôi
+            </h2>
+            <p class="section-subtitle-modern">Dịch vụ hàng đầu - Sự hài lòng của khách hàng là ưu tiên số 1</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card-modern">
+                <div class="feature-icon-modern">
+                    <i class="fas fa-shipping-fast"></i>
+                </div>
+                <h3 class="feature-title-modern">Giao hàng nhanh</h3>
+                <p class="feature-desc-modern">Giao hàng trong 24h cho đơn nội thành. Miễn phí vận chuyển cho đơn từ 500K.</p>
+                <div class="feature-card-bg"></div>
+            </div>
+            <div class="feature-card-modern">
+                <div class="feature-icon-modern">
+                    <i class="fas fa-certificate"></i>
+                </div>
+                <h3 class="feature-title-modern">Chính hãng 100%</h3>
+                <p class="feature-desc-modern">Tất cả sản phẩm chính hãng với đầy đủ hóa đơn và bảo hành chính hãng.</p>
+                <div class="feature-card-bg"></div>
+            </div>
+            <div class="feature-card-modern">
+                <div class="feature-icon-modern">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h3 class="feature-title-modern">Đổi trả dễ dàng</h3>
+                <p class="feature-desc-modern">Chính sách đổi trả trong 7 ngày nếu sản phẩm không đúng như mô tả.</p>
+                <div class="feature-card-bg"></div>
+            </div>
+            <div class="feature-card-modern">
+                <div class="feature-icon-modern">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h3 class="feature-title-modern">Hỗ trợ chuyên nghiệp</h3>
+                <p class="feature-desc-modern">Đội ngũ tư vấn chuyên môn cao, hỗ trợ 24/7 qua điện thoại và chat.</p>
+                <div class="feature-card-bg"></div>
+            </div>
+            <div class="feature-card-modern">
+                <div class="feature-icon-modern">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="feature-title-modern">Bảo hành dài hạn</h3>
+                <p class="feature-desc-modern">Bảo hành chính hãng lên đến 24 tháng với dịch vụ hậu mãi tận tâm.</p>
+                <div class="feature-card-bg"></div>
+            </div>
+            <div class="feature-card-modern">
+                <div class="feature-icon-modern">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h3 class="feature-title-modern">Thanh toán an toàn</h3>
+                <p class="feature-desc-modern">Nhiều phương thức thanh toán an toàn, bảo mật thông tin tuyệt đối.</p>
+                <div class="feature-card-bg"></div>
+            </div>
+        </div>
+    </div>
+</section>
 
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: white;
-            color: var(--primary);
-            padding: 8px 18px;
-            border-radius: 50px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow-md);
-        }
+<!-- CTA Section -->
+<section class="cta-section-modern">
+    <div class="container">
+        <div class="cta-box-modern">
+            <div class="cta-content-modern">
+                <h2 class="cta-title-modern">
+                    <i class="fas fa-headset me-2"></i>
+                    Bạn cần hỗ trợ?
+                </h2>
+                <p class="cta-desc-modern">Đội ngũ tư vấn của chúng tôi luôn sẵn sàng giải đáp mọi thắc mắc</p>
+            </div>
+            <div class="cta-actions-modern">
+                <a href="tel:0123456789" class="btn-cta-phone-modern">
+                    <i class="fas fa-phone-alt me-2"></i>
+                    <span>0123 456 789</span>
+                </a>
+                <a asp-controller="Shop" asp-action="Contact" class="btn-cta-chat-modern">
+                    <i class="fas fa-comments me-2"></i>
+                    <span>Chat ngay</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
 
-        .hero-title {
-            font-size: 2.6rem;
-            font-weight: 800;
-            color: var(--accent);
-            line-height: 1.2;
-            margin-bottom: 18px;
-        }
-
-        .hero-title .highlight {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .hero-desc {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            margin-bottom: 28px;
-            max-width: 480px;
-            line-height: 1.7;
-        }
-
-        .hero-actions {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 36px;
-            flex-wrap: wrap;
-        }
-
-        .btn-hero-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 14px 28px;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            border: none;
-            box-shadow: 0 4px 15px rgba(0, 119, 182, 0.35);
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .btn-hero-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 119, 182, 0.45);
-            color: white;
-        }
-
-        .btn-hero-outline {
-            background: white;
-            color: var(--primary);
-            padding: 14px 28px;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            border: 2px solid var(--primary);
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .btn-hero-outline:hover {
-            background: var(--primary);
-            color: white;
-            transform: translateY(-3px);
-        }
-
-        .hero-stats {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            display: block;
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-
-        .stat-label {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .stat-divider {
-            width: 1px;
-            height: 35px;
-            background: var(--border);
-        }
-
-        /* Hero Visual */
-        .hero-visual {
-            position: relative;
-            width: 350px;
-            height: 350px;
-            margin: 0 auto;
-        }
-
-        .hero-circle {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(0, 180, 216, 0.15) 0%, rgba(0, 119, 182, 0.1) 100%);
-            animation: pulse 3s ease infinite;
-        }
-
-        @@keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.05);
-                opacity: 0.8;
-            }
-        }
-
-        .hero-icon-wrapper {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 160px;
-            height: 160px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            color: white;
-            box-shadow: var(--shadow-xl);
-            animation: float 4s ease-in-out infinite;
-        }
-
-        @@keyframes float {
-
-            0%,
-            100% {
-                transform: translate(-50%, -50%) translateY(0);
-            }
-
-            50% {
-                transform: translate(-50%, -50%) translateY(-15px);
-            }
-        }
-
-        .floating-badge {
-            position: absolute;
-            background: white;
-            padding: 10px 16px;
-            border-radius: 50px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            box-shadow: var(--shadow-lg);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .floating-badge i {
-            color: var(--primary);
-        }
-
-        .fb-1 {
-            top: 10px;
-            right: -10px;
-            animation: float2 5s ease-in-out infinite 0.5s;
-        }
-
-        .fb-2 {
-            bottom: 60px;
-            left: -20px;
-            animation: float2 5s ease-in-out infinite 1s;
-        }
-
-        .fb-3 {
-            bottom: 10px;
-            right: 10px;
-            animation: float2 5s ease-in-out infinite 1.5s;
-        }
-
-        @@keyframes float2 {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-8px);
-            }
-        }
-
-        /* Deal badge */
-        .deal-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%);
-            color: white;
-            padding: 4px 14px;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            z-index: 5;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-        }
-
-        /* New badge */
-        .product-badge-new {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: linear-gradient(135deg, var(--primary-light) 0%, #38BDF8 100%);
-            color: white;
-            padding: 4px 14px;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            z-index: 5;
-            box-shadow: 0 2px 8px rgba(0, 180, 216, 0.4);
-        }
-
-        /* Feature Box */
-        .feature-box {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 28px 20px;
-            text-align: center;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            transition: var(--transition);
-            height: 100%;
-        }
-
-        .feature-box:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--primary-lighter);
-        }
-
-        .feature-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--primary-lightest) 0%, white 100%);
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            color: var(--primary);
-            margin: 0 auto 16px;
-            transition: var(--transition);
-        }
-
-        .feature-box:hover .feature-icon {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-        }
-
-        .feature-box h5 {
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .feature-box p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin: 0;
-            line-height: 1.6;
-        }
-
-        /* Rating count in product cards */
-        .rating-count {
-            font-size: 0.75rem;
-        }
-
-        /* CTA Section */
-        .cta-section {
-            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 50%, var(--primary-light) 100%);
-            padding: 60px 0;
-        }
-
-        .cta-inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 30px;
-            flex-wrap: wrap;
-        }
-
-        .cta-content h2 {
-            color: white;
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-bottom: 6px;
-        }
-
-        .cta-content p {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.95rem;
-            margin: 0;
-        }
-
-        .cta-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .btn-cta-light {
-            background: white;
-            color: var(--primary);
-            padding: 14px 28px;
-            border-radius: 50px;
-            font-weight: 700;
-            border: none;
-            transition: var(--transition);
-        }
-
-        .btn-cta-light:hover {
-            background: var(--primary-lightest);
-            color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .btn-cta-phone {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            padding: 14px 28px;
-            border-radius: 50px;
-            font-weight: 700;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-            transition: var(--transition);
-        }
-
-        .btn-cta-phone:hover {
-            background: rgba(255, 255, 255, 0.25);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        @@media (max-width: 991px) {
-            .hero-title {
-                font-size: 2rem;
-            }
-
-            .hero-visual {
-                width: 280px;
-                height: 280px;
-            }
-
-            .hero-icon-wrapper {
-                width: 120px;
-                height: 120px;
-                font-size: 3rem;
-            }
-        }
-
-        @@media (max-width: 767px) {
-            .hero-section {
-                padding: 40px 0 60px;
-            }
-
-            .hero-title {
-                font-size: 1.7rem;
-            }
-
-            .hero-stats {
-                flex-wrap: wrap;
-                gap: 12px;
-            }
-
-            .cta-inner {
-                justify-content: center;
-                text-align: center;
-            }
-
-            .cta-actions {
-                justify-content: center;
-            }
-        }
-    </style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/homepage.css" />
+}
 
 @functions {
-    string GetCategoryIcon(string categoryName)
+    public string GetCategoryIcon(string name)
     {
-        var name = categoryName.ToLower();
-        if (name.Contains("điện thoại") || name.Contains("phone") || name.Contains("di động")) return "mobile-alt";
-        if (name.Contains("laptop") || name.Contains("máy tính") || name.Contains("notebook")) return "laptop";
-        if (name.Contains("tablet") || name.Contains("ipad") || name.Contains("bảng")) return "tablet-alt";
-        if (name.Contains("phụ kiện") || name.Contains("accessory") || name.Contains("accessories")) return "plug";
-        if (name.Contains("gaming") || name.Contains("game") || name.Contains("chơi game")) return "gamepad";
-        if (name.Contains("đồng hồ") || name.Contains("watch") || name.Contains("wearable")) return "clock";
-        if (name.Contains("âm thanh") || name.Contains("audio") || name.Contains("tai nghe") || name.Contains("headphone"))
-            return "headphones";
-        if (name.Contains("máy ảnh") || name.Contains("camera") || name.Contains("quay phim")) return "camera";
-        if (name.Contains("linh kiện") || name.Contains("component") || name.Contains("cpu") || name.Contains("ram")) return
-"microchip";
-        if (name.Contains("mạng") || name.Contains("network") || name.Contains("wifi") || name.Contains("router")) return
-"wifi";
-        if (name.Contains("màn hình") || name.Contains("monitor") || name.Contains("display")) return "desktop";
-        if (name.Contains("quần áo") || name.Contains("thời trang") || name.Contains("áo")) return "tshirt";
-        if (name.Contains("sách") || name.Contains("book")) return "book";
-        if (name.Contains("thể thao") || name.Contains("sport")) return "dumbbell";
-        return "box";
+        if (string.IsNullOrEmpty(name)) return "cube";
+        name = name.ToLower();
+        if (name.Contains("dien thoai") || name.Contains("phone") || name.Contains("iphone") || name.Contains("samsung") || name.Contains("xiaomi"))
+            return "mobile-alt";
+        if (name.Contains("laptop") || name.Contains("may tinh") || name.Contains("macbook") || name.Contains("dell") || name.Contains("hp"))
+            return "laptop";
+        if (name.Contains("tablet") || name.Contains("ipad"))
+            return "tablet-alt";
+        if (name.Contains("am thanh") || name.Contains("tai nghe") || name.Contains("headphone") || name.Contains("airpod"))
+            return "headphones-alt";
+        if (name.Contains("dong ho") || name.Contains("watch") || name.Contains("smartwatch"))
+            return "clock";
+        if (name.Contains("phu kien") || name.Contains("accessory") || name.Contains("sac") || name.Contains("cable"))
+            return "plug";
+        if (name.Contains("camera") || name.Contains("webcam"))
+            return "camera";
+        if (name.Contains("game") || name.Contains("console"))
+            return "gamepad";
+        if (name.Contains("ban phim") || name.Contains("keyboard"))
+            return "keyboard";
+        if (name.Contains("chuot") || name.Contains("mouse"))
+            return "mouse";
+        return "cube";
     }
 }

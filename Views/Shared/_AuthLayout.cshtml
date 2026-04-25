@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/Webstore.styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         :root {
@@ -212,7 +212,7 @@
             color: var(--primary);
         }
 
-        /* Form Control (used by Bootstrap) */
+        /* Form Control */
         .form-control {
             border: 2px solid var(--border);
             border-radius: var(--radius-md);
@@ -446,7 +446,7 @@
 <body>
     <div class="back-to-home">
         <a asp-controller="Shop" asp-action="Index" class="btn">
-            <i class="fas fa-arrow-left"></i>Về trang chủ
+            <i class="fas fa-arrow-left"></i>Ve trang chu
         </a>
     </div>
 
@@ -465,7 +465,7 @@
                 form.addEventListener('submit', function() {
                     const submitBtn = this.querySelector('button[type="submit"]');
                     if (submitBtn && !submitBtn.disabled) {
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Dang xu ly...';
                         submitBtn.disabled = true;
                     }
                 });

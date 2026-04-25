@@ -1,10 +1,16 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace Webstore.Services
 {
-    public class EmailService
+    public interface IEmailService
+    {
+        Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetLink);
+    }
+
+    public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
 

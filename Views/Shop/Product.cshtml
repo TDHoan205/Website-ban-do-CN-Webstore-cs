@@ -14,7 +14,7 @@
                 <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Trang chủ</a></li>
                 <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products">Sản phẩm</a></li>
                 <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@Model.CategoryId">@(Model.Category?.Name ?? "Danh mục")</a></li>
-                <li class="breadcrumb-item active">@Html.Encode(Model.Name)</li>
+                <li class="breadcrumb-item active">@(Model.Name)</li>
             </ol>
         </nav>
     </div>
@@ -35,7 +35,7 @@
                         <div class="gallery-placeholder">
                             <div style="text-align:center;color:var(--text-muted);">
                                 <i class="fas fa-box fa-5x"></i>
-                                <p style="margin-top:12px;font-weight:700;font-size:0.85rem;">@Html.Encode(Model.Name)</p>
+                                <p style="margin-top:12px;font-weight:700;font-size:0.85rem;">@(Model.Name)</p>
                             </div>
                         </div>
                     }
@@ -54,7 +54,7 @@
             <div class="product-detail-card">
                 <div class="detail-header">
                     <div class="detail-category">@Model.Category?.Name</div>
-                    <h1 class="detail-title">@Html.Encode(Model.Name)</h1>
+                    <h1 class="detail-title">@(Model.Name)</h1>
                     <div class="detail-rating">
                         <span class="stars">
                             <i class="fas fa-star"></i>
@@ -68,9 +68,56 @@
                 </div>
 
                 <div class="detail-price-section">
-                    <div class="detail-price">@Model.Price.ToString("N0") ₫</div>
-                    <div class="detail-price-note">Giá đã bao gồm VAT</div>
+                    <div class="detail-price" id="displayPrice">@Model.Price.ToString("N0") ₫</div>
+                    <div class="detail-price-note" id="displayOriginalPrice">
+                        @if (Model.OriginalPrice.HasValue && Model.OriginalPrice > Model.Price)
+                        {
+                            <del>@Model.OriginalPrice.Value.ToString("N0") ₫</del>
+                            <span class="badge bg-danger ms-2">-@Model.DiscountPercent%</span>
+                        }
+                    </div>
                 </div>
+
+                <!-- Variant Selection -->
+                @if (Model.Variants != null && Model.Variants.Any())
+                {
+                    <div class="variant-selection-container mt-4">
+                        @if (Model.Variants.Any(v => !string.IsNullOrEmpty(v.Storage) || !string.IsNullOrEmpty(v.RAM)))
+                        {
+                            <div class="variant-group mb-3">
+                                <label class="variant-label fw-bold mb-2">Chọn phiên bản cấu hình:</label>
+                                <div class="variant-options d-flex flex-wrap gap-2">
+                                    @foreach (var vGroup in Model.Variants.GroupBy(v => v.Storage + (string.IsNullOrEmpty(v.RAM) ? "" : " / " + v.RAM)).OrderBy(g => g.First().Price))
+                                    {
+                                        <button type="button" class="btn btn-outline-primary variant-option-btn config-btn" 
+                                                data-config="@vGroup.Key" 
+                                                onclick="selectConfig('@vGroup.Key')">
+                                            @vGroup.Key
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.Variants.Any(v => !string.IsNullOrEmpty(v.Color)))
+                        {
+                            <div class="variant-group mb-3">
+                                <label class="variant-label fw-bold mb-2">Chọn màu sắc:</label>
+                                <div class="variant-options d-flex flex-wrap gap-2">
+                                    @foreach (var color in Model.Variants.Select(v => v.Color).Distinct())
+                                    {
+                                        <button type="button" class="btn btn-outline-secondary variant-option-btn color-btn" 
+                                                data-color="@color"
+                                                onclick="selectColor('@color')">
+                                            @color
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <input type="hidden" id="selectedVariantId" value="" />
+                }
 
                 <div class="detail-desc">
                     <h6><i class="fas fa-info-circle me-2"></i>Mô tả sản phẩm</h6>
@@ -79,17 +126,10 @@
 
                 <div class="detail-meta">
                     <div class="meta-item">
-                        <i class="fas fa-check-circle text-success"></i>
-                        <span>Còn hàng</span>
+                        <i class="fas fa-check-circle text-success" id="stockStatusIcon"></i>
+                        <span id="stockStatusText">@(Model.StockQuantity > 0 ? "Còn hàng" : "Hết hàng")</span>
                     </div>
-                    <div class="meta-item">
-                        <i class="fas fa-truck text-primary"></i>
-                        <span>Giao hàng miễn phí</span>
-                    </div>
-                    <div class="meta-item">
-                        <i class="fas fa-undo text-info"></i>
-                        <span>Đổi trả 7 ngày</span>
-                    </div>
+                    <!-- ... other meta items ... -->
                 </div>
 
                 <!-- Quantity -->
@@ -104,7 +144,7 @@
 
                 <!-- Actions -->
                 <div class="detail-actions">
-                    <button class="btn btn-add-to-cart" onclick="addToCartWithQty()">
+                    <button class="btn btn-add-to-cart" id="btnAddToCart" onclick="addToCartWithQty()">
                         <i class="fas fa-cart-plus me-2"></i>Thêm vào giỏ hàng
                     </button>
                     <button class="btn btn-buy-now" onclick="buyNow()">
@@ -246,7 +286,7 @@
                                     {
                                         <div class="img-placeholder">
                                             <i class="fas fa-box" style="font-size:3rem;"></i>
-                                            <span class="placeholder-name">@Html.Encode(product.Name)</span>
+                                            <span class="placeholder-name">@(product.Name)</span>
                                         </div>
                                     }
                                     <div class="product-overlay"><i class="fas fa-eye"></i></div>
@@ -585,6 +625,84 @@
 </style>
 
 <script>
+    // Variants Data
+    const variants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.Variants ?? Enumerable.Empty<Webstore.Models.ProductVariant>()).Select(v => new {
+        v.VariantId,
+        v.Color,
+        v.Storage,
+        v.RAM,
+        v.Price,
+        v.OriginalPrice,
+        v.StockQuantity,
+        config = v.Storage + (string.IsNullOrEmpty(v.RAM) ? "" : " / " + v.RAM)
+    })));
+
+    let selectedConfig = null;
+    let selectedColor = null;
+
+    function selectConfig(config) {
+        selectedConfig = config;
+        document.querySelectorAll('.config-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-config') === config);
+            btn.classList.toggle('btn-primary', btn.getAttribute('data-config') === config);
+            btn.classList.toggle('btn-outline-primary', btn.getAttribute('data-config') !== config);
+        });
+        updateVariantInfo();
+    }
+
+    function selectColor(color) {
+        selectedColor = color;
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-color') === color);
+            btn.classList.toggle('btn-secondary', btn.getAttribute('data-color') === color);
+            btn.classList.toggle('btn-outline-secondary', btn.getAttribute('data-color') !== color);
+        });
+        updateVariantInfo();
+    }
+
+    function updateVariantInfo() {
+        const match = variants.find(v => 
+            (!selectedConfig || v.config === selectedConfig) && 
+            (!selectedColor || v.Color === selectedColor)
+        );
+
+        if (match) {
+            document.getElementById('selectedVariantId').value = match.VariantId;
+            document.getElementById('displayPrice').innerText = match.Price.toLocaleString('vi-VN') + ' ₫';
+            
+            const originalPriceEl = document.getElementById('displayOriginalPrice');
+            if (match.OriginalPrice && match.OriginalPrice > match.Price) {
+                const discount = Math.round((1 - match.Price / match.OriginalPrice) * 100);
+                originalPriceEl.innerHTML = `<del>${match.OriginalPrice.toLocaleString('vi-VN')} ₫</del><span class="badge bg-danger ms-2">-${discount}%</span>`;
+            } else {
+                originalPriceEl.innerHTML = '';
+            }
+
+            // Update stock status
+            const stockIcon = document.getElementById('stockStatusIcon');
+            const stockText = document.getElementById('stockStatusText');
+            const cartBtn = document.getElementById('btnAddToCart');
+
+            if (match.StockQuantity > 0) {
+                stockIcon.className = 'fas fa-check-circle text-success';
+                stockText.innerText = 'Còn hàng (' + match.StockQuantity + ')';
+                cartBtn.disabled = false;
+            } else {
+                stockIcon.className = 'fas fa-times-circle text-danger';
+                stockText.innerText = 'Hết hàng';
+                cartBtn.disabled = true;
+            }
+        }
+    }
+
+    // Auto-select first variant on load
+    window.addEventListener('DOMContentLoaded', () => {
+        if (variants.length > 0) {
+            selectConfig(variants[0].config);
+            selectColor(variants[0].Color);
+        }
+    });
+
     function increaseQty() {
         const input = document.getElementById('quantity');
         let val = parseInt(input.value);
@@ -596,8 +714,26 @@
         if (val > 1) input.value = val - 1;
     }
     function addToCartWithQty() {
+        const productId = @Model.ProductId;
         const qty = parseInt(document.getElementById('quantity').value);
-        addToCart(@Model.ProductId, qty);
+        const variantId = document.getElementById('selectedVariantId').value;
+        
+        // Use a more detailed addToCart that handles variantId
+        $.ajax({
+            url: '@Url.Action("AddToCart", "Shop")',
+            type: 'POST',
+            data: { productId, quantity: qty, variantId },
+            success: function(res) {
+                if(res.success) {
+                    showToast("Đã thêm vào giỏ hàng!");
+                    updateCartBadge(res.cartCount);
+                } else if(res.requiresLogin) {
+                    window.location.href = '@Url.Action("Login", "Auth")?returnUrl=' + encodeURIComponent(window.location.href);
+                } else {
+                    showToast(res.message, "error");
+                }
+            }
+        });
     }
     function buyNow() {
         addToCartWithQty();

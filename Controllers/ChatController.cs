@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using Webstore.Data;
 using Webstore.Models.AI;
@@ -10,14 +11,14 @@ namespace Webstore.Controllers
     public class ChatController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly AIResponseService _aiResponseService;
-        private readonly RAGEngineService _ragEngine;
+        private readonly IAIAgentService _aiAgent;
+        private readonly ILogger<ChatController>? _logger;
 
-        public ChatController(ApplicationDbContext context, AIResponseService aiResponseService, RAGEngineService ragEngine)
+        public ChatController(ApplicationDbContext context, IAIAgentService aiAgent, ILogger<ChatController>? logger = null)
         {
             _context = context;
-            _aiResponseService = aiResponseService;
-            _ragEngine = ragEngine;
+            _aiAgent = aiAgent;
+            _logger = logger;
         }
 
         /// <summary>
@@ -61,10 +62,27 @@ namespace Webstore.Controllers
 
             try
             {
+                // Get current account ID and verify it exists in database
                 var currentAccountId = GetCurrentAccountId();
-                if (request.AccountId == null)
+                
+                // If accountId is provided but doesn't exist in database, treat as guest
+                if (request.AccountId.HasValue)
                 {
-                    request.AccountId = currentAccountId;
+                    var accountExists = await _context.Accounts.AnyAsync(a => a.AccountId == request.AccountId.Value);
+                    if (!accountExists)
+                    {
+                        request.AccountId = null;
+                    }
+                }
+                
+                // Use current account only if valid
+                if (request.AccountId == null && currentAccountId.HasValue)
+                {
+                    var currentAccountExists = await _context.Accounts.AnyAsync(a => a.AccountId == currentAccountId.Value);
+                    if (currentAccountExists)
+                    {
+                        request.AccountId = currentAccountId;
+                    }
                 }
 
                 // Get or create session
@@ -81,8 +99,11 @@ namespace Webstore.Controllers
                 };
                 _context.ChatMessages.Add(userMessage);
 
+                // Determine AI Role
+                string role = IsAdminUser() ? "admin" : "customer";
+
                 // Generate AI response
-                var aiResponse = await _aiResponseService.GenerateResponseAsync(request.Message);
+                var aiResponse = await _aiAgent.ProcessMessageAsync(request.Message, role, sessionId);
 
                 // Save AI response
                 var aiMessage = new ChatMessage
@@ -95,13 +116,14 @@ namespace Webstore.Controllers
                     {
                         intent = aiResponse.Intent,
                         confidence = aiResponse.Confidence,
-                        shouldEscalate = aiResponse.ShouldEscalate
+                        shouldEscalate = aiResponse.ShouldEscalate,
+                        products = aiResponse.Products
                     })
                 };
                 _context.ChatMessages.Add(aiMessage);
 
                 // Log for AI evaluation
-                var log = new AIConversationLog
+                _context.AIConversationLogs.Add(new AIConversationLog
                 {
                     SessionId = sessionId,
                     UserMessage = request.Message,
@@ -110,8 +132,7 @@ namespace Webstore.Controllers
                     ConfidenceScore = aiResponse.Confidence,
                     WasEscalated = aiResponse.ShouldEscalate,
                     CreatedAt = DateTime.Now
-                };
-                _context.AIConversationLogs.Add(log);
+                });
 
                 await _context.SaveChangesAsync();
 
@@ -123,22 +144,20 @@ namespace Webstore.Controllers
                     aiMessageId = aiMessage.MessageId,
                     message = aiResponse.Message,
                     intent = aiResponse.Intent,
-                    confidence = aiResponse.Confidence,
-                    shouldEscalate = aiResponse.ShouldEscalate,
-                    products = aiResponse.Products.Select(p => new
-                    {
-                        id = p.ProductId,
-                        name = p.Name,
-                        price = p.Price,
-                        category = p.Category,
-                        specs = p.Specs,
-                        imageUrl = p.ImageUrl
-                    }),
+                    products = aiResponse.Products,
                     timestamp = DateTime.Now
                 });
             }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                // Log the inner exception for debugging
+                var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+                _logger?.LogError(dbEx, "Database error in SendMessage: {InnerMessage}", innerMessage);
+                return Json(new { success = false, error = "Lỗi khi lưu dữ liệu: " + innerMessage });
+            }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "Error in SendMessage");
                 return Json(new { success = false, error = "Có lỗi xảy ra: " + ex.Message });
             }
         }
@@ -482,8 +501,13 @@ namespace Webstore.Controllers
 
             if (session.AccountId == null && accountId.HasValue)
             {
-                session.AccountId = accountId;
-                await _context.SaveChangesAsync();
+                // Verify account exists before updating
+                var accountExists = await _context.Accounts.AnyAsync(a => a.AccountId == accountId.Value);
+                if (accountExists)
+                {
+                    session.AccountId = accountId;
+                    await _context.SaveChangesAsync();
+                }
             }
 
             return session;

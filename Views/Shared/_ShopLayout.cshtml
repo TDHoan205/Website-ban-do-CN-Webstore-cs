@@ -10,9 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap"
           rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Webstore.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/shop-refresh.css" />
+    <link rel="stylesheet" href="~/css/homepage.css" />
+    <link rel="stylesheet" href="~/Webstore.styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    @await RenderSectionAsync("Styles", required: false)
     <style>
             :root {
                 /* Sky Blue Primary Palette */
@@ -1404,16 +1407,16 @@
                                             success: function (response) {
                                             if (response.success) {
                                             updateCartCount();
-                                            showToast('success', '<i class="fas fa-check-circle me-2"></i>' + response.message);
+                                            showToast('success', response.message || 'Đã thêm vào giỏ hàng!');
                                             animateCartIcon();
                                             } else if (response.requiresLogin) {
                                             // Chưa đăng nhập -> hiển thị modal yêu cầu đăng nhập
                                             showLoginRequiredModal();
                                             } else {
-                                            showToast('error', '<i class="fas fa-exclamation-circle me-2"></i>' + response.message);
+                                            showToast('error', response.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
                                             }
                                             },
-                                            error: function () { showToast('error', '<i class="fas fa-exclamation-circle me-2"></i>Có lỗi xảy ra!'); }
+                                            error: function () { showToast('error', 'Có lỗi xảy ra, vui lòng thử lại.'); }
                                             });
                                             }
 
@@ -1483,24 +1486,7 @@
 
                                             $(document).ready(function () {
                                             updateCartCount();
-                                            // Khôi phục cart nếu có action bị chặn bởi đăng nhập
-                                            restorePendingCart();
                                             });
-
-                                            // Khôi phục giỏ hàng bị treo do yêu cầu đăng nhập
-                                            function restorePendingCart() {
-                                            $.ajax({
-                                            url: '@Url.Action("RestorePendingCart", "Shop")',
-                                            type: 'POST',
-                                            success: function (response) {
-                                            if (response && response.success) {
-                                            updateCartCount();
-                                            // Hiển thị toast thông báo đã khôi phục sản phẩm
-                                            showToast('success', '<i class="fas fa-check-circle me-2"></i>Đã thêm sản phẩm vào giỏ hàng!');
-                                            }
-                                            }
-                                            });
-                                            }
                                         </script>
 
                                         <!-- Chat Widget -->

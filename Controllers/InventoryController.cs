@@ -1,25 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Webstore.Data;
 using Webstore.Models;
+using Webstore.Services;
 
 namespace Webstore.Controllers
 {
     [Authorize(Roles = "Admin,Employee")]
     public class InventoryController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IInventoryService _inventoryService;
+        private readonly IProductService _productService;
 
-        public InventoryController(ApplicationDbContext context)
+        public InventoryController(IInventoryService inventoryService, IProductService productService)
         {
-            _context = context;
+            _inventoryService = inventoryService;
+            _productService = productService;
         }
 
         // GET: /Inventory
         public async Task<IActionResult> Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
-            var query = _context.Inventory.Include(i => i.Product).AsQueryable();
+            var allInventory = await _inventoryService.GetAllAsync();
+            var query = allInventory.AsQueryable();
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var searchLower = search.ToLower();
@@ -35,65 +38,61 @@ namespace Webstore.Controllers
 
             query = sortOrder switch
             {
-                "product_desc" => query.OrderByDescending(i => i.Product != null ? i.Product.Name ?? "" : ""),
-                "quantity" => query.OrderBy(i => i.QuantityInStock),
-                "quantity_desc" => query.OrderByDescending(i => i.QuantityInStock),
-                "date" => query.OrderBy(i => i.LastUpdatedDate),
-                "date_desc" => query.OrderByDescending(i => i.LastUpdatedDate),
-                _ => query.OrderBy(i => i.Product != null ? i.Product.Name ?? "" : "")
+                "product_desc" => query.OrderByDescending(i => i.Product != null ? i.Product.Name : ""),
+                "quantity" => query.OrderBy(i => i.StockQuantity),
+                "quantity_desc" => query.OrderByDescending(i => i.StockQuantity),
+                "date" => query.OrderBy(i => i.LastUpdated),
+                "date_desc" => query.OrderByDescending(i => i.LastUpdated),
+                _ => query.OrderBy(i => i.Product != null ? i.Product.Name : "")
             };
 
-            var inventories = await PagedList<Inventory>.CreateAsync(query, pageNumber, pageSize);
-
+            var totalItems = query.Count();
+            var items = query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            var paginatedList = new PagedList<Inventory>(items, totalItems, pageNumber, pageSize);
 
             ViewBag.Search = search;
             ViewBag.SortOrder = sortOrder;
             ViewBag.PageSize = pageSize;
 
-            return View(inventories);
+            return View(paginatedList);
         }
 
         // GET: /Inventory/Create
         public async Task<IActionResult> Create()
         {
-            var products = await _context.Products
-                .Where(p => !_context.Inventory.Any(i => i.ProductId == p.ProductId))
+            var pagedProducts = await _productService.GetProductsAsync(null, null, null, 1, 1000);
+            var allInventory = await _inventoryService.GetAllAsync();
+            var productsWithoutInventory = pagedProducts
+                .Where(p => !allInventory.Any(i => i.ProductId == p.ProductId))
                 .OrderBy(p => p.Name)
-                .ToListAsync();
-            ViewBag.Products = products;
+                .ToList();
+            
+            ViewBag.Products = productsWithoutInventory;
             return View();
         }
 
         // POST: /Inventory/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ProductId,QuantityInStock")] Inventory inventory)
+        public async Task<IActionResult> Create([Bind("ProductId,StockQuantity")] Inventory inventory)
         {
-            var products = await _context.Products
-                .Where(p => !_context.Inventory.Any(i => i.ProductId == p.ProductId))
-                .OrderBy(p => p.Name)
-                .ToListAsync();
-            ViewBag.Products = products;
-
-            if (_context.Inventory.Any(i => i.ProductId == inventory.ProductId))
+            if (await _inventoryService.GetByProductIdAsync(inventory.ProductId) != null)
             {
                 ModelState.AddModelError("ProductId", "Sản phẩm này đã có tồn kho.");
             }
 
             if (!ModelState.IsValid)
             {
-                // Put ModelState errors into TempData to make debugging easier in UI
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
-                if (errors.Length > 0)
-                {
-                    TempData["Error"] = string.Join("; ", errors);
-                }
+                var pagedProducts = await _productService.GetProductsAsync(null, null, null, 1, 1000);
+                var allInventory = await _inventoryService.GetAllAsync();
+                ViewBag.Products = pagedProducts
+                    .Where(p => !allInventory.Any(i => i.ProductId == p.ProductId))
+                    .OrderBy(p => p.Name)
+                    .ToList();
                 return View(inventory);
             }
 
-            inventory.LastUpdatedDate = DateTime.Now;
-            _context.Add(inventory);
-            await _context.SaveChangesAsync();
+            await _inventoryService.CreateAsync(inventory);
             TempData["Success"] = "Tạo tồn kho thành công";
             return RedirectToAction(nameof(Index));
         }
@@ -103,7 +102,7 @@ namespace Webstore.Controllers
         {
             if (id == null) return NotFound();
 
-            var inventory = await _context.Inventory.Include(i => i.Product).FirstOrDefaultAsync(i => i.InventoryId == id);
+            var inventory = await _inventoryService.GetByIdAsync(id.Value);
             if (inventory == null) return NotFound();
 
             return View(inventory);
@@ -112,43 +111,25 @@ namespace Webstore.Controllers
         // POST: /Inventory/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("InventoryId,ProductId,QuantityInStock")] Inventory inventory)
+        public async Task<IActionResult> Edit(int id, [Bind("InventoryId,ProductId,StockQuantity")] Inventory inventory)
         {
             if (id != inventory.InventoryId) return NotFound();
+            
             if (!ModelState.IsValid)
             {
-                var inventoryWithProduct = await _context.Inventory.Include(i => i.Product).FirstOrDefaultAsync(i => i.InventoryId == id);
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
-                if (errors.Length > 0)
-                {
-                    TempData["Error"] = string.Join("; ", errors);
-                }
-                return View(inventoryWithProduct);
+                var dbInventory = await _inventoryService.GetByIdAsync(id);
+                return View(dbInventory);
             }
 
             try
             {
-                var dbInventory = await _context.Inventory.FirstOrDefaultAsync(i => i.InventoryId == id);
-                if (dbInventory == null) return NotFound();
-
-                // Update only allowed fields to avoid accidental overwrites
-                dbInventory.QuantityInStock = inventory.QuantityInStock;
-                dbInventory.LastUpdatedDate = DateTime.Now;
-
-                _context.Update(dbInventory);
-                await _context.SaveChangesAsync();
+                await _inventoryService.UpdateAsync(inventory);
                 TempData["Success"] = "Cập nhật tồn kho thành công";
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception)
             {
-                if (!await _context.Inventory.AnyAsync(e => e.InventoryId == id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (await _inventoryService.GetByIdAsync(id) == null) return NotFound();
+                throw;
             }
             return RedirectToAction(nameof(Index));
         }
@@ -158,7 +139,7 @@ namespace Webstore.Controllers
         {
             if (id == null) return NotFound();
 
-            var inventory = await _context.Inventory.Include(i => i.Product).FirstOrDefaultAsync(m => m.InventoryId == id);
+            var inventory = await _inventoryService.GetByIdAsync(id.Value);
             if (inventory == null) return NotFound();
 
             return View(inventory);
@@ -169,11 +150,7 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var inventory = await _context.Inventory.FindAsync(id);
-            if (inventory == null) return NotFound();
-
-            _context.Inventory.Remove(inventory);
-            await _context.SaveChangesAsync();
+            await _inventoryService.DeleteAsync(id);
             TempData["Success"] = "Xóa tồn kho thành công";
             return RedirectToAction(nameof(Index));
         }

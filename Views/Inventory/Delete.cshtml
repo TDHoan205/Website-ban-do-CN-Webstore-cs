@@ -14,12 +14,12 @@
     <dd class="col-sm-10">@Model.Product?.Name</dd>
     <dt class="col-sm-2">Số lượng tồn</dt>
     <dd class="col-sm-10">
-        <span class="badge @(Model.QuantityInStock > 10 ? "bg-success" : Model.QuantityInStock > 0 ? "bg-warning" : "bg-danger")">
-            @Model.QuantityInStock
+        <span class="badge @(Model.StockQuantity > 10 ? "bg-success" : Model.StockQuantity > 0 ? "bg-warning" : "bg-danger")">
+            @Model.StockQuantity
         </span>
     </dd>
     <dt class="col-sm-2">Cập nhật lần cuối</dt>
-    <dd class="col-sm-10">@Model.LastUpdatedDate.ToString("dd/MM/yyyy HH:mm")</dd>
+    <dd class="col-sm-10">@Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")</dd>
 </dl>
 
 <form asp-action="Delete" method="post">

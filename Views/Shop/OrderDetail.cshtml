@@ -55,12 +55,29 @@
                                     {
                                         <div style="width:64px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--text-muted);">
                                             <i class="fas fa-box" style="font-size:1.5rem;"></i>
-                                            <span style="font-size:0.5rem;font-weight:700;text-align:center;max-width:60px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;">@Html.Encode(item.Product?.Name)</span>
+                                            <span style="font-size:0.5rem;font-weight:700;text-align:center;max-width:60px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;">@(item.Product?.Name)</span>
                                         </div>
                                     }
                                 </div>
                                 <div class="item-info">
                                     <h6 class="item-name">@item.Product?.Name</h6>
+                                    @if (item.Variant != null)
+                                    {
+                                        <div class="item-variant-meta mb-1">
+                                            @if (!string.IsNullOrEmpty(item.Variant.Color))
+                                            {
+                                                <span class="badge bg-light text-dark border me-1">Màu: @item.Variant.Color</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Variant.Storage))
+                                            {
+                                                <span class="badge bg-light text-dark border me-1">@item.Variant.Storage</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Variant.RAM))
+                                            {
+                                                <span class="badge bg-light text-dark border">RAM: @item.Variant.RAM</span>
+                                            }
+                                        </div>
+                                    }
                                     <div class="item-meta">
                                         <span class="item-cat">@item.Product?.Category?.Name</span>
                                         <span class="item-qty">x @item.Quantity</span>

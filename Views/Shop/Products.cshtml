@@ -1,36 +1,42 @@
-@model List<Webstore.Models.Product>
+@using Webstore.Services
+@model PagedList<Webstore.Models.Product>
 @{
+    var filters = ViewBag.Filters as ProductFiltersViewModel;
     ViewData["Title"] = "Sản phẩm";
     Layout = "_ShopLayout";
 }
 
+<div class="shop-products-page">
 <!-- Page Header -->
-<div class="page-header">
+<div class="page-header products-page-header">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-center products-header-inner">
             <div>
                 <h1 class="page-title"><i class="fas fa-th-large me-2"></i>Tất cả sản phẩm</h1>
-                <p class="page-subtitle mb-0">Hiển thị @Model.Count sản phẩm</p>
+                <p class="page-subtitle mb-0">Hiển thị @Model.TotalCount sản phẩm</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="container py-4">
+<div class="container py-4 products-page-content">
     <div class="row">
         <!-- Sidebar Filter -->
         <div class="col-lg-3 mb-4">
             <div class="filter-card">
                 <div class="filter-header">
-                    <h5><i class="fas fa-filter me-2"></i>Bộ lọc</h5>
+                    <h5><i class="fas fa-filter me-2"></i>Bộ lọc nâng cao</h5>
                 </div>
                 <div class="filter-body">
                     <form method="get" asp-controller="Shop" asp-action="Products">
                         <!-- Search -->
                         <div class="filter-group">
                             <label class="filter-label">Tìm kiếm</label>
-                            <input type="text" name="search" class="filter-input" value="@ViewBag.Search"
-                                   placeholder="Tên sản phẩm...">
+                            <div class="position-relative">
+                                <input type="text" name="search" class="filter-input" value="@ViewBag.Search"
+                                       placeholder="Tên sản phẩm...">
+                                <i class="fas fa-search position-absolute end-0 top-50 translate-middle-y me-3 text-muted"></i>
+                            </div>
                         </div>
 
                         <!-- Category Filter -->
@@ -48,38 +54,67 @@
                             </select>
                         </div>
 
+                        <!-- Price Range -->
+                        <div class="filter-group">
+                            <label class="filter-label">Khoảng giá (₫)</label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="number" name="minPrice" class="filter-input py-1" value="@ViewBag.MinPrice" placeholder="Từ">
+                                <span>-</span>
+                                <input type="number" name="maxPrice" class="filter-input py-1" value="@ViewBag.MaxPrice" placeholder="Đến">
+                            </div>
+                        </div>
+
                         <!-- Sort -->
                         <div class="filter-group">
                             <label class="filter-label">Sắp xếp</label>
                             <select name="sortBy" class="filter-select">
-                                <option value="name_asc" selected="@(ViewBag.SortBy == "name_asc")">Tên A → Z</option>
-                                <option value="name_desc" selected="@(ViewBag.SortBy == "name_desc")">Tên Z → A</option>
-                                <option value="price_asc" selected="@(ViewBag.SortBy == "price_asc")">Giá thấp → cao
-                                </option>
-                                <option value="price_desc" selected="@(ViewBag.SortBy == "price_desc")">Giá cao → thấp
-                                </option>
                                 <option value="newest" selected="@(ViewBag.SortBy == "newest")">Mới nhất</option>
+                                <option value="price_asc" selected="@(ViewBag.SortBy == "price_asc")">Giá thấp → cao</option>
+                                <option value="price_desc" selected="@(ViewBag.SortBy == "price_desc")">Giá cao → thấp</option>
+                                <option value="name_asc" selected="@(ViewBag.SortBy == "name_asc")">Tên A → Z</option>
                             </select>
                         </div>
 
-                        <button type="submit" class="btn btn-filter-apply w-100">
-                            <i class="fas fa-search me-2"></i>Áp dụng bộ lọc
+                        @if (filters != null)
+                        {
+                            @if (filters.Storages.Any())
+                            {
+                                <div class="filter-group">
+                                    <label class="filter-label">Dung lượng</label>
+                                    <div class="filter-options-grid">
+                                        @foreach (var s in filters.Storages)
+                                        {
+                                            <div class="form-check small">
+                                                <input class="form-check-input" type="checkbox" id="storage_@s" value="@s">
+                                                <label class="form-check-label" for="storage_@s">@s</label>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+
+                        <button type="submit" class="btn btn-filter-apply w-100 mt-3">
+                            <i class="fas fa-check me-2"></i>Lọc kết quả
                         </button>
+                        <a asp-action="Products" class="btn btn-link btn-sm text-center w-100 mt-2 text-decoration-none">Xóa tất cả bộ lọc</a>
                     </form>
                 </div>
 
                 <!-- Quick Categories -->
-                <div class="filter-header mt-3">
-                    <h6>Danh mục nhanh</h6>
+                <div class="filter-header mt-3 rounded-0 border-top border-white border-2">
+                    <h6>Khám phá nhanh</h6>
                 </div>
-                <div class="filter-body">
-                    @foreach (var category in ViewBag.Categories)
-                    {
-                        <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
-                           class="quick-cat-item @(ViewBag.CategoryId?.ToString() == category.CategoryId.ToString() ? "active" : "")">
-                            <i class="fas fa-@(GetCategoryIcon(category.Name)) me-2"></i>@category.Name
-                        </a>
-                    }
+                <div class="filter-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var category in ViewBag.Categories)
+                        {
+                            <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
+                               class="list-group-item list-group-item-action border-0 px-3 py-2 @(ViewBag.CategoryId?.ToString() == category.CategoryId.ToString() ? "active" : "")">
+                                <i class="fas fa-@(GetCategoryIcon(category.Name)) me-2 opacity-50"></i>@category.Name
+                            </a>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
@@ -87,24 +122,14 @@
         <!-- Products Grid -->
         <div class="col-lg-9">
             <!-- Toolbar -->
-            <div class="products-toolbar">
+            <div class="products-toolbar products-toolbar-premium mb-4">
                 <div class="toolbar-info">
-                    <span class="results-count">@Model.Count sản phẩm</span>
+                    <span class="results-count">@Model.TotalCount sản phẩm được tìm thấy</span>
                 </div>
-                <div class="toolbar-actions">
-                    <div class="sort-info d-none d-md-inline">
-                        <span class="text-muted">Sắp xếp:</span>
-                        <span class="fw-bold text-primary">
-                            @(ViewBag.SortBy switch
-                            {
-                                "price_asc" => "Giá thấp → cao",
-                                "price_desc" => "Giá cao → thấp",
-                                "name_asc" => "Tên A → Z",
-                                "name_desc" => "Tên Z → A",
-                                "newest" => "Mới nhất",
-                                _ => "Mặc định"
-                            })
-                        </span>
+                <div class="toolbar-actions d-flex gap-3">
+                    <div class="view-switch d-none d-md-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary active"><i class="fas fa-th"></i></button>
+                        <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-list"></i></button>
                     </div>
                 </div>
             </div>
@@ -112,83 +137,47 @@
             @if (Model.Any())
             {
                 <div class="row g-4" id="productsGrid">
+                    @{ var staggerIndex = 0; }
                     @foreach (var product in Model)
                     {
-                        <div class="col-lg-4 col-md-6">
-                            <div class="product-card">
-                                <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId"
-                                   class="product-card-img">
-                                    @if (!string.IsNullOrEmpty(product.ImageUrl))
-                                    {
-                                        <img src="@product.ImageUrl" alt="@product.Name" />
-                                    }
-                                    else
-                                    {
-                                        <div class="img-placeholder">
-                                            <i class="fas fa-box" style="font-size:3rem;"></i>
-                                            <span class="placeholder-name">@Html.Encode(product.Name)</span>
-                                        </div>
-                                    }
-                                    <div class="product-overlay"><i class="fas fa-eye"></i></div>
-                                </a>
-                                <div class="product-card-body">
-                                    <div class="product-card-cat">@product.Category?.Name</div>
-                                    <h5 class="product-card-title">
-                                        <a asp-controller="Shop" asp-action="Product"
-                                           asp-route-id="@product.ProductId">@Html.Encode(product.Name)</a>
-                                    </h5>
-                                    <div class="product-card-rating">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star-half-alt"></i>
-                                        <span class="ms-1 text-muted" style="font-size:0.75rem;">(4.5)</span>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="product-card-price">@product.Price.ToString("N0") ₫</div>
-                                        <button class="btn btn-sm btn-add-cart" onclick="addToCart(@product.ProductId)">
-                                            <i class="fas fa-cart-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4 js-stagger-card" data-stagger-index="@staggerIndex">
+                            @await Html.PartialAsync("Partials/_ProductCard", product)
                         </div>
+                        staggerIndex++;
                     }
                 </div>
 
                 <!-- Pagination -->
-                @if (ViewBag.TotalPages > 1)
+                @if (Model.TotalPages > 1)
                 {
                     <nav class="mt-5">
-                        <ul class="pagination justify-content-center">
-                            @if (ViewBag.CurrentPage > 1)
+                        <ul class="pagination pagination-rounded justify-content-center">
+                            @if (Model.HasPrevious)
                             {
                                 <li class="page-item">
-                                    <a class="page-link" asp-controller="Shop" asp-action="Products"
-                                       asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
-                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-page="@(ViewBag.CurrentPage - 1)">
+                                    <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
+                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
+                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-page="@(Model.CurrentPage - 1)">
                                         <i class="fas fa-chevron-left"></i>
                                     </a>
                                 </li>
                             }
 
-                            @for (int i = Math.Max(1, (int)ViewBag.CurrentPage - 2); i <= Math.Min((int)ViewBag.TotalPages,
-                    (int)ViewBag.CurrentPage + 2); i++)
+                            @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
                             {
-                                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                    <a class="page-link" asp-controller="Shop" asp-action="Products"
-                                       asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
-                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-page="@i">@i</a>
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
+                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
+                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-page="@i">@i</a>
                                 </li>
                             }
 
-                            @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                            @if (Model.HasNext)
                             {
                                 <li class="page-item">
-                                    <a class="page-link" asp-controller="Shop" asp-action="Products"
-                                       asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
-                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-page="@(ViewBag.CurrentPage + 1)">
+                                    <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
+                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
+                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-page="@(Model.CurrentPage + 1)">
                                         <i class="fas fa-chevron-right"></i>
                                     </a>
                                 </li>
@@ -199,230 +188,60 @@
             }
             else
             {
-                <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-search"></i></div>
-                    <h4>Không tìm thấy sản phẩm</h4>
-                    <p>Hãy thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
-                    <a asp-controller="Shop" asp-action="Products" class="btn btn-primary">
-                        <i class="fas fa-refresh me-2"></i>Xem tất cả sản phẩm
-                    </a>
+                <div class="empty-state text-center py-5">
+                    <div class="empty-icon-wrapper mb-4">
+                        <i class="fas fa-search-minus fa-4x text-muted opacity-25"></i>
+                    </div>
+                    <h4>Không tìm thấy sản phẩm phù hợp</h4>
+                    <p class="text-muted">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm của bạn</p>
+                    <a asp-action="Products" class="btn btn-primary mt-3">Xóa tất cả bộ lọc</a>
                 </div>
             }
         </div>
     </div>
 </div>
+</div>
 
-<style>
-    /* Page Header */
-    .page-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        padding: 24px 0;
-    }
+@section Scripts {
+    <script>
+        (function () {
+            var cards = document.querySelectorAll('.js-stagger-card');
+            if (!cards.length) {
+                return;
+            }
 
-    .page-title {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: white;
-        margin: 0 0 4px;
-    }
+            cards.forEach(function (card) {
+                var index = Number(card.getAttribute('data-stagger-index') || 0);
+                card.classList.add('stagger-ready');
+                card.style.transitionDelay = (Math.min(index % 6, 5) * 70) + 'ms';
+            });
 
-    .page-subtitle {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 0.88rem;
-    }
+            if (!('IntersectionObserver' in window)) {
+                cards.forEach(function (card) {
+                    card.classList.add('is-visible');
+                });
+                return;
+            }
 
-    /* Filter Card */
-    .filter-card {
-        background: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-        border: 1px solid var(--border);
-    }
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '0px 0px -10% 0px',
+                threshold: 0.16
+            });
 
-    .filter-header {
-        padding: 14px 18px;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        color: white;
-    }
-
-    .filter-header h5,
-    .filter-header h6 {
-        margin: 0;
-        font-weight: 700;
-        font-size: 0.95rem;
-    }
-
-    .filter-body {
-        padding: 16px;
-    }
-
-    .filter-group {
-        margin-bottom: 14px;
-    }
-
-    .filter-label {
-        display: block;
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--text-secondary);
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-
-    .filter-input,
-    .filter-select {
-        width: 100%;
-        border: 2px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 9px 12px;
-        font-size: 0.88rem;
-        transition: var(--transition);
-        background: white;
-        color: var(--text-primary);
-    }
-
-    .filter-input:focus,
-    .filter-select:focus {
-        border-color: var(--primary);
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1);
-    }
-
-    .btn-filter-apply {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        color: white;
-        border: none;
-        border-radius: var(--radius-sm);
-        padding: 10px;
-        font-weight: 700;
-        font-size: 0.88rem;
-        cursor: pointer;
-        transition: var(--transition);
-        width: 100%;
-    }
-
-    .btn-filter-apply:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-
-    .quick-cat-item {
-        display: flex;
-        align-items: center;
-        padding: 8px 12px;
-        border-radius: var(--radius-sm);
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--text-secondary);
-        transition: var(--transition);
-        margin-bottom: 4px;
-        text-decoration: none;
-    }
-
-    .quick-cat-item:hover,
-    .quick-cat-item.active {
-        background: var(--primary-lightest);
-        color: var(--primary);
-    }
-
-    /* Toolbar */
-    .products-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        padding: 12px 16px;
-        background: white;
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border);
-    }
-
-    .results-count {
-        font-size: 0.88rem;
-        font-weight: 700;
-        color: var(--text-secondary);
-    }
-
-    .sort-info {
-        font-size: 0.88rem;
-    }
-
-    /* Pagination */
-    .pagination {
-        gap: 4px;
-    }
-
-    .page-link {
-        border: none;
-        border-radius: var(--radius-sm);
-        padding: 8px 14px;
-        font-size: 0.88rem;
-        font-weight: 600;
-        color: var(--primary);
-        background: white;
-        transition: var(--transition);
-    }
-
-    .page-link:hover {
-        background: var(--primary-lightest);
-        color: var(--primary);
-    }
-
-    .page-item.active .page-link {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        color: white;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .product-card-price {
-        white-space: nowrap;
-    }
-
-    .product-card .btn-sm.btn-add-cart {
-        width: auto !important;
-        min-width: 50px;
-        padding: 8px 12px;
-        font-size: 0.85rem;
-        margin-top: 0;
-        flex: 0 0 auto;
-    }
-
-    .product-card .btn-sm.btn-add-cart i {
-        font-size: 1rem;
-    }
-
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 80px 20px;
-    }
-
-    .empty-icon {
-        width: 80px;
-        height: 80px;
-        background: var(--primary-lightest);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-        color: var(--primary);
-        margin: 0 auto 20px;
-    }
-
-    .empty-state h4 {
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-
-    .empty-state p {
-        color: var(--text-muted);
-        margin-bottom: 20px;
-    }
-</style>
+            cards.forEach(function (card) {
+                observer.observe(card);
+            });
+        })();
+    </script>
+}
 
 @functions {
     string GetCategoryIcon(string categoryName)
@@ -432,11 +251,6 @@
             var name when name.Contains("điện thoại") || name.Contains("phone") => "mobile-alt",
             var name when name.Contains("laptop") || name.Contains("máy tính") => "laptop",
             var name when name.Contains("quần áo") || name.Contains("thời trang") => "tshirt",
-            var name when name.Contains("giày") || name.Contains("dép") => "shoe-prints",
-            var name when name.Contains("sách") || name.Contains("book") => "book",
-            var name when name.Contains("thể thao") || name.Contains("sport") => "dumbbell",
-            var name when name.Contains("mỹ phẩm") || name.Contains("beauty") => "spa",
-            var name when name.Contains("nhà bếp") || name.Contains("kitchen") => "utensils",
             _ => "box"
         };
     }

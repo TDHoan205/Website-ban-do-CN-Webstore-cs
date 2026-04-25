@@ -29,18 +29,20 @@ namespace Webstore.Data
         public DbSet<FAQ> FAQs => Set<FAQ>();
         public DbSet<AIConversationLog> AIConversationLogs => Set<AIConversationLog>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<KnowledgeChunk> KnowledgeChunks => Set<KnowledgeChunk>();
+        public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            var plainTextConverter = new ValueConverter<string?, string?>(
-                v => ProductDescriptionText.NormalizePlainText(v),
-                v => ProductDescriptionText.NormalizePlainText(v));
+            var plainTextConverter = new ValueConverter<string, string>(
+                v => ProductDescriptionText.NormalizePlainText(v) ?? string.Empty,
+                v => ProductDescriptionText.NormalizePlainText(v) ?? string.Empty);
 
-            var descriptionHtmlConverter = new ValueConverter<string?, string?>(
-                v => ProductDescriptionText.SanitizeDescriptionHtmlNullable(v),
-                v => ProductDescriptionText.SanitizeDescriptionHtmlNullable(v));
+            var descriptionHtmlConverter = new ValueConverter<string, string>(
+                v => ProductDescriptionText.SanitizeDescriptionHtmlNullable(v) ?? string.Empty,
+                v => ProductDescriptionText.SanitizeDescriptionHtmlNullable(v) ?? string.Empty);
 
             // Unique index for Category.Name
             modelBuilder.Entity<Category>()
@@ -65,7 +67,7 @@ namespace Webstore.Data
                 .HasKey(oi => new { oi.OrderId, oi.ProductId });
 
             modelBuilder.Entity<CartItem>()
-                .HasIndex(ci => new { ci.AccountId, ci.ProductId })
+                .HasIndex(ci => new { ci.AccountId, ci.ProductId, ci.VariantId })
                 .IsUnique();
 
             // Enum-like constraints (Role, Status, MovementType) can be validated at service/controller level.
@@ -81,27 +83,39 @@ namespace Webstore.Data
 
             modelBuilder.Entity<Category>()
                 .Property(c => c.Name)
-                .HasConversion(plainTextConverter);
+                .HasConversion(new ValueConverter<string, string>(
+                    v => ProductDescriptionText.NormalizePlainText(v ?? string.Empty) ?? string.Empty,
+                    v => ProductDescriptionText.NormalizePlainText(v ?? string.Empty) ?? string.Empty));
 
             modelBuilder.Entity<Supplier>()
                 .Property(s => s.Name)
-                .HasConversion(plainTextConverter);
+                .HasConversion(new ValueConverter<string, string>(
+                    v => ProductDescriptionText.NormalizePlainText(v ?? string.Empty) ?? string.Empty,
+                    v => ProductDescriptionText.NormalizePlainText(v ?? string.Empty) ?? string.Empty));
 
             modelBuilder.Entity<Supplier>()
                 .Property(s => s.ContactPerson)
-                .HasConversion(plainTextConverter);
+                .HasConversion(new ValueConverter<string?, string?>(
+                    v => v != null ? ProductDescriptionText.NormalizePlainText(v) : null,
+                    v => v != null ? ProductDescriptionText.NormalizePlainText(v) : null));
 
             modelBuilder.Entity<Supplier>()
                 .Property(s => s.Address)
-                .HasConversion(plainTextConverter);
+                .HasConversion(new ValueConverter<string?, string?>(
+                    v => v != null ? ProductDescriptionText.NormalizePlainText(v) : null,
+                    v => v != null ? ProductDescriptionText.NormalizePlainText(v) : null));
 
             modelBuilder.Entity<Product>()
                 .Property(p => p.Name)
-                .HasConversion(plainTextConverter);
+                .HasConversion(new ValueConverter<string, string>(
+                    v => ProductDescriptionText.NormalizePlainText(v) ?? string.Empty,
+                    v => ProductDescriptionText.NormalizePlainText(v) ?? string.Empty));
 
             modelBuilder.Entity<Product>()
                 .Property(p => p.Description)
-                .HasConversion(descriptionHtmlConverter);
+                .HasConversion(new ValueConverter<string?, string?>(
+                    v => v != null ? ProductDescriptionText.SanitizeDescriptionHtmlNullable(v) : null,
+                    v => v != null ? ProductDescriptionText.SanitizeDescriptionHtmlNullable(v) : null));
 
             modelBuilder.Entity<Order>()
                 .Property(o => o.TotalAmount)
@@ -110,6 +124,20 @@ namespace Webstore.Data
             modelBuilder.Entity<OrderItem>()
                 .Property(oi => oi.UnitPrice)
                 .HasColumnType("decimal(10,2)");
+
+            modelBuilder.Entity<AIConversationLog>()
+                .Property(l => l.ConfidenceScore)
+                .HasColumnType("decimal(5,4)");
+
+            modelBuilder.Entity<KnowledgeChunk>()
+                .Property(k => k.Price)
+                .HasColumnType("decimal(10,2)");
+
+            modelBuilder.Entity<KnowledgeChunk>()
+                .HasIndex(k => new { k.SourceType, k.SourceId });
+
+            modelBuilder.Entity<KnowledgeChunk>()
+                .HasIndex(k => k.Category);
         }
     }
 }

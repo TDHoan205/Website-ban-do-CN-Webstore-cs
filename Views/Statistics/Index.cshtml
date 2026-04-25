@@ -1,535 +1,379 @@
 @model Webstore.Models.StatisticsViewModel
 
 @{
-    ViewData["Title"] = "Thống Kê Doanh Thu";
+    ViewData["Title"] = "TechStore Admin Dashboard";
 }
 
-<!-- Page Header -->
-<div class="admin-page-header">
-    <div class="d-flex justify-content-between align-items-start">
+<div class="dashboard-wrapper">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="admin-page-title">
-                <i class="fas fa-chart-line me-2" style="color:var(--primary);"></i>Thống Kê Doanh Thu
-            </h1>
-            <p class="admin-page-subtitle">Cập nhật: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+            <h1 class="fw-800 text-gradient mb-1">Bảng Điều Khiển Quản Trị</h1>
+            <p class="text-muted mb-0">Theo dõi hoạt động kinh doanh thời gian thực</p>
         </div>
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left me-2"></i>Quay lại
-        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-glass" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-2"></i>Làm mới
+            </button>
+            <div class="date-display btn btn-glass">
+                <i class="far fa-calendar-alt me-2 text-primary"></i>@DateTime.Now.ToString("dd/MM/yyyy")
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- Revenue Summary Cards -->
-<div class="row g-3 mb-4">
-    <div class="col-lg-3 col-md-6">
-        <div class="rev-card">
-            <div class="rev-icon rev-icon-success">
-                <i class="fas fa-calendar-day"></i>
-            </div>
-            <div class="rev-info">
-                <div class="rev-label">Doanh thu hôm nay</div>
-                <div class="rev-value text-success">@Model.TodayRevenue.ToString("N0") ₫</div>
-                <div class="rev-sub"><i class="fas fa-shopping-bag me-1"></i>@Model.TodayOrders đơn hàng</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="rev-card">
-            <div class="rev-icon rev-icon-primary">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <div class="rev-info">
-                <div class="rev-label">Doanh thu tháng này</div>
-                <div class="rev-value" style="color:var(--primary);">@Model.MonthRevenue.ToString("N0") ₫</div>
-                <div class="rev-sub"><i class="fas fa-shopping-bag me-1"></i>@Model.MonthOrders đơn hàng</div>
+    <!-- Quick Stats Grid -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="stats-card stats-primary">
+                <div class="stats-card-body">
+                    <div class="stats-icon"><i class="fas fa-shopping-cart"></i></div>
+                    <div class="stats-info">
+                        <h3 class="stats-value">@Model.TotalOrders</h3>
+                        <p class="stats-label">Tổng Đơn Hàng</p>
+                    </div>
+                </div>
+                <div class="stats-card-footer">
+                    <span class="text-success"><i class="fas fa-arrow-up me-1"></i>+@Model.TodayOrders hôm nay</span>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="rev-card">
-            <div class="rev-icon rev-icon-warning">
-                <i class="fas fa-calendar"></i>
-            </div>
-            <div class="rev-info">
-                <div class="rev-label">Doanh thu năm @DateTime.Now.Year</div>
-                <div class="rev-value text-warning">@Model.YearRevenue.ToString("N0") ₫</div>
-                <div class="rev-sub"><i class="fas fa-chart-bar me-1"></i>Tổng năm</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
-        <div class="rev-card">
-            <div class="rev-icon rev-icon-purple">
-                <i class="fas fa-coins"></i>
-            </div>
-            <div class="rev-info">
-                <div class="rev-label">Tổng doanh thu</div>
-                <div class="rev-value rev-value-purple">@Model.TotalRevenue.ToString("N0") ₫</div>
-                <div class="rev-sub"><i class="fas fa-history me-1"></i>Tất cả thời gian</div>
+        <div class="col-md-3">
+            <div class="stats-card stats-success">
+                <div class="stats-card-body">
+                    <div class="stats-icon"><i class="fas fa-wallet"></i></div>
+                    <div class="stats-info">
+                        <h3 class="stats-value">@Model.TotalRevenue.ToString("N0")₫</h3>
+                        <p class="stats-label">Tổng Doanh Thu</p>
+                    </div>
+                </div>
+                <div class="stats-card-footer">
+                    <span class="text-success"><i class="fas fa-arrow-up me-1"></i>+@Model.TodayRevenue.ToString("N0")₫ hôm nay</span>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Order Status Summary -->
-<div class="row g-3 mb-4">
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card status-card-new">
-            <div class="sc-number">@Model.NewOrders</div>
-            <div class="sc-label">Đơn mới</div>
-            <i class="fas fa-inbox sc-icon sc-icon-new"></i>
+        <div class="col-md-3">
+            <div class="stats-card stats-warning">
+                <div class="stats-card-body">
+                    <div class="stats-icon"><i class="fas fa-box-open"></i></div>
+                    <div class="stats-info">
+                        <h3 class="stats-value">@Model.TotalStock</h3>
+                        <p class="stats-label">Sản Phẩm Trong Kho</p>
+                    </div>
+                </div>
+                <div class="stats-card-footer">
+                    <span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>@Model.PendingOrders đơn chờ duyệt</span>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card status-card-processing">
-            <div class="sc-number">@Model.ProcessingOrders</div>
-            <div class="sc-label">Đang xử lý</div>
-            <i class="fas fa-cog sc-icon sc-icon-processing"></i>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card status-card-shipped">
-            <div class="sc-number">@Model.ShippedOrders</div>
-            <div class="sc-label">Đã giao shipper</div>
-            <i class="fas fa-truck sc-icon sc-icon-shipped"></i>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card status-card-delivered">
-            <div class="sc-number">@Model.DeliveredOrders</div>
-            <div class="sc-label">Đã giao</div>
-            <i class="fas fa-check-circle sc-icon sc-icon-delivered"></i>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card status-card-completed">
-            <div class="sc-number">@Model.CompletedOrders</div>
-            <div class="sc-label">Hoàn thành</div>
-            <i class="fas fa-check-double sc-icon sc-icon-completed"></i>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="status-card status-card-canceled">
-            <div class="sc-number">@Model.CanceledOrders</div>
-            <div class="sc-label">Đã hủy</div>
-            <i class="fas fa-times-circle sc-icon sc-icon-canceled"></i>
-        </div>
-    </div>
-</div>
-
-<!-- Charts Row -->
-<div class="row g-3 mb-4">
-    <!-- Revenue by Day -->
-    <div class="col-lg-8">
-        <div class="card h-100">
-            <div class="card-header"><i class="fas fa-chart-bar me-2"></i>Doanh thu 7 ngày gần nhất</div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Ngày</th>
-                                <th class="text-center">Số đơn</th>
-                                <th class="text-end">Doanh thu</th>
-                                <th class="text-end">%</th>
-                                <th style="width:30%;">Biểu đồ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                var maxDayRev = Model.RevenueByDay.Count > 0 ? Model.RevenueByDay.Max(d => d.Revenue) : 0m;
-                            }
-                            @foreach (var day in Model.RevenueByDay)
-                            {
-                                var pct = maxDayRev > 0 ? (double)(day.Revenue / maxDayRev * 100) : 0;
-                                var isToday = day.Date.Date == DateTime.Today;
-                                <tr class="@(isToday ? "row-today" : "")">
-                                    <td>
-                                        @day.Date.ToString("EEE, dd/MM")
-                                        @if (isToday)
-                                        {
-                                            <span class="badge ms-2" style="background:var(--primary);">Hôm nay</span>
-                                        }
-                                    </td>
-                                    <td class="text-center">@day.OrderCount</td>
-                                    <td class="text-end text-success fw-bold">@day.Revenue.ToString("N0") ₫</td>
-                                    <td class="text-end text-muted">@pct.ToString("F1")%</td>
-                                    <td>
-                                        <div class="progress-bar-custom">
-                                            <div class="progress-fill-custom" style="width:@pct.ToString("F0")%;"></div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                        <tfoot class="table-foot-custom">
-                            <tr>
-                                <td class="fw-bold">Tổng cộng</td>
-                                <td class="text-center fw-bold">@Model.RevenueByDay.Sum(d => d.OrderCount)</td>
-                                <td class="text-end fw-bold text-success">@Model.RevenueByDay.Sum(d => d.Revenue).ToString("N0") ₫</td>
-                                <td colspan="2"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+        <div class="col-md-3">
+            <div class="stats-card stats-info">
+                <div class="stats-card-body">
+                    <div class="stats-icon"><i class="fas fa-users"></i></div>
+                    <div class="stats-info">
+                        <h3 class="stats-value">@Model.AccountCount</h3>
+                        <p class="stats-label">Khách Hàng</p>
+                    </div>
+                </div>
+                <div class="stats-card-footer">
+                    <span class="text-primary"><i class="fas fa-user-plus me-1"></i>Tăng trưởng ổn định</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Order Status -->
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header"><i class="fas fa-pie-chart me-2"></i>Tổng quan đơn hàng</div>
-            <div class="card-body">
-                <div class="status-list">
-                    <div class="status-row"><div class="sr-dot sr-dot-new"></div><span>Đơn mới</span><span class="fw-bold">@Model.NewOrders</span></div>
-                    <div class="status-row"><div class="sr-dot sr-dot-processing"></div><span>Đang xử lý</span><span class="fw-bold">@Model.ProcessingOrders</span></div>
-                    <div class="status-row"><div class="sr-dot sr-dot-shipped"></div><span>Đã giao shipper</span><span class="fw-bold">@Model.ShippedOrders</span></div>
-                    <div class="status-row"><div class="sr-dot sr-dot-delivered"></div><span>Đã giao</span><span class="fw-bold">@Model.DeliveredOrders</span></div>
-                    <div class="status-row"><div class="sr-dot sr-dot-completed"></div><span>Hoàn thành</span><span class="fw-bold">@Model.CompletedOrders</span></div>
-                    <div class="status-row"><div class="sr-dot sr-dot-canceled"></div><span>Đã hủy</span><span class="fw-bold">@Model.CanceledOrders</span></div>
+    <!-- Charts Section -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="glass-card h-100">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Biểu Đồ Doanh Thu 7 Ngày</h5>
+                    <div class="badge bg-primary-soft">VND</div>
                 </div>
-                <hr>
-                <div class="text-center">
-                    <div class="text-muted small">Tổng đơn hàng</div>
-                    <div class="fs-2 fw-bold" style="color:var(--primary);">@Model.OrderCount</div>
+                <div class="card-body-custom pt-4">
+                    <canvas id="revenueChart" style="max-height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="glass-card h-100">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Trạng Thái Đơn Hàng</h5>
+                </div>
+                <div class="card-body-custom d-flex flex-column align-items-center justify-content-center pt-4">
+                    <canvas id="statusChart" style="max-height: 250px;"></canvas>
+                    <div class="status-legend mt-4 w-100">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-circle text-primary me-2"></i>Mới</span>
+                            <span class="fw-bold">@Model.NewOrders</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-circle text-warning me-2"></i>Đang xử lý</span>
+                            <span class="fw-bold">@Model.ProcessingOrders</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-circle text-success me-2"></i>Đã giao</span>
+                            <span class="fw-bold">@Model.DeliveredOrders</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-danger me-2"></i>Đã hủy</span>
+                            <span class="fw-bold">@Model.CanceledOrders</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Monthly + Top Products -->
-<div class="row g-3 mb-4">
-    <!-- Monthly Revenue -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header"><i class="fas fa-chart-area me-2"></i>Doanh thu 6 tháng gần nhất</div>
-            <div class="card-body p-0">
-                @if (Model.RevenueByMonth.Any())
-                {
-                    var maxMonthRev = Model.RevenueByMonth.Max(m => m.Revenue);
+    <!-- Lists Row -->
+    <div class="row g-4">
+        <!-- Top Products -->
+        <div class="col-lg-6">
+            <div class="glass-card">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Sản Phẩm Bán Chạy</h5>
+                    <a asp-controller="Products" asp-action="Index" class="text-primary text-decoration-none small">Xem tất cả</a>
+                </div>
+                <div class="card-body-custom p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Tháng</th>
-                                    <th class="text-center">Số đơn</th>
-                                    <th class="text-end">Doanh thu</th>
-                                    <th style="width:35%;">Biểu đồ</th>
+                                    <th class="ps-4">Sản phẩm</th>
+                                    <th class="text-center">Đã bán</th>
+                                    <th class="text-end pe-4">Doanh thu</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var month in Model.RevenueByMonth)
+                                @foreach (var p in Model.TopProducts.Take(5))
                                 {
-                                    var pct = maxMonthRev > 0 ? (double)(month.Revenue / maxMonthRev * 100) : 0;
                                     <tr>
-                                        <td class="fw-bold">@month.MonthName</td>
-                                        <td class="text-center">@month.OrderCount</td>
-                                        <td class="text-end text-success fw-bold">@month.Revenue.ToString("N0") ₫</td>
-                                        <td>
-                                            <div class="progress-bar-sm">
-                                                <div class="progress-fill-custom" style="width:@pct.ToString("F0")%;"></div>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="product-thumb me-3">
+                                                    @if (!string.IsNullOrEmpty(p.ImageUrl))
+                                                    {
+                                                        <img src="@p.ImageUrl" alt="product">
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-laptop"></i>
+                                                    }
+                                                </div>
+                                                <span class="fw-600">@p.ProductName</span>
                                             </div>
                                         </td>
+                                        <td class="text-center"><span class="badge badge-pill bg-light text-dark">@p.TotalSold</span></td>
+                                        <td class="text-end pe-4 text-success fw-bold">@p.TotalRevenue.ToString("N0")₫</td>
                                     </tr>
                                 }
                             </tbody>
-                            <tfoot class="table-foot-custom">
-                                <tr>
-                                    <td class="fw-bold">Tổng</td>
-                                    <td class="text-center fw-bold">@Model.RevenueByMonth.Sum(m => m.OrderCount)</td>
-                                    <td class="text-end fw-bold text-success">@Model.RevenueByMonth.Sum(m => m.Revenue).ToString("N0") ₫</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-chart-area fa-3x mb-3 opacity-25"></i>
-                        <p>Chưa có dữ liệu doanh thu</p>
-                    </div>
-                }
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Top Products -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header"><i class="fas fa-fire me-2" style="color:var(--danger);"></i>Top sản phẩm bán chạy</div>
-            <div class="card-body p-0">
-                @if (Model.TopProducts.Any())
-                {
-                    <table class="table align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Sản phẩm</th>
-                                <th class="text-center">Đã bán</th>
-                                <th class="text-end">Doanh thu</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var product in Model.TopProducts.Take(10))
-                            {
-                                var rank = Model.TopProducts.ToList().IndexOf(product);
-                                <tr>
-                                    <td>
-                                        @if (rank == 0)
-                                        {
-                                            <span class="badge-trophy"><i class="fas fa-trophy"></i></span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-light text-dark">@(rank + 1)</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center gap-2">
-                                            @if (!string.IsNullOrEmpty(product.ImageUrl))
-                                            {
-                                                <img src="@product.ImageUrl" style="width:36px;height:36px;object-fit:contain;border-radius:8px;background:var(--surface-alt);" />
-                                            }
-                                            else
-                                            {
-                                                <div style="width:36px;height:36px;background:var(--surface-alt);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);"><i class="fas fa-box"></i></div>
-                                            }
-                                            <span class="product-name-cell fw-bold">@product.ProductName</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-center"><span class="badge" style="background:var(--primary);">@product.TotalSold</span></td>
-                                    <td class="text-end text-success fw-bold">@product.TotalRevenue.ToString("N0") ₫</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-box fa-3x mb-3 opacity-25"></i>
-                        <p>Chưa có dữ liệu sản phẩm bán chạy</p>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Orders -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-history me-2"></i>Đơn hàng gần đây</div>
-            <div class="card-body p-0">
-                @if (Model.RecentOrders.Any())
-                {
+        <!-- Recent Orders -->
+        <div class="col-lg-6">
+            <div class="glass-card">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Đơn Hàng Gần Đây</h5>
+                    <a asp-controller="Orders" asp-action="Index" class="text-primary text-decoration-none small">Chi tiết</a>
+                </div>
+                <div class="card-body-custom p-0">
                     <div class="table-responsive">
-                        <table class="table align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Mã ĐH</th>
+                                    <th class="ps-4">ID</th>
                                     <th>Khách hàng</th>
-                                    <th class="text-center">Ngày đặt</th>
-                                    <th class="text-end">Tổng tiền</th>
-                                    <th class="text-center">Trạng thái</th>
+                                    <th class="text-end pe-4">Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var order in Model.RecentOrders)
+                                @foreach (var o in Model.RecentOrders.Take(5))
                                 {
-                                    var stClass = order.Status switch {
-                                        "New" => "bg-primary",
-                                        "Pending" => "bg-warning text-dark",
-                                        "Processing" => "bg-info",
-                                        "Shipped" => "bg-secondary",
-                                        "Delivered" => "bg-success",
-                                        "Completed" => "bg-success",
-                                        "Canceled" => "bg-danger",
-                                        _ => "bg-secondary"
-                                    };
-                                    var stText = order.Status switch {
-                                        "New" => "Mới",
-                                        "Pending" => "Chờ xác nhận",
-                                        "Processing" => "Đang xử lý",
-                                        "Shipped" => "Đã giao shipper",
-                                        "Delivered" => "Đã giao",
-                                        "Completed" => "Hoàn thành",
-                                        "Canceled" => "Đã hủy",
-                                        _ => order.Status
-                                    };
                                     <tr>
-                                        <td><span class="fw-bold">#@order.OrderId</span></td>
+                                        <td class="ps-4"><span class="fw-bold">#@o.OrderId</span></td>
                                         <td>
-                                            <div class="fw-bold">@order.CustomerName</div>
-                                            <small class="text-muted">@order.CustomerPhone</small>
+                                            <div class="fw-600">@o.CustomerName</div>
+                                            <div class="text-muted x-small">@o.OrderDate.ToString("dd/MM HH:mm")</div>
                                         </td>
-                                        <td class="text-center">
-                                            <div>@order.OrderDate.ToString("dd/MM/yyyy")</div>
-                                            <small class="text-muted">@order.OrderDate.ToString("HH:mm")</small>
-                                        </td>
-                                        <td class="text-end text-success fw-bold">@order.TotalAmount.ToString("N0") ₫</td>
-                                        <td class="text-center">
-                                            <span class="badge @stClass">@stText</span>
+                                        <td class="text-end pe-4">
+                                            <span class="badge @GetStatusBadgeClass(o.Status)">@o.Status</span>
                                         </td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-inbox fa-4x mb-3 opacity-25"></i>
-                        <p>Chưa có đơn hàng nào</p>
-                    </div>
-                }
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+@functions {
+    string GetStatusBadgeClass(string status) => status switch
+    {
+        "Completed" => "bg-success-soft",
+        "New" => "bg-primary-soft",
+        "Pending" => "bg-warning-soft",
+        "Canceled" => "bg-danger-soft",
+        _ => "bg-light-soft text-dark"
+    };
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Revenue Chart
+            const revCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revCtx, {
+                type: 'line',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.RevenueByDay.Select(d => $"'{d.Date:dd/MM}'")))],
+                    datasets: [{
+                        label: 'Doanh thu (₫)',
+                        data: [@string.Join(",", Model.RevenueByDay.Select(d => d.Revenue))],
+                        borderColor: '#0077b6',
+                        backgroundColor: 'rgba(0, 119, 182, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#0077b6',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5] }, ticks: { callback: v => (v / 1000000) + 'M' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mới', 'Đã duyệt', 'Đã giao', 'Hủy'],
+                    datasets: [{
+                        data: [@Model.NewOrders, @Model.ProcessingOrders, @Model.DeliveredOrders, @Model.CanceledOrders],
+                        backgroundColor: ['#0077b6', '#ffb703', '#2a9d8f', '#e63946'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        });
+    </script>
+}
+
 <style>
-    /* Revenue Card */
-    .rev-card {
-        background: white;
+    :root {
+        --primary: #0077b6;
+        --primary-soft: rgba(0, 119, 182, 0.1);
+        --success: #2a9d8f;
+        --success-soft: rgba(42, 157, 143, 0.1);
+        --warning: #ffb703;
+        --warning-soft: rgba(255, 183, 3, 0.1);
+        --danger: #e63946;
+        --danger-soft: rgba(230, 57, 70, 0.1);
+        --light-soft: rgba(200, 200, 200, 0.1);
+        --radius-lg: 24px;
+        --radius-md: 16px;
+        --glass: rgba(255, 255, 255, 0.8);
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    .dashboard-wrapper { padding: 2rem; background: #f8fafc; min-height: 100vh; }
+    .text-gradient { background: linear-gradient(135deg, #003049, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .fw-800 { font-weight: 800; }
+    .fw-600 { font-weight: 600; }
+    .x-small { font-size: 0.7rem; }
+
+    .btn-glass { 
+        background: var(--glass); 
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255,255,255,0.3); 
+        box-shadow: var(--shadow);
+        color: #475569;
+        font-weight: 600;
+        padding: 0.6rem 1.2rem;
+        border-radius: 12px;
+    }
+    .btn-glass:hover { background: white; color: var(--primary); }
+
+    /* Stats Cards */
+    .stats-card { 
+        background: white; 
+        border-radius: var(--radius-md); 
+        padding: 1.5rem; 
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(0,0,0,0.02);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .stats-card:hover { transform: translateY(-10px); }
+    .stats-card-body { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 1rem; }
+    .stats-icon { 
+        width: 56px; height: 56px; border-radius: 16px; 
+        display: flex; align-items: center; justify-content: center; 
+        font-size: 1.5rem; 
+    }
+    .stats-value { font-size: 1.5rem; font-weight: 800; margin-bottom: 0px; color: #1e293b; }
+    .stats-label { font-size: 0.85rem; color: #64748b; margin-bottom: 0; font-weight: 600; }
+    .stats-card-footer { font-size: 0.8rem; font-weight: 600; border-top: 1px solid #f1f5f9; pt: 0.8rem; }
+
+    .stats-primary .stats-icon { background: var(--primary-soft); color: var(--primary); }
+    .stats-success .stats-icon { background: var(--success-soft); color: var(--success); }
+    .stats-warning .stats-icon { background: var(--warning-soft); color: var(--warning); }
+    .stats-info    .stats-icon { background: var(--light-soft); color: #475569; }
+
+    /* Glass Card */
+    .glass-card {
+        background: var(--glass);
+        backdrop-filter: blur(20px);
         border-radius: var(--radius-lg);
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border);
-        transition: var(--transition);
-    }
-    .rev-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--primary-lighter); }
-    .rev-icon {
-        width: 52px; height: 52px;
-        border-radius: var(--radius-md);
-        display: flex; align-items: center; justify-content: center;
-        color: white;
-        font-size: 1.2rem;
-        flex-shrink: 0;
-    }
-    .rev-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
-    .rev-value { font-size: 1.2rem; font-weight: 800; }
-    .rev-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-    /* Status Card */
-    .status-card {
-        background: white;
-        border-radius: var(--radius-md);
-        padding: 16px;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border);
-        position: relative;
-        overflow: hidden;
-        transition: var(--transition);
-    }
-    .status-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-    .sc-number { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
-    .sc-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
-    .sc-icon {
-        position: absolute;
-        bottom: -4px;
-        right: 10px;
-        font-size: 2.5rem;
-        opacity: 0.08;
-    }
-
-    /* Status List */
-    .status-list { display: flex; flex-direction: column; gap: 10px; }
-    .status-row {
-        display: flex; align-items: center; gap: 10px;
-        padding: 10px 12px;
-        background: var(--surface-alt);
-        border-radius: var(--radius-sm);
-    }
-    .sr-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .status-row span:first-of-type { flex: 1; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
-    .status-row span:last-of-type { font-size: 0.95rem; }
-
-    /* Gradient icon variants */
-    .rev-icon-success { background: linear-gradient(135deg, var(--success) 0%, #34D399 100%); }
-    .rev-icon-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); }
-    .rev-icon-warning { background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%); }
-    .rev-icon-purple  { background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%); }
-
-    /* Status border variants */
-    .status-card-new        { border-left: 4px solid var(--primary); }
-    .status-card-processing { border-left: 4px solid #ff9500; }
-    .status-card-shipped    { border-left: 4px solid #9b59b6; }
-    .status-card-delivered  { border-left: 4px solid var(--success); }
-    .status-card-completed  { border-left: 4px solid var(--info); }
-    .status-card-canceled   { border-left: 4px solid var(--danger); }
-
-    /* Status icon colors */
-    .sc-icon-new        { color: var(--primary); }
-    .sc-icon-processing  { color: #ff9500; }
-    .sc-icon-shipped     { color: #9b59b6; }
-    .sc-icon-delivered   { color: var(--success); }
-    .sc-icon-completed   { color: var(--info); }
-    .sc-icon-canceled    { color: var(--danger); }
-
-    /* Status dot colors */
-    .sr-dot-new        { background: var(--primary); }
-    .sr-dot-processing  { background: #ff9500; }
-    .sr-dot-shipped    { background: #9b59b6; }
-    .sr-dot-delivered  { background: var(--success); }
-    .sr-dot-completed  { background: var(--info); }
-    .sr-dot-canceled   { background: var(--danger); }
-
-    /* Revenue value colors */
-    .rev-value-purple { color: #8B5CF6; }
-
-    /* Progress bar */
-    .progress-bar-custom {
-        background: var(--border);
-        border-radius: var(--radius-sm);
-        height: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: var(--shadow);
         overflow: hidden;
     }
-    .progress-fill-custom {
-        background: linear-gradient(90deg, var(--primary), var(--primary-light));
-        height: 100%;
-        border-radius: var(--radius-sm);
+    .card-header-custom { 
+        padding: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05); 
+        display: flex; justify-content: space-between; align-items: center; 
     }
-    .progress-bar-sm {
-        background: var(--border);
-        border-radius: var(--radius-sm);
-        height: 14px;
-        overflow: hidden;
+    .card-body-custom { padding: 1.5rem; }
+
+    /* Product UI */
+    .product-thumb {
+        width: 44px; height: 44px; border-radius: 10px; background: #f1f5f9;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
+    .product-thumb img { width: 100%; height: 100%; object-fit: contain; }
 
-    /* Table row highlight */
-    .row-today { background: rgba(0,119,182,0.05); font-weight: 600; }
+    /* Badges */
+    .badge { padding: 0.4em 0.8em; border-radius: 8px; font-weight: 700; font-size: 0.75rem; border: none; }
+    .bg-primary-soft { background: var(--primary-soft); color: var(--primary); }
+    .bg-success-soft { background: var(--success-soft); color: var(--success); }
+    .bg-warning-soft { background: var(--warning-soft); color: var(--warning); }
+    .bg-danger-soft  { background: var(--danger-soft); color: var(--danger); }
 
-    /* Badge color variants */
-    .badge-fire { background: var(--danger); }
-
-    /* Product name in table */
-    .product-name-cell { font-size: 0.88rem; }
-
-    /* Top product trophy badge */
-    .badge-trophy {
-        background: linear-gradient(135deg, #FFD700, #FF8C00);
-        color: #333;
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        font-size: 0.8rem;
+    /* Table override */
+    .table thead th { 
+        background: rgba(0,0,0,0.02); color: #64748b; font-size: 0.75rem; 
+        text-transform: uppercase; letter-spacing: 0.05em; border: none; 
     }
-
-    .table-foot-custom {
-        border-top: 2px solid var(--border);
-        background: var(--surface-alt);
-    }
+    .table td { border-color: rgba(0,0,0,0.03); padding-top: 1rem; padding-bottom: 1rem; }
 </style>

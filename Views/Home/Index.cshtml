@@ -4,7 +4,7 @@
 
 <!-- Page Header -->
 <div class="admin-page-header">
-    <h1 class="admin-page-title"><i class="fas fa-tachometer-alt me-2" style="color:var(--primary);"></i>Dashboard</h1>
+    <h1 class="admin-page-title"><i class="fas fa-tachometer-alt me-2 dashboard-title-icon"></i>Dashboard</h1>
     <p class="admin-page-subtitle">Chào mừng bạn quay trở lại! Dưới đây là tổng quan hệ thống.</p>
 </div>
 
@@ -153,67 +153,3 @@
     </div>
 </div>
 
-<style>
-    .quick-action-card {
-        background: white;
-        border-radius: var(--radius-lg);
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border);
-        text-align: center;
-        text-decoration: none;
-        color: var(--text-primary);
-        transition: var(--transition);
-    }
-    .quick-action-card:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-md);
-        border-color: var(--primary-lighter);
-        color: var(--primary);
-    }
-    .qa-icon {
-        width: 44px; height: 44px;
-        border-radius: var(--radius-md);
-        display: flex; align-items: center; justify-content: center;
-        color: white;
-        font-size: 1rem;
-    }
-    .qa-label { font-size: 0.78rem; font-weight: 700; }
-
-    .feature-mini-list { display: flex; flex-direction: column; gap: 12px; }
-    .fmini-item { display: flex; align-items: flex-start; gap: 12px; }
-    .fmini-icon {
-        width: 36px; height: 36px;
-        background: var(--primary-lightest);
-        border-radius: var(--radius-sm);
-        display: flex; align-items: center; justify-content: center;
-        color: var(--primary);
-        font-size: 0.85rem;
-        flex-shrink: 0;
-    }
-    .fmini-item strong { font-size: 0.85rem; }
-    .fmini-item small { font-size: 0.75rem; }
-
-    .dashboard-store-icon {
-        font-size: 3rem;
-        color: var(--primary);
-        margin-bottom: 12px;
-        line-height: 1;
-    }
-
-    /* Gradient icon variants for Home Index */
-    .qa-icon-primary   { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); }
-    .qa-icon-success   { background: linear-gradient(135deg, var(--success) 0%, #34D399 100%); }
-    .qa-icon-info      { background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%); }
-    .qa-icon-purple    { background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%); }
-    .qa-icon-warning   { background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%); }
-    .qa-icon-danger    { background: linear-gradient(135deg, var(--danger) 0%, #F87171 100%); }
-    .stats-icon-primary   { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; }
-    .stats-icon-success   { background: linear-gradient(135deg, var(--success) 0%, #34D399 100%); color: white; }
-    .stats-icon-purple    { background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%); color: white; }
-    .stats-icon-warning   { background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%); color: white; }
-</style>

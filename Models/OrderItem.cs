@@ -16,6 +16,9 @@ namespace Webstore.Models
         [Column("ProductID")]
         public int ProductId { get; set; }
 
+        [Column("VariantID")]
+        public int? VariantId { get; set; }
+
         [Required]
         [Column("Quantity")]
         public int Quantity { get; set; }
@@ -31,5 +34,8 @@ namespace Webstore.Models
 
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
+
+        [ForeignKey("VariantId")]
+        public virtual ProductVariant? Variant { get; set; }
     }
 }

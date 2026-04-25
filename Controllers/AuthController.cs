@@ -1,10 +1,7 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Webstore.Data;
 using Webstore.Models;
 using Webstore.Services;
 
@@ -12,12 +9,12 @@ namespace Webstore.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly EmailService _emailService;
+        private readonly IAccountService _accountService;
+        private readonly IEmailService _emailService;
 
-        public AuthController(ApplicationDbContext context, EmailService emailService)
+        public AuthController(IAccountService accountService, IEmailService emailService)
         {
-            _context = context;
+            _accountService = accountService;
             _emailService = emailService;
         }
 
@@ -41,58 +38,26 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                var errorMsg = "Vui lòng nhập đầy đủ thông tin";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                var errorMsg = "Vui long nhap day du thong tin";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
             }
 
-            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Username == username);
+            var isValid = await _accountService.ValidateCredentialsAsync(username, password);
+            if (!isValid)
+            {
+                var errorMsg = "Sai thong tin dang nhap";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
+                TempData["Error"] = errorMsg;
+                return View();
+            }
+
+            var account = await _accountService.GetAccountByUsernameAsync(username);
             if (account == null)
             {
-                var errorMsg = "Sai thông tin đăng nhập";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
-                TempData["Error"] = errorMsg;
-                return View();
-            }
-
-            // Kiểm tra password đã hash với salt
-            bool ok = false;
-            if (!string.IsNullOrEmpty(account.PasswordHash) && account.PasswordHash.Contains(':'))
-            {
-                // Định dạng salt:hash
-                var parts = account.PasswordHash.Split(':');
-                if (parts.Length == 2)
-                {
-                    var salt = parts[0];
-                    var storedHash = parts[1];
-                    var inputHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
-                    ok = CryptographicOperations.FixedTimeEquals(
-                        Convert.FromHexString(inputHash),
-                        Convert.FromHexString(storedHash));
-                }
-            }
-            else if (!string.IsNullOrEmpty(account.PasswordHash))
-            {
-                // Fallback: password lưu dạng plaintext (database cũ)
-                ok = account.PasswordHash == password;
-                if (ok)
-                {
-                    // Tự động nâng cấp lên dạng hash
-                    var newSalt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
-                    var newHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, newSalt);
-                    account.PasswordHash = newSalt + ":" + newHash;
-                    await _context.SaveChangesAsync();
-                }
-            }
-
-            if (!ok)
-            {
-                var errorMsg = "Sai thông tin đăng nhập";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                var errorMsg = "Loi he thong: khong tim thay tai khoan sau khi xac thuc";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
             }
@@ -106,47 +71,23 @@ namespace Webstore.Controllers
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
-
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
-            };
+            var authProperties = new AuthenticationProperties { IsPersistent = true, ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) };
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-            // Xác định redirect URL
-            var redirectUrl = string.Empty;
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                redirectUrl = returnUrl;
-            else if (account.Role == "Admin" || account.Role == "Employee")
-                redirectUrl = Url.Action("Index", "Home") ?? "/";
-            else
-                redirectUrl = Url.Action("Index", "Shop") ?? "/";
+            var redirectUrl = account.Role == "Admin" || account.Role == "Employee"
+                ? Url.Action("Index", "Home") : Url.Action("Index", "Shop");
 
-            // Nếu là AJAX request (X-Requested-With header), trả về JSON để client xử lý
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
-                return Json(new { success = true, redirectUrl = redirectUrl });
-            }
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) redirectUrl = returnUrl;
 
-            // Traditional form submit - redirect
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                return Redirect(returnUrl);
-
-            if (account.Role == "Admin" || account.Role == "Employee")
-                return RedirectToAction("Index", "Home");
-            else
-                return RedirectToAction("Index", "Shop");
+            if (isAjax) return Json(new { success = true, redirectUrl = redirectUrl });
+            return Redirect(redirectUrl!);
         }
 
         [HttpGet]
         public IActionResult Register()
         {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                return RedirectToAction("Index", "Home");
-            }
+            if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Index", "Home");
             return View();
         }
 
@@ -154,60 +95,28 @@ namespace Webstore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(Account input, string password)
         {
-            if (string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
             {
-                ModelState.AddModelError("", "Mật khẩu không được để trống");
+                ModelState.AddModelError("", "Mat khau phai co it nhat 6 ky tu");
                 return View(input);
             }
 
-            if (password.Length < 6)
+            if (await _accountService.GetAccountByUsernameAsync(input.Username) != null)
             {
-                ModelState.AddModelError("", "Mật khẩu phải có ít nhất 6 ký tự");
-                return View(input);
-            }
-
-            // Kiểm tra username đã tồn tại chưa
-            var exists = await _context.Accounts.AnyAsync(a => a.Username == input.Username);
-            if (exists)
-            {
-                ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
-                return View(input);
-            }
-
-            // Kiểm tra email nếu có
-            if (!string.IsNullOrEmpty(input.Email))
-            {
-                var emailExists = await _context.Accounts.AnyAsync(a => a.Email == input.Email);
-                if (emailExists)
-                {
-                    ModelState.AddModelError("Email", "Email đã được sử dụng");
-                    return View(input);
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
+                ModelState.AddModelError("Username", "Ten dang nhap da ton tai");
                 return View(input);
             }
 
             try
             {
-                // Tạo salt và hash password
-                var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
-                var passwordHash = Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
+                await _accountService.RegisterAsync(input, password);
 
-                input.PasswordHash = salt + ":" + passwordHash;
-                if (string.IsNullOrEmpty(input.Role)) input.Role = "Customer";
-
-                _context.Accounts.Add(input);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = "Đăng ký thành công, vui lòng đăng nhập";
+                TempData["Success"] = "Dang ky thanh cong, vui long dang nhap";
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "Có lỗi xảy ra khi đăng ký: " + ex.Message);
+                ModelState.AddModelError("", "Loi dang ky: " + ex.Message);
                 return View(input);
             }
         }
@@ -228,56 +137,36 @@ namespace Webstore.Controllers
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
-            if (string.IsNullOrWhiteSpace(email))
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@') || !email.Contains('.'))
             {
-                var errorMsg = "Vui lòng nhập địa chỉ email";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                var errorMsg = "Vui long nhap dia chi email hop le";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
             }
 
-            if (!email.Contains('@') || !email.Contains('.'))
+            // Always show success message to prevent email enumeration
+            var account = await _accountService.GetAccountByEmailAsync(email);
+
+            if (account != null)
             {
-                var errorMsg = "Địa chỉ email không hợp lệ";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
-                TempData["Error"] = errorMsg;
-                return View();
+                // Generate reset token
+                await _accountService.GenerateResetTokenAsync(email);
+
+                // Build reset link
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var resetLink = $"{baseUrl}/Auth/ResetPassword?token={Uri.EscapeDataString(account.ResetToken ?? "")}&email={Uri.EscapeDataString(email)}";
+
+                // Send email
+                await _emailService.SendPasswordResetEmailAsync(email, resetLink);
             }
-
-            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
-            if (account == null)
-            {
-                // Always show success message to prevent email enumeration
-                if (isAjax)
-                    return Json(new { success = true, message = "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi." });
-                TempData["Success"] = "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.";
-                return RedirectToAction("Login");
-            }
-
-            // Generate a secure reset token
-            var resetToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-            account.ResetToken = resetToken;
-            account.ResetTokenExpiry = DateTime.UtcNow.AddMinutes(30);
-            await _context.SaveChangesAsync();
-
-            // Build reset link
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var resetLink = $"{baseUrl}/Auth/ResetPassword?token={Uri.EscapeDataString(resetToken)}&email={Uri.EscapeDataString(email)}";
-
-            // Send email
-            var emailSent = await _emailService.SendPasswordResetEmailAsync(email, resetLink);
 
             if (isAjax)
             {
-                if (emailSent)
-                    return Json(new { success = true, message = "Đã gửi hướng dẫn đặt lại mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư (bao gồm thư rác)." });
-                else
-                    return Json(new { success = true, message = "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi." });
+                return Json(new { success = true, message = "Neu email ton tai trong he thong, huong dan dat lai mat khau da duoc gui." });
             }
 
-            TempData["Success"] = "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.";
+            TempData["Success"] = "Neu email ton tai trong he thong, huong dan dat lai mat khau da duoc gui.";
             return RedirectToAction("Login");
         }
 
@@ -291,7 +180,7 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
             {
-                TempData["Error"] = "Liên kết đặt lại mật khẩu không hợp lệ.";
+                TempData["Error"] = "Lien ket dat lai mat khau khong hop le.";
                 return RedirectToAction("ForgotPassword");
             }
 
@@ -306,70 +195,54 @@ namespace Webstore.Controllers
         {
             bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
-            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
-            {
-                var errorMsg = "Liên kết đặt lại mật khẩu không hợp lệ.";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
-                TempData["Error"] = errorMsg;
-                return RedirectToAction("ForgotPassword");
-            }
-
             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
             {
-                var errorMsg = "Mật khẩu mới phải có ít nhất 6 ký tự";
+                var errorMsg = "Mat khau moi phai co it nhat 6 ky tu";
                 ViewBag.Token = token;
                 ViewBag.Email = email;
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 ModelState.AddModelError("", errorMsg);
                 return View();
             }
 
             if (newPassword != confirmPassword)
             {
-                var errorMsg = "Mật khẩu xác nhận không khớp";
+                var errorMsg = "Mat khau xac nhan khong khop";
                 ViewBag.Token = token;
                 ViewBag.Email = email;
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 ModelState.AddModelError("", errorMsg);
                 return View();
             }
 
-            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
-            if (account == null || account.ResetToken != token)
+            var isValid = await _accountService.ValidateResetTokenAsync(email, token);
+            if (!isValid)
             {
-                var errorMsg = "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                var errorMsg = "Lien ket dat lai mat khau khong hop le hoac da het han.";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return RedirectToAction("ForgotPassword");
             }
 
-            if (account.ResetTokenExpiry == null || account.ResetTokenExpiry < DateTime.UtcNow)
+            var success = await _accountService.ResetPasswordAsync(email, token, newPassword);
+            if (!success)
             {
-                var errorMsg = "Liên kết đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu đặt lại mật khẩu mới.";
-                if (isAjax)
-                    return Json(new { success = false, error = errorMsg });
+                var errorMsg = "Khong the dat lai mat khau. Vui long thu lai.";
+                if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return RedirectToAction("ForgotPassword");
             }
-
-            // Update password
-            var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
-            var passwordHash = Webstore.Models.Security.PasswordHasher.HashPassword(newPassword, salt);
-            account.PasswordHash = salt + ":" + passwordHash;
-            account.ResetToken = null;
-            account.ResetTokenExpiry = null;
-            await _context.SaveChangesAsync();
 
             if (isAjax)
-                return Json(new { success = true, message = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới." });
+            {
+                return Json(new { success = true, message = "Dat lai mat khau thanh cong! Vui long dang nhap voi mat khau moi." });
+            }
 
-            TempData["Success"] = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.";
+            TempData["Success"] = "Dat lai mat khau thanh cong! Vui long dang nhap voi mat khau moi.";
             return RedirectToAction("Login");
         }
+
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -385,6 +258,5 @@ namespace Webstore.Controllers
             return View();
         }
     }
-
 }
 

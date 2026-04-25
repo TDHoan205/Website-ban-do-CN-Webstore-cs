@@ -10,13 +10,16 @@ namespace Webstore.Models
         [Column("cart_item_id")]
         public int CartItemId { get; set; }
 
-        // Nullable: cart can be anonymous (session-based)
         [Column("account_id")]
         public int? AccountId { get; set; }
 
         [Required]
         [Column("product_id")]
         public int ProductId { get; set; }
+
+        /// <summary>Biến thể được chọn (Màu + Dung lượng). Null = mua theo sản phẩm gốc</summary>
+        [Column("variant_id")]
+        public int? VariantId { get; set; }
 
         [Required]
         [Column("quantity")]
@@ -32,5 +35,8 @@ namespace Webstore.Models
 
         [ForeignKey("ProductId")]
         public virtual Product? Product { get; set; }
+
+        [ForeignKey("VariantId")]
+        public virtual ProductVariant? Variant { get; set; }
     }
 }

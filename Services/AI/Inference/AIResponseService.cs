@@ -8,6 +8,8 @@ namespace Webstore.Services.AI
     /// </summary>
     public class AIResponseService
     {
+        private const string ValueFocusedPrompt = "Hãy chuyển đổi thông số kỹ thuật khô khan này thành mô tả tập trung vào: Hiệu năng, Trải nghiệm và Giá trị kinh tế.";
+
         private readonly RAGEngineService _ragEngine;
         private readonly IntentDetectionService _intentDetector;
 
@@ -109,12 +111,8 @@ namespace Webstore.Services.AI
                     var formattedPrice = FormatPrice(product.Price);
                     response += $"• {product.Name}\n";
                     response += $"  💰 Giá: {formattedPrice}\n";
-                    if (!string.IsNullOrEmpty(product.Specs))
-                    {
-                        var specs = ParseSpecs(product.Specs);
-                        if (specs.Any())
-                            response += $"  📋 {string.Join(", ", specs.Take(2))}\n";
-                    }
+                    var valueNarrative = BuildValueFocusedDescription(product.Specs, product.Price);
+                    response += $"  ✨ {valueNarrative}\n";
                     response += $"\n";
                 }
 
@@ -227,7 +225,8 @@ namespace Webstore.Services.AI
                 {
                     var formattedPrice = FormatPrice(product.Price);
                     response += $"📱 {product.Name}\n";
-                    response += $"   Giá: {formattedPrice}\n\n";
+                    response += $"   Giá: {formattedPrice}\n";
+                    response += $"   {BuildValueFocusedDescription(product.Specs, product.Price)}\n\n";
                 }
 
                 response += "Bạn có muốn tìm hiểu thêm về sản phẩm nào không?";
@@ -280,18 +279,46 @@ namespace Webstore.Services.AI
                 return new List<string>();
             }
         }
+
+        private string BuildValueFocusedDescription(string rawSpecsOrDescription, decimal price)
+        {
+            if (string.IsNullOrWhiteSpace(rawSpecsOrDescription))
+            {
+                return "Hiệu năng ổn định cho nhu cầu hằng ngày, trải nghiệm dễ dùng và mức giá hợp lý so với phân khúc.";
+            }
+
+            var text = rawSpecsOrDescription.ToLowerInvariant();
+            var performance = "Hiệu năng cân bằng cho tác vụ phổ biến";
+            var experience = "Trải nghiệm mượt, dễ dùng trong thời gian dài";
+
+            if (text.Contains("snapdragon") || text.Contains("ryzen") || text.Contains("intel core") || text.Contains("apple m") || text.Contains("a17") || text.Contains("a16"))
+            {
+                performance = "Hiệu năng mạnh, xử lý tốt đa nhiệm và ứng dụng nặng";
+            }
+            else if (text.Contains("8gb") || text.Contains("12gb") || text.Contains("16gb"))
+            {
+                performance = "Hiệu năng tốt cho học tập, làm việc và giải trí";
+            }
+
+            if (text.Contains("120hz") || text.Contains("oled") || text.Contains("amoled") || text.Contains("retina"))
+            {
+                experience = "Màn hình đẹp, chuyển động mượt và trải nghiệm thị giác tốt";
+            }
+            else if (text.Contains("5000mah") || text.Contains("5500mah") || text.Contains("67w") || text.Contains("120w"))
+            {
+                experience = "Pin bền và sạc nhanh, phù hợp dùng liên tục cả ngày";
+            }
+
+            var value = price switch
+            {
+                < 8_000_000 => "Giá trị kinh tế cao trong tầm giá phổ thông",
+                < 20_000_000 => "Giá trị kinh tế tốt, cân bằng giữa cấu hình và chi phí",
+                _ => "Giá trị dài hạn cho nhu cầu hiệu năng và trải nghiệm cao cấp"
+            };
+
+            _ = ValueFocusedPrompt;
+            return $"{performance}; {experience}; {value}.";
+        }
     }
 
-    /// <summary>
-    /// AI Response - phản hồi từ AI
-    /// </summary>
-    public class AIResponse
-    {
-        public string Message { get; set; } = "";
-        public string Intent { get; set; } = "";
-        public decimal Confidence { get; set; }
-        public bool ShouldEscalate { get; set; }
-        public List<ProductContext> Products { get; set; } = new();
-        public List<FAQ> Faqs { get; set; } = new();
-    }
 }

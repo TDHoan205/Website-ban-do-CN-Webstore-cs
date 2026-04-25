@@ -14,12 +14,18 @@ namespace Webstore.Models
         [Column("product_id")]
         public int ProductId { get; set; }
 
+        /// <summary>
+        /// Số lượng tồn kho - Đồng bộ với thuộc tính StockQuantity
+        /// </summary>
         [Required]
         [Column("quantity_in_stock")]
-        public int QuantityInStock { get; set; } = 0;
+        public int StockQuantity { get; set; } = 0;
 
+        /// <summary>
+        /// Ngày cập nhật cuối - Đồng bộ với thuộc tính LastUpdated
+        /// </summary>
         [Column("last_updated_date")]
-        public DateTime LastUpdatedDate { get; set; } = DateTime.Now;
+        public DateTime LastUpdated { get; set; } = DateTime.Now;
 
         // Navigation properties
         [ForeignKey("ProductId")]
