@@ -80,7 +80,7 @@ namespace Webstore.Controllers
             var usernameExists = await _context.Accounts.AnyAsync(a => a.Username == account.Username);
             if (usernameExists)
             {
-                ModelState.AddModelError("Username", "Username đã tồn tại");
+                ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
                 return View(account);
             }
 
@@ -125,7 +125,7 @@ namespace Webstore.Controllers
             var usernameExists = await _context.Accounts.AnyAsync(a => a.Username == account.Username && a.AccountId != account.AccountId);
             if (usernameExists)
             {
-                ModelState.AddModelError("Username", "Username đã tồn tại");
+                ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
                 return View(account);
             }
 

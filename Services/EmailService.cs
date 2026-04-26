@@ -52,7 +52,7 @@ namespace Webstore.Services
                 var mail = new MailMessage
                 {
                     From = new MailAddress(fromEmail, fromName ?? "Webstore"),
-                    Subject = "Dat lai mat khau - Webstore",
+                    Subject = "Đặt lại mật khẩu - Webstore",
                     Body = BuildPasswordResetEmailBody(resetLink),
                     IsBodyHtml = true,
                     SubjectEncoding = Encoding.UTF8,
@@ -88,27 +88,27 @@ namespace Webstore.Services
                     <tr>
                         <td style='background: linear-gradient(135deg, #023E8A, #0077B6); padding: 30px; text-align: center;'>
                             <h1 style='color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;'>Webstore</h1>
-                            <p style='color: #CAF0F8; margin: 8px 0 0 0; font-size: 14px;'>Cua hang truc tuyen hang dau</p>
+                            <p style='color: #CAF0F8; margin: 8px 0 0 0; font-size: 14px;'>Cửa hàng trực tuyến hàng đầu</p>
                         </td>
                     </tr>
                     <tr>
                         <td style='padding: 40px 30px;'>
-                            <h2 style='color: #023E8A; margin: 0 0 20px 0; font-size: 20px;'>Yeu cau dat lai mat khau</h2>
+                            <h2 style='color: #023E8A; margin: 0 0 20px 0; font-size: 20px;'>Yêu cầu đặt lại mật khẩu</h2>
                             <p style='color: #333333; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;'>
-                                Chung toi da nhan duoc yeu cau dat lai mat khau cho tai khoan cua ban.
+                                Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.
                             </p>
                             <p style='color: #333333; font-size: 15px; line-height: 1.6; margin: 0 0 30px 0;'>
-                                Nhan vao nut ben duoi de dat lai mat khau. Lien ket nay se het han sau <strong>30 phut</strong>.
+                                Nhấn vào nút bên dưới để đặt lại mật khẩu. Liên kết này sẽ hết hạn sau <strong>30 phút</strong>.
                             </p>
                             <div style='text-align: center; margin: 30px 0;'>
-                                <a href='{resetLink}' style='display: inline-block; background: linear-gradient(135deg, #0077B6, #00B4D8); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-weight: bold; font-size: 16px;'>Dat lai mat khau</a>
+                                <a href='{resetLink}' style='display: inline-block; background: linear-gradient(135deg, #0077B6, #00B4D8); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-weight: bold; font-size: 16px;'>Đặt lại mật khẩu</a>
                             </div>
                             <p style='color: #666666; font-size: 13px; line-height: 1.6; margin: 0 0 15px 0;'>
-                                Neu ban khong yeu cau dat lai mat khau, vui long bo qua email nay.
+                                Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
                             </p>
                             <hr style='border: none; border-top: 1px solid #E1E8ED; margin: 25px 0;'>
                             <p style='color: #999999; font-size: 12px; line-height: 1.6; margin: 0;'>
-                                Lien ket dat lai mat khau: <a href='{resetLink}' style='color: #0077B6;'>{resetLink}</a>
+                                Liên kết đặt lại mật khẩu: <a href='{resetLink}' style='color: #0077B6;'>{resetLink}</a>
                             </p>
                         </td>
                     </tr>

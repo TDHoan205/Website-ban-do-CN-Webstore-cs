@@ -38,7 +38,7 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                var errorMsg = "Vui long nhap day du thong tin";
+                var errorMsg = "Vui lòng nhập đầy đủ thông tin";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -47,7 +47,7 @@ namespace Webstore.Controllers
             var isValid = await _accountService.ValidateCredentialsAsync(username, password);
             if (!isValid)
             {
-                var errorMsg = "Sai thong tin dang nhap";
+                var errorMsg = "Sai thông tin đăng nhập";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -56,7 +56,7 @@ namespace Webstore.Controllers
             var account = await _accountService.GetAccountByUsernameAsync(username);
             if (account == null)
             {
-                var errorMsg = "Loi he thong: khong tim thay tai khoan sau khi xac thuc";
+                var errorMsg = "Lỗi hệ thống: không tìm thấy tài khoản sau khi xác thực";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -97,13 +97,13 @@ namespace Webstore.Controllers
         {
             if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
             {
-                ModelState.AddModelError("", "Mat khau phai co it nhat 6 ky tu");
+                ModelState.AddModelError("", "Mật khẩu phải có ít nhất 6 ký tự");
                 return View(input);
             }
 
             if (await _accountService.GetAccountByUsernameAsync(input.Username) != null)
             {
-                ModelState.AddModelError("Username", "Ten dang nhap da ton tai");
+                ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
                 return View(input);
             }
 
@@ -111,12 +111,12 @@ namespace Webstore.Controllers
             {
                 await _accountService.RegisterAsync(input, password);
 
-                TempData["Success"] = "Dang ky thanh cong, vui long dang nhap";
+                TempData["Success"] = "Đăng ký thành công, vui lòng đăng nhập";
                 return RedirectToAction("Login");
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "Loi dang ky: " + ex.Message);
+                ModelState.AddModelError("", "Lỗi đăng ký: " + ex.Message);
                 return View(input);
             }
         }
@@ -139,7 +139,7 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(email) || !email.Contains('@') || !email.Contains('.'))
             {
-                var errorMsg = "Vui long nhap dia chi email hop le";
+                var errorMsg = "Vui lòng nhập địa chỉ email hợp lệ";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -163,10 +163,10 @@ namespace Webstore.Controllers
 
             if (isAjax)
             {
-                return Json(new { success = true, message = "Neu email ton tai trong he thong, huong dan dat lai mat khau da duoc gui." });
+                return Json(new { success = true, message = "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi." });
             }
 
-            TempData["Success"] = "Neu email ton tai trong he thong, huong dan dat lai mat khau da duoc gui.";
+            TempData["Success"] = "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.";
             return RedirectToAction("Login");
         }
 
@@ -180,7 +180,7 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
             {
-                TempData["Error"] = "Lien ket dat lai mat khau khong hop le.";
+                TempData["Error"] = "Liên kết đặt lại mật khẩu không hợp lệ.";
                 return RedirectToAction("ForgotPassword");
             }
 
@@ -197,7 +197,7 @@ namespace Webstore.Controllers
 
             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
             {
-                var errorMsg = "Mat khau moi phai co it nhat 6 ky tu";
+                var errorMsg = "Mật khẩu mới phải có ít nhất 6 ký tự";
                 ViewBag.Token = token;
                 ViewBag.Email = email;
                 if (isAjax) return Json(new { success = false, error = errorMsg });
@@ -207,7 +207,7 @@ namespace Webstore.Controllers
 
             if (newPassword != confirmPassword)
             {
-                var errorMsg = "Mat khau xac nhan khong khop";
+                var errorMsg = "Mật khẩu xác nhận không khớp";
                 ViewBag.Token = token;
                 ViewBag.Email = email;
                 if (isAjax) return Json(new { success = false, error = errorMsg });
@@ -218,7 +218,7 @@ namespace Webstore.Controllers
             var isValid = await _accountService.ValidateResetTokenAsync(email, token);
             if (!isValid)
             {
-                var errorMsg = "Lien ket dat lai mat khau khong hop le hoac da het han.";
+                var errorMsg = "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return RedirectToAction("ForgotPassword");
@@ -227,7 +227,7 @@ namespace Webstore.Controllers
             var success = await _accountService.ResetPasswordAsync(email, token, newPassword);
             if (!success)
             {
-                var errorMsg = "Khong the dat lai mat khau. Vui long thu lai.";
+                var errorMsg = "Không thể đặt lại mật khẩu. Vui lòng thử lại.";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return RedirectToAction("ForgotPassword");
@@ -235,10 +235,10 @@ namespace Webstore.Controllers
 
             if (isAjax)
             {
-                return Json(new { success = true, message = "Dat lai mat khau thanh cong! Vui long dang nhap voi mat khau moi." });
+                return Json(new { success = true, message = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới." });
             }
 
-            TempData["Success"] = "Dat lai mat khau thanh cong! Vui long dang nhap voi mat khau moi.";
+            TempData["Success"] = "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.";
             return RedirectToAction("Login");
         }
 
