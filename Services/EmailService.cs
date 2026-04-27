@@ -100,7 +100,7 @@ namespace Webstore.Services
                                 Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.
                             </p>
                             <p style='color: #333333; font-size: 15px; line-height: 1.6; margin: 0 0 30px 0;'>
-                                Nhấp vào nút bên dưới để đặt lại mật khẩu của bạn. Liên kết này sẽ hết hạn sau <strong>30 phút</strong>.
+                                Nhấn vào nút bên dưới để đặt lại mật khẩu. Liên kết này sẽ hết hạn sau <strong>30 phút</strong>.
                             </p>
                             <div style='text-align: center; margin: 30px 0;'>
                                 <a href='{resetLink}' style='display: inline-block; background: linear-gradient(135deg, #0077B6, #00B4D8); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-weight: bold; font-size: 16px;'>Đặt lại mật khẩu</a>

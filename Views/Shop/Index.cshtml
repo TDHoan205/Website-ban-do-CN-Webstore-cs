@@ -409,25 +409,25 @@
     {
         if (string.IsNullOrEmpty(name)) return "cube";
         name = name.ToLower();
-        if (name.Contains("dien thoai") || name.Contains("phone") || name.Contains("iphone") || name.Contains("samsung") || name.Contains("xiaomi"))
-            return "mobile-alt";
-        if (name.Contains("laptop") || name.Contains("may tinh") || name.Contains("macbook") || name.Contains("dell") || name.Contains("hp"))
-            return "laptop";
-        if (name.Contains("tablet") || name.Contains("ipad"))
-            return "tablet-alt";
-        if (name.Contains("am thanh") || name.Contains("tai nghe") || name.Contains("headphone") || name.Contains("airpod"))
-            return "headphones-alt";
-        if (name.Contains("dong ho") || name.Contains("watch") || name.Contains("smartwatch"))
-            return "clock";
-        if (name.Contains("phu kien") || name.Contains("accessory") || name.Contains("sac") || name.Contains("cable"))
-            return "plug";
-        if (name.Contains("camera") || name.Contains("webcam"))
-            return "camera";
-        if (name.Contains("game") || name.Contains("console"))
-            return "gamepad";
-        if (name.Contains("ban phim") || name.Contains("keyboard"))
-            return "keyboard";
-        if (name.Contains("chuot") || name.Contains("mouse"))
+         if (name.Contains("điện thoại") || name.Contains("dien thoai") || name.Contains("phone") || name.Contains("iphone") || name.Contains("samsung") || name.Contains("xiaomi"))
+             return "mobile-alt";
+         if (name.Contains("laptop") || name.Contains("máy tính") || name.Contains("may tinh") || name.Contains("macbook") || name.Contains("dell") || name.Contains("hp"))
+             return "laptop";
+         if (name.Contains("tablet") || name.Contains("ipad"))
+             return "tablet-alt";
+         if (name.Contains("âm thanh") || name.Contains("am thanh") || name.Contains("tai nghe") || name.Contains("tái nghe") || name.Contains("headphone") || name.Contains("airpod"))
+             return "headphones-alt";
+         if (name.Contains("đồng hồ") || name.Contains("dong ho") || name.Contains("watch") || name.Contains("smartwatch"))
+             return "clock";
+         if (name.Contains("phụ kiện") || name.Contains("phu kien") || name.Contains("accessory") || name.Contains("sạc") || name.Contains("sac") || name.Contains("cable"))
+             return "plug";
+         if (name.Contains("camera") || name.Contains("webcam"))
+             return "camera";
+         if (name.Contains("game") || name.Contains("console"))
+             return "gamepad";
+         if (name.Contains("bàn phím") || name.Contains("ban phim") || name.Contains("keyboard"))
+             return "keyboard";
+         if (name.Contains("chuột") || name.Contains("chuot") || name.Contains("mouse"))
             return "mouse";
         return "cube";
     }
