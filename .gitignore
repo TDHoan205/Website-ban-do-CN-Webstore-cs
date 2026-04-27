@@ -1,62 +1,79 @@
-# Visual Studio
-.vs/
-*.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-.vs/
+# =========================================================
+# Website-ban-do-CN-Webstore-cs - .gitignore
+# =========================================================
 
-# User-specific files
-*.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# Build results
+## Build outputs (LUÔN ignore - không push lên git)
 bin/
 obj/
-[Bb]in/
 [Oo]bj/
+[Bb]in/
 
-# NuGet
+## IDE / Editor
+.vs/
+.vscode/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.idea/
+*.swp
+*~
+
+## NuGet
 *.nupkg
 *.snupkg
 .nuget/
 packages/
-
-# .NET Core
 project.lock.json
 project.fragment.lock.json
 artifacts/
 
-# ASP.NET Scaffolding
-ScaffoldingReadMe.txt
-
-# IDE
-*.swp
-*~
-
-# Logs
+## Logs
 *.log
 logs/
 
-# OS generated
+## OS
 .DS_Store
 .DS_Store?
 ._*
-.Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
 
-# Database
+## Database
 *.mdf
 *.ldf
 *.sqlite
+*.db-shm
+*.db-wal
 
-# Secrets
+## Secrets - KHÔNG BAO GIỜ push các file này
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+ConnectionStrings.config
+*.pem
+*.key
+
+## Scaffolding
+ScaffoldingReadMe.txt
+
+## =========================================================
+# HƯỚNG DẪN CHO TEAM
+# =========================================================
+## Khi clone repo mới hoặc sau khi pull code bị lỗi CSS:
+## 1. Xóa folder obj/ (chứa cache build bị lỗi):
+##    rmdir /s /q obj
+##
+## 2. Build lại từ đầu:
+##    dotnet build --no-incremental
+##
+## Hoặc chạy script setup:
+##    dotnet run
+##
+## Nếu CSS vẫn lỗi, xóa cả bin/ trước:
+##    rmdir /s /q bin
+##    rmdir /s /q obj
+##    dotnet build
+## =========================================================
