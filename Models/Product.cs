@@ -32,6 +32,9 @@ namespace Webstore.Models
         [Column("stock_quantity")]
         public int StockQuantity { get; set; } = 0;
 
+        [Column("is_available")]
+        public bool IsAvailable { get; set; } = true;
+
         [Column("rating", TypeName = "decimal(2,1)")]
         public decimal Rating { get; set; } = 4.5m;
 

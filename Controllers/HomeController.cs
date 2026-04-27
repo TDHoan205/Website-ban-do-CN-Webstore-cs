@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
 using Webstore.Models;
 
 namespace Webstore.Controllers
 {
+    [Authorize(Roles = "Admin,Employee")]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;

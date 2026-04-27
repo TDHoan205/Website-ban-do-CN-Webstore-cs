@@ -233,12 +233,15 @@ namespace Webstore.Services
             }
         }
 
+        public void InvalidateCache()
+        {
+            InvalidateProductCache();
+        }
+
         private void InvalidateProductCache()
         {
-            // Invalidate common cache keys
             _cache.Remove("all_categories");
             _cache.Remove("filters_");
-            _cache.Remove($"product_");
         }
     }
 }

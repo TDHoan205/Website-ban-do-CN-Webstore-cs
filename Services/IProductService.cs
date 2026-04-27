@@ -14,6 +14,7 @@ namespace Webstore.Services
         Task CreateProductAsync(Product product);
         Task UpdateProductAsync(Product product);
         Task DeleteProductAsync(int id);
+        void InvalidateCache();
     }
 
 

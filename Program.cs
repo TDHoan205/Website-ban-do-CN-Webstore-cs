@@ -224,6 +224,22 @@ END";
                             Console.WriteLine($"⚠️ Không thể đảm bảo bảng Receipts_Shipments: {exRsTable.Message}");
                         }
 
+                        // Tạo cột is_available cho Products nếu chưa tồn tại
+                        var addIsAvailableColumn = @"
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('[dbo].[Products]') AND name = 'is_available')
+BEGIN
+    ALTER TABLE [dbo].[Products] ADD [is_available] BIT NOT NULL DEFAULT 1;
+END";
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(addIsAvailableColumn);
+                            Console.WriteLine("✅ Đảm bảo cột is_available tồn tại trong bảng Products.");
+                        }
+                        catch (Exception exIsAvail)
+                        {
+                            Console.WriteLine($"⚠️ Không thể thêm cột is_available: {exIsAvail.Message}");
+                        }
+
                         // Seed dữ liệu mẫu
                         await SeedData.SeedAsync(db);
                         Console.WriteLine("✅ Đã thêm dữ liệu mẫu vào database!");
@@ -252,14 +268,17 @@ END";
 
 
             // Configure the HTTP request pipeline.
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
+                app.UseHttpsRedirection();
             }
 
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             // Response Caching for performance

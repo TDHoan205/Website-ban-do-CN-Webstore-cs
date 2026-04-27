@@ -85,6 +85,8 @@
                                 Nhà cung cấp <i class="fas fa-sort ms-1"></i>
                             </a>
                         </th>
+                        <th class="text-center">Tồn kho</th>
+                        <th class="text-center">Trạng thái</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
@@ -134,6 +136,26 @@
                                 else
                                 {
                                     <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="text-center fw-bold @(item.StockQuantity <= 0 ? "text-danger" : item.StockQuantity <= 5 ? "text-warning" : "text-success")">
+                                @(item.StockQuantity > 0 ? item.StockQuantity.ToString() : "0")
+                            </td>
+                            <td class="text-center">
+                                @if (item.IsAvailable)
+                                {
+                                    @if (item.StockQuantity > 0)
+                                    {
+                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Còn hàng</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i>Hết hàng</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-eye-slash me-1"></i>Ẩn</span>
                                 }
                             </td>
                             <td class="text-center">

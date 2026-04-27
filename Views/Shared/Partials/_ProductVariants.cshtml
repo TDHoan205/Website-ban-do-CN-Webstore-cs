@@ -1,0 +1,190 @@
+@model List<Webstore.Models.ProductVariant>
+
+<div class="card mt-4 border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+            <i class="fas fa-list-ul me-2 text-primary"></i>Cấu hình chi tiết (Phiên bản)
+        </h5>
+        <button type="button" class="btn btn-primary btn-sm" onclick="addVariantRow()">
+            <i class="fas fa-plus me-1"></i>Thêm phiên bản
+        </button>
+    </div>
+    <div class="card-body p-0">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="text-center py-5 text-muted" id="noVariantsMessage">
+                <i class="fas fa-boxes-stacked fa-3x mb-3 opacity-25"></i>
+                <p class="mb-1">Chưa có phiên bản nào</p>
+                <small>Nhấn "Thêm phiên bản" để tạo cấu hình (VD: RAM 8GB/128GB, màu sắc...)</small>
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover mb-0" id="variantsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 18%">Màu sắc</th>
+                        <th style="width: 18%">Dung lượng (ROM)</th>
+                        <th style="width: 14%">RAM</th>
+                        <th style="width: 20%">Giá bán (VNĐ)</th>
+                        <th style="width: 12%">SL tồn</th>
+                        <th style="width: 10%">Thứ tự</th>
+                        <th style="width: 8%"></th>
+                    </tr>
+                </thead>
+                <tbody id="variantsBody">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var (variant, index) in Model.Select((v, i) => (v, i)))
+                        {
+                            <tr data-variant-index="@index" class="variant-row">
+                                <td>
+                                    <input type="text" name="Variants[@index].VariantId" value="@variant.VariantId" hidden />
+                                    <input type="text" name="Variants[@index].Color" value="@variant.Color" class="form-control form-control-sm" placeholder="VD: Đen, Trắng" />
+                                </td>
+                                <td>
+                                    <input type="text" name="Variants[@index].Storage" value="@variant.Storage" class="form-control form-control-sm" placeholder="VD: 128GB, 256GB" />
+                                </td>
+                                <td>
+                                    <input type="text" name="Variants[@index].RAM" value="@variant.RAM" class="form-control form-control-sm" placeholder="VD: 8GB, 16GB" />
+                                </td>
+                                <td>
+                                    <input type="number" name="Variants[@index].Price" value="@variant.Price.ToString("0.##")" class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0" />
+                                </td>
+                                <td>
+                                    <input type="number" name="Variants[@index].StockQuantity" value="@variant.StockQuantity" class="form-control form-control-sm" placeholder="Số lượng" min="0" />
+                                </td>
+                                <td>
+                                    <input type="number" name="Variants[@index].DisplayOrder" value="@variant.DisplayOrder" class="form-control form-control-sm" placeholder="0" min="0" />
+                                </td>
+                                <td class="text-center align-middle">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariantRow(this)" title="Xóa phiên bản">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    var variantIndex = @(Model?.Count ?? 0);
+
+    function addVariantRow() {
+        var tbody = document.getElementById('variantsBody');
+        var noMsg = document.getElementById('noVariantsMessage');
+        if (noMsg) noMsg.style.display = 'none';
+
+        var row = document.createElement('tr');
+        row.className = 'variant-row';
+        row.dataset.variantIndex = variantIndex;
+        row.innerHTML = `
+            <tr data-variant-index="${variantIndex}" class="variant-row">
+                <td>
+                    <input type="text" name="Variants[${variantIndex}].VariantId" value="0" hidden />
+                    <input type="text" name="Variants[${variantIndex}].Color" class="form-control form-control-sm" placeholder="VD: Đen, Trắng" />
+                </td>
+                <td>
+                    <input type="text" name="Variants[${variantIndex}].Storage" class="form-control form-control-sm" placeholder="VD: 128GB, 256GB" />
+                </td>
+                <td>
+                    <input type="text" name="Variants[${variantIndex}].RAM" class="form-control form-control-sm" placeholder="VD: 8GB, 16GB" />
+                </td>
+                <td>
+                    <input type="number" name="Variants[${variantIndex}].Price" class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0" />
+                </td>
+                <td>
+                    <input type="number" name="Variants[${variantIndex}].StockQuantity" class="form-control form-control-sm" placeholder="Số lượng" value="0" min="0" />
+                </td>
+                <td>
+                    <input type="number" name="Variants[${variantIndex}].DisplayOrder" class="form-control form-control-sm" placeholder="0" value="${variantIndex}" min="0" />
+                </td>
+                <td class="text-center align-middle">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariantRow(this)" title="Xóa phiên bản">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        // Fix: the outer <tr> wrapper is wrong, replace it
+        var tr = document.createElement('tr');
+        tr.className = 'variant-row';
+        tr.dataset.variantIndex = variantIndex;
+        tr.innerHTML = `
+            <td>
+                <input type="text" name="Variants[${variantIndex}].VariantId" value="0" hidden />
+                <input type="text" name="Variants[${variantIndex}].Color" class="form-control form-control-sm" placeholder="VD: Đen, Trắng" />
+            </td>
+            <td>
+                <input type="text" name="Variants[${variantIndex}].Storage" class="form-control form-control-sm" placeholder="VD: 128GB, 256GB" />
+            </td>
+            <td>
+                <input type="text" name="Variants[${variantIndex}].RAM" class="form-control form-control-sm" placeholder="VD: 8GB, 16GB" />
+            </td>
+            <td>
+                <input type="number" name="Variants[${variantIndex}].Price" class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0" />
+            </td>
+            <td>
+                <input type="number" name="Variants[${variantIndex}].StockQuantity" class="form-control form-control-sm" placeholder="Số lượng" value="0" min="0" />
+            </td>
+            <td>
+                <input type="number" name="Variants[${variantIndex}].DisplayOrder" class="form-control form-control-sm" placeholder="0" value="${variantIndex}" min="0" />
+            </td>
+            <td class="text-center align-middle">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariantRow(this)" title="Xóa phiên bản">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+        variantIndex++;
+        renumberVariantRows();
+    }
+
+    function removeVariantRow(btn) {
+        var row = btn.closest('tr');
+        var variantIdInput = row.querySelector('input[name*="VariantId"]');
+        var variantId = variantIdInput ? variantIdInput.value : '0';
+
+        if (variantId && variantId !== '0') {
+            // Mark existing variant for deletion
+            var deleteInput = document.createElement('input');
+            deleteInput.type = 'hidden';
+            deleteInput.name = 'VariantsToDelete';
+            deleteInput.value = variantId;
+            row.closest('form')?.appendChild(deleteInput);
+        }
+
+        row.remove();
+        renumberVariantRows();
+
+        // Show "no variants" message if table is empty
+        var tbody = document.getElementById('variantsBody');
+        if (tbody && tbody.children.length === 0) {
+            var noMsg = document.getElementById('noVariantsMessage');
+            if (noMsg) noMsg.style.display = '';
+        }
+    }
+
+    function renumberVariantRows() {
+        var tbody = document.getElementById('variantsBody');
+        if (!tbody) return;
+        var rows = tbody.querySelectorAll('tr.variant-row');
+        rows.forEach(function(row, idx) {
+            row.querySelectorAll('input[name]').forEach(function(input) {
+                var name = input.getAttribute('name');
+                if (name) {
+                    input.setAttribute('name', name.replace(/Variants\[\d+\]/, 'Variants[' + idx + ']'));
+                }
+            });
+            row.dataset.variantIndex = idx;
+        });
+        variantIndex = rows.length;
+    }
+</script>

@@ -1,9 +1,11 @@
 -- =====================================================
--- WEBCORE SQL INIT SCRIPT
--- Merged from create_database.sql + fix_accounts_table.sql
+-- TechShopWebsite1 - Full Database Setup Script
+-- Merged: init_database + Update_IsAvailable + Fix_Duplicate_Emails
 -- =====================================================
 
--- Create Database (idempotent)
+-- =====================================================
+-- CREATE DATABASE
+-- =====================================================
 IF DB_ID(N'TechShopWebsite1') IS NULL
 BEGIN
     CREATE DATABASE TechShopWebsite1;
@@ -130,6 +132,16 @@ ELSE
     PRINT 'Products table already exists';
 GO
 
+-- Add is_available column (if not exists - from Update_IsAvailable.sql)
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Products') AND name = 'is_available')
+BEGIN
+    ALTER TABLE Products ADD is_available BIT NOT NULL DEFAULT 1;
+    PRINT 'Added is_available column to Products';
+END
+ELSE
+    PRINT 'is_available column already exists';
+GO
+
 -- ProductVariants Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductVariants')
 BEGIN
@@ -230,7 +242,7 @@ ELSE
     PRINT 'Cart_Items table already exists';
 GO
 
--- AI Conversation Logs Table
+-- AIConversationLogs Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AIConversationLogs')
 BEGIN
     CREATE TABLE [AIConversationLogs] (
@@ -294,7 +306,7 @@ ELSE
     PRINT 'KnowledgeChunks table already exists';
 GO
 
--- Chat Sessions Table
+-- ChatSessions Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ChatSessions')
 BEGIN
     CREATE TABLE [ChatSessions] (
@@ -333,7 +345,7 @@ ELSE
     PRINT 'Notifications table already exists';
 GO
 
--- Chat Messages Table
+-- ChatMessages Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ChatMessages')
 BEGIN
     CREATE TABLE [ChatMessages] (
@@ -396,11 +408,11 @@ GO
 -- Products (skip if exists)
 IF NOT EXISTS (SELECT * FROM Products)
 BEGIN
-    INSERT INTO Products (name, description, price, original_price, stock_quantity, rating, is_new, is_hot, discount_percent, specifications, image_url, category_id, supplier_id)
+    INSERT INTO Products (name, description, price, original_price, stock_quantity, rating, is_new, is_hot, discount_percent, specifications, image_url, category_id, supplier_id, is_available)
     VALUES
-    (N'iPhone 15 Pro Max', N'iPhone 15 Pro Max với chip A17 Pro, thiết kế titan cao cấp.', 32990000, 34990000, 100, 4.9, 1, 1, 6, '{"cpu": "A17 Pro", "screen": "6.7 inch"}', '/images/products/iPhone_15_Pro_Max.png', 1, 2),
-    (N'Samsung Galaxy S24 Ultra', N'Samsung Galaxy S24 Ultra với AI tiên tiến và bút S Pen.', 28990000, 31990000, 80, 4.8, 1, 1, 9, '{"cpu": "Snapdragon 8 Gen 3", "screen": "6.8 inch"}', '/images/products/Galaxy_S24_Ultra.png', 1, 1),
-    (N'MacBook Air M3', N'Laptop siêu mỏng nhẹ với chip M3 cực mạnh.', 27990000, 29990000, 50, 4.9, 1, 1, 7, '{"cpu": "Apple M3", "ram": "8GB"}', '/images/products/MacBook_Air_M3.png', 2, 2);
+    (N'iPhone 15 Pro Max', N'iPhone 15 Pro Max với chip A17 Pro, thiết kế titan cao cấp.', 32990000, 34990000, 100, 4.9, 1, 1, 6, '{"cpu": "A17 Pro", "screen": "6.7 inch"}', '/images/products/iPhone_15_Pro_Max.png', 1, 2, 1),
+    (N'Samsung Galaxy S24 Ultra', N'Samsung Galaxy S24 Ultra với AI tiên tiến và bút S Pen.', 28990000, 31990000, 80, 4.8, 1, 1, 9, '{"cpu": "Snapdragon 8 Gen 3", "screen": "6.8 inch"}', '/images/products/Galaxy_S24_Ultra.png', 1, 1, 1),
+    (N'MacBook Air M3', N'Laptop siêu mỏng nhẹ với chip M3 cực mạnh.', 27990000, 29990000, 50, 4.9, 1, 1, 7, '{"cpu": "Apple M3", "ram": "8GB"}', '/images/products/MacBook_Air_M3.png', 2, 2, 1);
     PRINT 'Inserted Products data';
 END
 ELSE
@@ -422,12 +434,25 @@ BEGIN
     PRINT 'Inserted ProductVariants data';
 END
 ELSE
-    PRINT 'ProductVariants already has data';
+    PRINT 'ProductVariants table already has data';
 GO
 
 -- =====================================================
+-- DATA FIXES (from Fix_Duplicate_Emails.sql)
+-- =====================================================
+
+-- Normalize all emails to lowercase to prevent duplicate registration errors
+UPDATE [dbo].[Accounts]
+SET [Email] = LOWER(LTRIM(RTRIM([Email])))
+WHERE [Email] IS NOT NULL;
+
+PRINT 'Normalized all emails to lowercase';
+
+-- =====================================================
+-- DONE
+-- =====================================================
 PRINT '';
 PRINT '==========================================';
-PRINT 'Database initialization complete!';
+PRINT 'Database setup complete!';
 PRINT '==========================================';
 PRINT '';

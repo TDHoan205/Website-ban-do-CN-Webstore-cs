@@ -56,7 +56,11 @@ namespace Webstore.Controllers
             var account = await _accountService.GetAccountByUsernameAsync(username);
             if (account == null)
             {
-                var errorMsg = "Lỗi hệ thống: không tìm thấy tài khoản sau khi xác thực";
+                account = await _accountService.GetAccountByEmailAsync(username);
+            }
+            if (account == null)
+            {
+                var errorMsg = "Sai thông tin đăng nhập";
                 if (isAjax) return Json(new { success = false, error = errorMsg });
                 TempData["Error"] = errorMsg;
                 return View();
@@ -105,6 +109,18 @@ namespace Webstore.Controllers
             {
                 ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại");
                 return View(input);
+            }
+
+            // Check if email already exists (normalize before checking)
+            if (!string.IsNullOrWhiteSpace(input.Email))
+            {
+                var normalizedEmail = input.Email.Trim().ToLowerInvariant();
+                input.Email = normalizedEmail; // Normalize the input
+                if (await _accountService.GetAccountByEmailAsync(normalizedEmail) != null)
+                {
+                    ModelState.AddModelError("Email", "Email đã được sử dụng");
+                    return View(input);
+                }
             }
 
             try

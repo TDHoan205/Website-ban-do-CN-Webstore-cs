@@ -1207,12 +1207,12 @@
 }
 
 .product-card-modern .btn-add-cart-sm {
-    background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
     color: white;
     border: none;
     padding: 10px 14px;
     border-radius: 10px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1220,16 +1220,22 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .product-card-modern .btn-add-cart-sm:hover {
-    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    background: linear-gradient(135deg, #005f8a 0%, #0077B6 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
+    box-shadow: 0 8px 20px rgba(0, 119, 182, 0.35);
+    color: white;
 }
 
 .product-card-modern .btn-add-cart-sm:active {
     transform: translateY(0);
+}
+
+.product-card-modern .btn-add-cart-sm i {
+    font-size: 0.85rem;
 }
 
 @media (max-width: 768px) {

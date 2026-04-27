@@ -26,7 +26,9 @@ namespace Webstore.Services
 
         public async Task<Account?> GetAccountByEmailAsync(string email)
         {
-            var accounts = await _accountRepository.FindAsync(a => a.Email == email);
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+            var accounts = await _accountRepository.FindAsync(a => a.Email != null && a.Email.Trim().ToLower() == normalizedEmail);
             return accounts.FirstOrDefault();
         }
 
@@ -45,9 +47,18 @@ namespace Webstore.Services
             }
         }
 
-        public async Task<bool> ValidateCredentialsAsync(string username, string password)
+        public async Task<bool> ValidateCredentialsAsync(string usernameOrEmail, string password)
         {
-            var account = await GetAccountByUsernameAsync(username);
+            if (string.IsNullOrWhiteSpace(usernameOrEmail) || string.IsNullOrWhiteSpace(password))
+                return false;
+
+            // Try to find by username first, then by email
+            var account = await GetAccountByUsernameAsync(usernameOrEmail.Trim());
+            if (account == null)
+            {
+                account = await GetAccountByEmailAsync(usernameOrEmail);
+            }
+
             if (account == null) return false;
 
             if (!string.IsNullOrEmpty(account.PasswordHash) && account.PasswordHash.Contains(':'))
@@ -62,11 +73,18 @@ namespace Webstore.Services
                 }
             }
 
+            // Fallback for plain text (should not happen in production)
             return account.PasswordHash == password;
         }
 
         public async Task RegisterAsync(Account account, string password)
         {
+            // Normalize email to prevent duplicates
+            if (!string.IsNullOrWhiteSpace(account.Email))
+            {
+                account.Email = account.Email.Trim().ToLowerInvariant();
+            }
+            
             var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
             account.PasswordHash = salt + ":" + Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
             if (string.IsNullOrEmpty(account.Role)) account.Role = "Customer";
