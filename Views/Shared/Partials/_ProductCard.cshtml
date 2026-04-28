@@ -1,7 +1,7 @@
 @model Webstore.Models.Product
 
 <div class="product-card-wrapper">
-    <div class="product-card-modern">
+    <div class="product-card-modern" data-product-id="@Model.ProductId">
         <div class="product-image-wrapper">
             <a asp-controller="Shop" asp-action="Product" asp-route-id="@Model.ProductId" class="product-image-link">
                 @if (!string.IsNullOrEmpty(Model.ImageUrl))
@@ -104,3 +104,19 @@
         </div>
     </div>
 </div>
+
+
+@functions {
+    public string GetColorHex(string colorName) {
+        if (string.IsNullOrEmpty(colorName)) return "#ccc";
+        colorName = colorName.ToLower();
+        if (colorName.Contains("đen") || colorName.Contains("black")) return "#333";
+        if (colorName.Contains("trắng") || colorName.Contains("white")) return "#fff";
+        if (colorName.Contains("xanh") || colorName.Contains("blue")) return "#3b82f6";
+        if (colorName.Contains("hồng") || colorName.Contains("pink")) return "#f472b6";
+        if (colorName.Contains("vàng") || colorName.Contains("gold")) return "#fbbf24";
+        if (colorName.Contains("bạc") || colorName.Contains("silver")) return "#e2e8f0";
+        if (colorName.Contains("titan")) return "#71717a";
+        return "#ddd";
+    }
+}

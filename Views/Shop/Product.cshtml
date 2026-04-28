@@ -1,9 +1,35 @@
 @model Webstore.Models.Product
+@using System.Text.Json
 @{
     ViewData["Title"] = Model.Name;
     Layout = "_ShopLayout";
     var fallbackDescriptionHtml = ProductDescriptionText.SanitizeDescriptionHtml("Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp.");
     var descriptionHtml = string.IsNullOrWhiteSpace(Model.Description) ? fallbackDescriptionHtml : Model.Description;
+
+    // Images for gallery (prefer DB/controller-provided list; fallback to ImageUrl; ensure at least 5 thumbnails)
+    var productImages = (ViewBag.ProductImages as List<string>) ?? new List<string>();
+    
+    if (productImages.Count == 0 && !string.IsNullOrWhiteSpace(Model.ImageUrl))
+    {
+        productImages.Add(Model.ImageUrl!);
+        
+        // [Code mới] Tự động tìm thêm 4 ảnh phụ dựa trên tên file chính
+        var mainImgPath = Model.ImageUrl!;
+        var fileName = System.IO.Path.GetFileNameWithoutExtension(mainImgPath);
+        var ext = System.IO.Path.GetExtension(mainImgPath);
+        
+        for (int i = 1; i <= 4; i++) {
+            var extraUrl = $"/images/products/{fileName}__{i:02}.jpg";
+            productImages.Add(extraUrl);
+        }
+    }
+    
+    if (productImages.Count == 0)
+    {
+        productImages.Add("/images/products/placeholder.svg");
+    }
+    
+    var productImagesJson = JsonSerializer.Serialize(productImages);
 }
 
 <!-- Page Header -->
@@ -22,30 +48,29 @@
 
 <div class="container py-5">
     <div class="row">
-        <!-- Product Image -->
+        <!-- Product Image Gallery (Full Implementation) -->
         <div class="col-lg-6 mb-4">
-            <div class="product-gallery">
-                <div class="gallery-main">
-                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
-                    {
-                        <img src="@Model.ImageUrl" alt="@Model.Name" id="mainImage" />
-                    }
-                    else
-                    {
-                        <div class="gallery-placeholder">
-                            <div style="text-align:center;color:var(--text-muted);">
-                                <i class="fas fa-box fa-5x"></i>
-                                <p style="margin-top:12px;font-weight:700;font-size:0.85rem;">@(Model.Name)</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-                @if (!string.IsNullOrEmpty(Model.ImageUrl))
-                {
-                    <div class="gallery-hint text-center mt-2">
-                        <small class="text-muted"><i class="fas fa-image me-1"></i>Hình ảnh sản phẩm</small>
+            <div class="product-gallery-container">
+                <!-- 1. Ảnh chính lớn -->
+                <div class="gallery-main" id="galleryMain">
+                    <div class="zoom-lens" id="zoomLens"></div>
+                    
+                    <!-- 4. Nút Next/Prev -->
+                    <button class="nav-btn prev" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+                    <button class="nav-btn next" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+                    
+                    <div class="main-image-wrapper">
+                        <img id="currentMainImg" src="@Model.ImageUrl" alt="@Model.Name" />
                     </div>
-                }
+
+                    <!-- 8. Zoom Result (Sẽ hiện khi hover) -->
+                    <div id="zoomResult" class="zoom-result"></div>
+                </div>
+
+                <!-- 2. Danh sách Thumbnails -->
+                <div class="gallery-thumbs" id="thumbContainer">
+                    <!-- Sẽ được render bởi JavaScript từ mảng dữ liệu -->
+                </div>
             </div>
         </div>
 
@@ -317,34 +342,77 @@
         padding: 16px 0;
     }
 
-    /* Gallery */
-    .product-gallery {
+    /* --- PRODUCT GALLERY STYLES --- */
+    .product-gallery-container {
         position: sticky;
-        top: 80px;
+        top: 100px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
     }
+
+    /* 1. Main Display */
     .gallery-main {
-        background: white;
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1;
+        background: #fff;
+        border: 1px solid var(--border);
         border-radius: var(--radius-lg);
         overflow: hidden;
         box-shadow: var(--shadow-md);
-        border: 1px solid var(--border);
-        aspect-ratio: 1;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    .gallery-main img {
+
+    .main-image-wrapper {
         width: 100%;
         height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .main-image-wrapper img {
+        max-width: 100%;
+        max-height: 100%;
         object-fit: contain;
+        transition: opacity 0.4s ease; /* 6. Hiệu ứng mượt */
     }
-    .gallery-placeholder {
-        width: 100%;
-        height: 100%;
+
+    /* 4. Navigation Buttons - Đẩy ra 2 bên sát mép */
+    .nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 45px;
+        height: 45px;
+        background: rgba(255,255,255,0.8);
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        z-index: 10;
+        cursor: pointer;
+        transition: 0.3s;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--surface-alt);
+        color: var(--text-primary);
+        backdrop-filter: blur(4px);
+    }
+    .nav-btn:hover { 
+        background: var(--primary); 
+        color: white; 
+        border-color: var(--primary);
+        box-shadow: 0 6px 20px rgba(0, 119, 182, 0.3);
+    }
+    .nav-btn.prev { left: 10px; }
+    .nav-btn.next { right: 10px; }
+
+    @@media (max-width: 991px) {
+        #zoom-result { display: none !important; }
+        .gallery-main-viewport { cursor: default; }
     }
 
     /* Detail Card */
@@ -740,17 +808,104 @@
         setTimeout(function() { window.location.href = '@Url.Action("Cart", "Shop")'; }, 800);
     }
 
-    // Tabs
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-            document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
-            btn.classList.add('active');
-            document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
+    // 9. Dữ liệu ảnh sản phẩm - LOẠI BỎ ẢNH TRÙNG
+    const rawImages = @Html.Raw(JsonSerializer.Serialize(productImages));
+    const productImages = [...new Set(rawImages)]; // Chỉ giữ lại các ảnh duy nhất
+    let currentIndex = 0;
+
+    // Render Thumbnails ban đầu
+    function renderThumbs() {
+        const container = document.getElementById('thumbContainer');
+        container.innerHTML = productImages.map((img, idx) => `
+            <div class="thumb-item ${idx === 0 ? 'active' : ''}" onclick="changeSlide(${idx})">
+                <img src="${img}" onerror="this.src='/images/products/placeholder.svg'" />
+            </div>
+        `).join('');
+    }
+
+    // 3. Xử lý đổi ảnh khi click thumbnail
+    function changeSlide(index) {
+        if (index < 0) index = productImages.length - 1;
+        if (index >= productImages.length) index = 0;
+        
+        currentIndex = index;
+        const mainImg = document.getElementById('currentMainImg');
+        
+        // 6. Hiệu ứng mượt (Fade out -> change src -> Fade in)
+        mainImg.style.opacity = '0';
+        setTimeout(() => {
+            mainImg.src = productImages[currentIndex];
+            mainImg.style.opacity = '1';
+            updateThumbHighlight();
+            initZoomLogic(); // Re-init zoom for new image
+        }, 200);
+    }
+
+    // 4. Slider Nav
+    function nextSlide() { changeSlide(currentIndex + 1); }
+    function prevSlide() { changeSlide(currentIndex - 1); }
+
+    // 5. Cập nhật viền Highlight
+    function updateThumbHighlight() {
+        document.querySelectorAll('.thumb-item').forEach((thumb, idx) => {
+            thumb.classList.toggle('active', idx === currentIndex);
         });
+    }
+
+    // 8. Zoom Lens Logic
+    function initZoomLogic() {
+        const mainImg = document.getElementById('currentMainImg');
+        const lens = document.getElementById('zoomLens');
+        const result = document.getElementById('zoomResult');
+        const container = document.getElementById('galleryMain');
+
+        if (window.innerWidth < 992) return;
+
+        container.onmouseenter = () => {
+            lens.style.display = "block";
+            result.style.display = "block";
+        };
+        container.onmouseleave = () => {
+            lens.style.display = "none";
+            result.style.display = "none";
+        };
+
+        result.style.backgroundImage = `url('${mainImg.src}')`;
+        const zoomLevel = 2.5;
+        result.style.backgroundSize = (mainImg.offsetWidth * zoomLevel) + "px " + (mainImg.offsetHeight * zoomLevel) + "px";
+
+        container.onmousemove = (e) => {
+            const rect = mainImg.getBoundingClientRect();
+            let x = e.pageX - rect.left - window.pageXOffset - (lens.offsetWidth / 2);
+            let y = e.pageY - rect.top - window.pageYOffset - (lens.offsetHeight / 2);
+
+            // Giới hạn trong ảnh
+            if (x > mainImg.offsetWidth - lens.offsetWidth) x = mainImg.offsetWidth - lens.offsetWidth;
+            if (x < 0) x = 0;
+            if (y > mainImg.offsetHeight - lens.offsetHeight) y = mainImg.offsetHeight - lens.offsetHeight;
+            if (y < 0) y = 0;
+
+            lens.style.left = x + "px";
+            lens.style.top = y + "px";
+
+            // Di chuyển background của result
+            const cx = result.offsetWidth / lens.offsetWidth;
+            const cy = result.offsetHeight / lens.offsetHeight;
+            result.style.backgroundPosition = "-" + (x * cx) + "px -" + (y * cy) + "px";
+        };
+    }
+
+    // Khởi tạo khi load trang
+    window.addEventListener('DOMContentLoaded', () => {
+        renderThumbs();
+        initZoomLogic();
     });
 </script>
 
 @section Styles {
     <link rel="stylesheet" href="~/css/homepage.css" />
+}
+
+@section Scripts {
+    <!-- Không cần thư viện ngoài, code chạy native mượt mà -->
 }

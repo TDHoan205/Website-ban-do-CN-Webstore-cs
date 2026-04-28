@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.IO;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -19,19 +21,22 @@ namespace Webstore.Controllers
         private readonly ICartService _cartService;
         private readonly IOrderService _orderService;
         private readonly IAccountService _accountService;
+        private readonly IWebHostEnvironment _env;
 
         public ShopController(
             IConfiguration configuration,
             IProductService productService,
             ICartService cartService,
             IOrderService orderService,
-            IAccountService accountService)
+            IAccountService accountService,
+            IWebHostEnvironment env)
         {
             _configuration = configuration;
             _productService = productService;
             _cartService = cartService;
             _orderService = orderService;
             _accountService = accountService;
+            _env = env;
         }
 
         // GET: /Shop - Trang chủ shop
@@ -48,10 +53,32 @@ namespace Webstore.Controllers
             return View();
         }
 
-        // GET: /Shop/Products - Danh sách sản phẩm
-        public async Task<IActionResult> Products(string? search, int? categoryId, string? sortBy, int page = 1, int pageSize = 8, decimal? minPrice = null, decimal? maxPrice = null)
+        // GET: /Shop/GetFeaturedProductsPartial (AJAX)
+        public async Task<IActionResult> GetFeaturedProductsPartial(int page = 1)
         {
-            var pList = await _productService.GetProductsAsync(search, categoryId, sortBy, page, pageSize, minPrice, maxPrice);
+            var products = await _productService.GetFeaturedProductsAsync("new", 100);
+            ViewBag.NewProducts = products;
+            ViewBag.NewProductsPage = page;
+            ViewBag.TotalNewPages = (int)Math.Ceiling(products.Count() / 4.0);
+            var displayProducts = products.Skip((page - 1) * 4).Take(4).ToList();
+            return PartialView("_NewArrivalsPartial", displayProducts);
+        }
+
+        // GET: /Shop/GetHotProductsPartial (AJAX)
+        public async Task<IActionResult> GetHotProductsPartial(int page = 1)
+        {
+            var products = await _productService.GetFeaturedProductsAsync("hot", 100);
+            ViewBag.HotProducts = products;
+            ViewBag.HotProductsPage = page;
+            ViewBag.TotalHotPages = (int)Math.Ceiling(products.Count() / 4.0);
+            var displayProducts = products.Skip((page - 1) * 4).Take(4).ToList();
+            return PartialView("_HotProductsPartial", displayProducts);
+        }
+
+        // GET: /Shop/Products - Danh sách sản phẩm
+        public async Task<IActionResult> Products(string? search, int? categoryId, string? sortBy, int page = 1, int pageSize = 8, decimal? minPrice = null, decimal? maxPrice = null, string? filter = null)
+        {
+            var pList = await _productService.GetProductsAsync(search, categoryId, sortBy, page, pageSize, minPrice, maxPrice, filter);
             var filters = await _productService.GetFiltersAsync(categoryId);
 
             ViewBag.Search = search;
@@ -59,6 +86,7 @@ namespace Webstore.Controllers
             ViewBag.SortBy = sortBy;
             ViewBag.MinPrice = minPrice;
             ViewBag.MaxPrice = maxPrice;
+            ViewBag.Filter = filter;
             ViewBag.Filters = filters;
             ViewBag.Categories = await _productService.GetAllCategoriesAsync();
 
@@ -76,8 +104,82 @@ namespace Webstore.Controllers
             }
 
             ViewBag.RelatedProducts = await _productService.GetRelatedProductsAsync(id, product.CategoryId ?? 0, 4);
+            ViewBag.ProductImages = GetProductImageUrls(product);
 
             return View(product);
+        }
+
+        private List<string> GetProductImageUrls(Product product)
+        {
+            var results = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+            {
+                results.Add(NormalizeUrl(product.ImageUrl));
+            }
+
+            // Try to auto-discover additional images in the same folder with the same base name.
+            // Example: /images/products/iPhone_15.png -> also match iPhone_15_1.png, iPhone_15-side.webp, ...
+            if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+            {
+                try
+                {
+                    var webRoot = _env.WebRootPath ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(webRoot))
+                    {
+                        var normalized = NormalizeUrl(product.ImageUrl);
+                        var relativePath = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                        var physicalPath = Path.Combine(webRoot, relativePath);
+                        var directory = Path.GetDirectoryName(physicalPath);
+
+                        if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
+                        {
+                            var baseName = Path.GetFileNameWithoutExtension(physicalPath);
+
+                            var discovered = Directory.EnumerateFiles(directory)
+                                .Where(f => Path.GetFileNameWithoutExtension(f)
+                                    .StartsWith(baseName, StringComparison.OrdinalIgnoreCase))
+                                .OrderBy(f => f)
+                                .Select(f => "/" + Path.GetRelativePath(webRoot, f).Replace('\\', '/'))
+                                .ToList();
+
+                            foreach (var url in discovered)
+                            {
+                                var u = NormalizeUrl(url);
+                                if (!results.Any(r => string.Equals(r, u, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    results.Add(u);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Non-blocking: fall back to ImageUrl only
+                }
+            }
+
+            if (results.Count == 0)
+            {
+                results.Add("/images/products/placeholder.svg");
+            }
+
+            // Ensure at least 5 thumbnails as requested.
+            while (results.Count < 5)
+            {
+                results.Add(results[0]);
+            }
+
+            return results;
+        }
+
+        private static string NormalizeUrl(string url)
+        {
+            var u = url.Trim();
+            if (u.StartsWith("~")) u = u.TrimStart('~');
+            if (!u.StartsWith('/')) u = "/" + u;
+            return u;
         }
 
         // GET: /Shop/Cart - Giỏ hàng

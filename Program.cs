@@ -240,6 +240,26 @@ END";
                             Console.WriteLine($"⚠️ Không thể thêm cột is_available: {exIsAvail.Message}");
                         }
 
+                        // Tạo cột reset_token và reset_token_expiry cho Accounts nếu chưa tồn tại
+                        var addResetTokenColumns = @"
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('[dbo].[Accounts]') AND name = 'reset_token')
+BEGIN
+    ALTER TABLE [dbo].[Accounts] ADD [reset_token] NVARCHAR(64) NULL;
+END
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('[dbo].[Accounts]') AND name = 'reset_token_expiry')
+BEGIN
+    ALTER TABLE [dbo].[Accounts] ADD [reset_token_expiry] DATETIME NULL;
+END";
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(addResetTokenColumns);
+                            Console.WriteLine("✅ Đảm bảo các cột ResetToken tồn tại trong bảng Accounts.");
+                        }
+                        catch (Exception exResetToken)
+                        {
+                            Console.WriteLine($"⚠️ Không thể thêm các cột ResetToken: {exResetToken.Message}");
+                        }
+
                         // Seed dữ liệu mẫu
                         await SeedData.SeedAsync(db);
                         Console.WriteLine("✅ Đã thêm dữ liệu mẫu vào database!");
@@ -262,7 +282,16 @@ END";
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"❌ Lỗi khi kết nối database: {ex.Message}");
+                    Console.WriteLine("❌ Lỗi khi kết nối database:");
+                    Console.WriteLine($"Main Error: {ex.Message}");
+                    var inner = ex.InnerException;
+                    while (inner != null)
+                    {
+                        Console.WriteLine($"Inner Error: {inner.Message}");
+                        inner = inner.InnerException;
+                    }
+                    Console.WriteLine("Full StackTrace:");
+                    Console.WriteLine(ex.ToString());
                 }
             }
 

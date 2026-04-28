@@ -95,7 +95,8 @@ namespace Webstore.Utilities
             }
 
             // Wrap plain content in a paragraph so it renders consistently across pages.
-            if (!BlockTagRegex().IsMatch(output))
+            // But skip for very short strings (like single escape characters '\') to avoid EF Core translation bugs.
+            if (output.Length > 1 && !BlockTagRegex().IsMatch(output))
             {
                 output = $"<p>{output}</p>";
             }
@@ -190,8 +191,6 @@ namespace Webstore.Utilities
         private static bool LooksLikeMojibake(string input)
         {
             return input.Contains("Ã", StringComparison.Ordinal)
-                || input.Contains("Â", StringComparison.Ordinal)
-                || input.Contains("Ä", StringComparison.Ordinal)
                 || input.Contains("á»", StringComparison.Ordinal)
                 || input.Contains("áº", StringComparison.Ordinal);
         }

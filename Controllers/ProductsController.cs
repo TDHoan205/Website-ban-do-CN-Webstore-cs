@@ -36,6 +36,8 @@ namespace Webstore.Controllers
 
             ViewBag.NameSortParm = sortOrder == "name" ? "name_desc" : "name";
             ViewBag.PriceSortParm = sortOrder == "price" ? "price_desc" : "price";
+            ViewBag.CategorySortParm = sortOrder == "category" ? "category_desc" : "category";
+            ViewBag.SupplierSortParm = sortOrder == "supplier" ? "supplier_desc" : "supplier";
 
             ViewBag.Search = search;
             ViewBag.SortOrder = sortOrder;

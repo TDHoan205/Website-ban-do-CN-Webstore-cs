@@ -17,7 +17,7 @@ namespace Webstore.Services
             _cache = cache;
         }
 
-        public async Task<PagedList<Product>> GetProductsAsync(string? search, int? categoryId, string? sortBy, int page, int pageSize, decimal? minPrice = null, decimal? maxPrice = null)
+        public async Task<PagedList<Product>> GetProductsAsync(string? search, int? categoryId, string? sortBy, int page, int pageSize, decimal? minPrice = null, decimal? maxPrice = null, string? filter = null)
         {
             var query = _context.Products
                 .Include(p => p.Category)
@@ -27,10 +27,25 @@ namespace Webstore.Services
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var searchLower = search.ToLower();
-                query = query.Where(p => (p.Name != null && p.Name.ToLower().Contains(searchLower))
-                                       || (p.Description != null && p.Description.ToLower().Contains(searchLower))
-                                       || (p.Category != null && p.Category.Name != null && p.Category.Name.ToLower().Contains(searchLower)));
+                var terms = search.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var term in terms)
+                {
+                    var t = term.Trim();
+                    if (string.IsNullOrEmpty(t)) continue;
+
+                    query = query.Where(p => 
+                        p.Name.Contains(t) || 
+                        (p.Description != null && p.Description.Contains(t)) ||
+                        (p.Category != null && p.Category.Name.Contains(t)) ||
+                        (p.Supplier != null && p.Supplier.Name.Contains(t)) ||
+                        p.ProductId.ToString() == t ||
+                        p.Variants.Any(v => 
+                            (v.Color != null && v.Color.Contains(t)) || 
+                            (v.Storage != null && v.Storage.Contains(t)) || 
+                            (v.RAM != null && v.RAM.Contains(t))
+                        )
+                    );
+                }
             }
 
             if (categoryId.HasValue)
@@ -48,14 +63,35 @@ namespace Webstore.Services
                 query = query.Where(p => p.Price <= maxPrice.Value || (p.Variants.Any() && p.Variants.Min(v => v.Price) <= maxPrice.Value));
             }
 
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                switch (filter.ToLower())
+                {
+                    case "new":
+                        query = query.Where(p => p.IsNew);
+                        break;
+                    case "hot":
+                        query = query.Where(p => p.IsHot);
+                        break;
+                    case "deal":
+                        query = query.Where(p => p.DiscountPercent > 0 || (p.OriginalPrice.HasValue && p.OriginalPrice > p.Price));
+                        break;
+                }
+            }
+
             query = sortBy switch
             {
+                "name" => query.OrderBy(p => p.Name),
+                "name_desc" => query.OrderByDescending(p => p.Name),
+                "price" => query.OrderBy(p => p.Price),
                 "price_asc" => query.OrderBy(p => p.Price),
                 "price_desc" => query.OrderByDescending(p => p.Price),
-                "name_asc" => query.OrderBy(p => p.Name ?? ""),
-                "name_desc" => query.OrderByDescending(p => p.Name ?? ""),
+                "category" => query.OrderBy(p => p.Category!.Name),
+                "category_desc" => query.OrderByDescending(p => p.Category!.Name),
+                "supplier" => query.OrderBy(p => p.Supplier!.Name),
+                "supplier_desc" => query.OrderByDescending(p => p.Supplier!.Name),
                 "newest" => query.OrderByDescending(p => p.ProductId),
-                _ => query.OrderBy(p => p.Name ?? "")
+                _ => query.OrderByDescending(p => p.ProductId) // Default to newest
             };
 
             return await PagedList<Product>.CreateAsync(query, page, pageSize);
@@ -136,15 +172,19 @@ namespace Webstore.Services
 
         public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
         {
-            var cacheKey = "all_categories";
+            var cacheKey = "all_categories_with_products";
             
             if (_cache.TryGetValue(cacheKey, out IEnumerable<Category>? cachedCategories))
             {
                 return cachedCategories ?? Enumerable.Empty<Category>();
             }
 
-            var categories = await _context.Categories.ToListAsync();
-            _cache.Set(cacheKey, categories, TimeSpan.FromMinutes(15)); // Categories change rarely
+            // Only get categories that have at least one product
+            var categories = await _context.Categories
+                .Where(c => _context.Products.Any(p => p.CategoryId == c.CategoryId))
+                .ToListAsync();
+
+            _cache.Set(cacheKey, categories, TimeSpan.FromMinutes(15));
 
             return categories;
         }
@@ -153,11 +193,21 @@ namespace Webstore.Services
         {
             if (string.IsNullOrWhiteSpace(q) || q.Length < 2) return new List<object>();
 
-            var searchLower = q.ToLower();
+            var t = q.Trim();
             var results = await _context.Products
                 .Include(p => p.Category)
-                .Where(p => p.Name.ToLower().Contains(searchLower)
-                         || (p.Description != null && p.Description.ToLower().Contains(searchLower)))
+                .Include(p => p.Variants)
+                .Where(p => 
+                    p.Name.Contains(t) || 
+                    (p.Description != null && p.Description.Contains(t)) ||
+                    (p.Category != null && p.Category.Name.Contains(t)) ||
+                    p.ProductId.ToString() == t ||
+                    p.Variants.Any(v => 
+                        (v.Color != null && v.Color.Contains(t)) || 
+                        (v.Storage != null && v.Storage.Contains(t)) || 
+                        (v.RAM != null && v.RAM.Contains(t))
+                    )
+                )
                 .Take(count)
                 .Select(p => new
                 {

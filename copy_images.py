@@ -9,7 +9,7 @@ if not os.path.exists(dst_dir):
 
 count = 0
 for filename in os.listdir(src_dir):
-    if filename.endswith(".png"):
+    if filename.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
         src_file = os.path.join(src_dir, filename)
         dst_file = os.path.join(dst_dir, filename)
         shutil.copy2(src_file, dst_file)

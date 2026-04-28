@@ -655,7 +655,7 @@ Bạn cần mình hỗ trợ gì hôm nay?</div>
                 addMessage('ai', '🔄 Đang kết nối lại...');
                 setTimeout(() => sendMessageRetry(message), 1000);
             } else {
-                addMessage('ai', '⚠️ Không thể kết nối với AI. Vui lòng thử lại sau hoặc liên hệ hotline.');
+                addMessage('ai', '⚠️ Không thể kết nối với AI. Vui lòng thử lại sau hoặc liên hệ hotline: 1800.6601 (Nhánh 1).');
                 retryCount = 0;
             }
         }
@@ -689,7 +689,7 @@ Bạn cần mình hỗ trợ gì hôm nay?</div>
             }
         } catch (error) {
             hideTyping();
-            addMessage('ai', '⚠️ Kết nối thất bại. Vui lòng liên hệ hotline: 0123 456 789');
+            addMessage('ai', '⚠️ Kết nối thất bại. Vui lòng liên hệ hotline: 1800.6601 (Nhánh 1)');
             retryCount = 0;
         }
     }
@@ -778,7 +778,7 @@ Bạn cần mình hỗ trợ gì hôm nay?</div>
                 addMessage('ai', 'Không thể chuyển yêu cầu. Vui lòng thử lại sau.');
             }
         } catch (error) {
-            addMessage('ai', 'Kết nối thất bại. Vui lòng gọi hotline: 0123 456 789');
+            addMessage('ai', 'Kết nối thất bại. Vui lòng gọi hotline: 1800.6601 (Nhánh 1)');
         }
     }
 

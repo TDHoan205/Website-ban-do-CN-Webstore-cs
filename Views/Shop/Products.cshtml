@@ -29,6 +29,7 @@
                 </div>
                 <div class="filter-body">
                     <form method="get" asp-controller="Shop" asp-action="Products">
+                        <input type="hidden" name="filter" value="@ViewBag.Filter" />
                         <!-- Search -->
                         <div class="filter-group">
                             <label class="filter-label">Tìm kiếm</label>
@@ -111,7 +112,7 @@
                         {
                             <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
                                class="list-group-item list-group-item-action border-0 px-3 py-2 @(ViewBag.CategoryId?.ToString() == category.CategoryId.ToString() ? "active" : "")">
-                                <i class="fas fa-@(GetCategoryIcon(category.Name)) me-2 opacity-50"></i>@category.Name
+                                <i class="fas fa-@(GetCategoryIcon(category.Name)) me-2"></i>@category.Name
                             </a>
                         }
                     </div>
@@ -128,19 +129,19 @@
                 </div>
                 <div class="toolbar-actions d-flex gap-3">
                     <div class="view-switch d-none d-md-flex gap-2">
-                        <button class="btn btn-sm btn-outline-secondary active"><i class="fas fa-th"></i></button>
-                        <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-list"></i></button>
+                        <button id="viewGrid" class="btn btn-sm btn-outline-secondary active" title="Xem dạng lưới"><i class="fas fa-th"></i></button>
+                        <button id="viewList" class="btn btn-sm btn-outline-secondary" title="Xem dạng danh sách"><i class="fas fa-list"></i></button>
                     </div>
                 </div>
             </div>
 
             @if (Model.Any())
             {
-                <div class="row g-4" id="productsGrid">
+                <div class="row g-4 view-mode-grid" id="productsGrid">
                     @{ var staggerIndex = 0; }
                     @foreach (var product in Model)
                     {
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4 js-stagger-card" data-stagger-index="@staggerIndex">
+                        <div class="product-item-container col-lg-3 col-md-4 col-sm-6 mb-4 js-stagger-card" data-stagger-index="@staggerIndex">
                             @await Html.PartialAsync("Partials/_ProductCard", product)
                         </div>
                         staggerIndex++;
@@ -157,7 +158,7 @@
                                 <li class="page-item">
                                     <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
                                        asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
-                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-page="@(Model.CurrentPage - 1)">
+                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-filter="@ViewBag.Filter" asp-route-page="@(Model.CurrentPage - 1)">
                                         <i class="fas fa-chevron-left"></i>
                                     </a>
                                 </li>
@@ -168,7 +169,7 @@
                                 <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
                                     <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
                                        asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
-                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-page="@i">@i</a>
+                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-filter="@ViewBag.Filter" asp-route-page="@i">@i</a>
                                 </li>
                             }
 
@@ -177,7 +178,7 @@
                                 <li class="page-item">
                                     <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
                                        asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
-                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-page="@(Model.CurrentPage + 1)">
+                                       asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-filter="@ViewBag.Filter" asp-route-page="@(Model.CurrentPage + 1)">
                                         <i class="fas fa-chevron-right"></i>
                                     </a>
                                 </li>
@@ -240,19 +241,70 @@
             cards.forEach(function (card) {
                 observer.observe(card);
             });
+
+            // View Switcher Logic
+            const gridBtn = document.getElementById('viewGrid');
+            const listBtn = document.getElementById('viewList');
+            const productsGrid = document.getElementById('productsGrid');
+
+            if (gridBtn && listBtn && productsGrid) {
+                gridBtn.addEventListener('click', function() {
+                    productsGrid.classList.remove('view-mode-list');
+                    productsGrid.classList.add('view-mode-grid');
+                    gridBtn.classList.add('active');
+                    listBtn.classList.remove('active');
+                    
+                    // Update classes for grid mode
+                    $('.product-item-container').removeClass('col-12').addClass('col-lg-3 col-md-4 col-sm-6');
+                    localStorage.setItem('productViewMode', 'grid');
+                });
+
+                listBtn.addEventListener('click', function() {
+                    productsGrid.classList.remove('view-mode-grid');
+                    productsGrid.classList.add('view-mode-list');
+                    listBtn.classList.add('active');
+                    gridBtn.classList.remove('active');
+                    
+                    // Update classes for list mode
+                    $('.product-item-container').removeClass('col-lg-3 col-md-4 col-sm-6').addClass('col-12');
+                    localStorage.setItem('productViewMode', 'list');
+                });
+
+                // Restore preference
+                const savedMode = localStorage.getItem('productViewMode');
+                if (savedMode === 'list') {
+                    listBtn.click();
+                }
+            }
         })();
     </script>
 }
 
 @functions {
-    string GetCategoryIcon(string categoryName)
+    public string GetCategoryIcon(string name)
     {
-        return categoryName.ToLower() switch
-        {
-            var name when name.Contains("điện thoại") || name.Contains("phone") => "mobile-alt",
-            var name when name.Contains("laptop") || name.Contains("máy tính") => "laptop",
-            var name when name.Contains("quần áo") || name.Contains("thời trang") => "tshirt",
-            _ => "box"
-        };
+        if (string.IsNullOrEmpty(name)) return "cube";
+        name = name.ToLower();
+         if (name.Contains("điện thoại") || name.Contains("dien thoai") || name.Contains("phone") || name.Contains("iphone") || name.Contains("samsung") || name.Contains("xiaomi"))
+             return "mobile-alt";
+         if (name.Contains("laptop") || name.Contains("máy tính") || name.Contains("may tinh") || name.Contains("macbook") || name.Contains("dell") || name.Contains("hp"))
+             return "laptop";
+         if (name.Contains("tablet") || name.Contains("ipad"))
+             return "tablet-alt";
+         if (name.Contains("âm thanh") || name.Contains("am thanh") || name.Contains("tai nghe") || name.Contains("tái nghe") || name.Contains("headphone") || name.Contains("airpod"))
+             return "headphones-alt";
+         if (name.Contains("đồng hồ") || name.Contains("dong ho") || name.Contains("watch") || name.Contains("smartwatch"))
+             return "clock";
+         if (name.Contains("phụ kiện") || name.Contains("phu kien") || name.Contains("accessory") || name.Contains("sạc") || name.Contains("sac") || name.Contains("cable"))
+             return "plug";
+         if (name.Contains("camera") || name.Contains("webcam"))
+             return "camera";
+         if (name.Contains("game") || name.Contains("console"))
+             return "gamepad";
+         if (name.Contains("bàn phím") || name.Contains("ban phim") || name.Contains("keyboard"))
+             return "keyboard";
+         if (name.Contains("chuột") || name.Contains("chuot") || name.Contains("mouse"))
+            return "mouse";
+        return "cube";
     }
 }

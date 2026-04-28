@@ -4,7 +4,7 @@ namespace Webstore.Services
 {
     public interface IProductService
     {
-        Task<PagedList<Product>> GetProductsAsync(string? search, int? categoryId, string? sortBy, int page, int pageSize, decimal? minPrice = null, decimal? maxPrice = null);
+        Task<PagedList<Product>> GetProductsAsync(string? search, int? categoryId, string? sortBy, int page, int pageSize, decimal? minPrice = null, decimal? maxPrice = null, string? filter = null);
         Task<Product?> GetProductByIdAsync(int id);
         Task<IEnumerable<Product>> GetRelatedProductsAsync(int productId, int categoryId, int count);
         Task<IEnumerable<Product>> GetFeaturedProductsAsync(string type, int count);

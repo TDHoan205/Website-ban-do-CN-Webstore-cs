@@ -1,0 +1,208 @@
+@model List<Webstore.Models.Product>
+
+@if (Model != null && Model.Any())
+{
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col-lg-3 col-md-6">
+                <div class="product-card">
+                    <a asp-controller="Shop" asp-action="Product" asp-route-id="@item.ProductId" class="product-card-img">
+                        <div class="product-badges">
+                            @if (item.IsNew)
+                            {
+                                <span class="badge-new"><i class="fas fa-bolt"></i> MỚI</span>
+                            }
+                            @if (item.IsHot)
+                            {
+                                <span class="badge-hot"><i class="fas fa-fire"></i> HOT</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" alt="@item.Name" loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="img-placeholder">
+                                <i class="fas fa-box" style="font-size:3rem;"></i>
+                                <span class="placeholder-name">@(item.Name)</span>
+                            </div>
+                        }
+                    </a>
+                    <div class="product-card-body">
+                        <div class="product-card-cat">@item.Category?.Name</div>
+                        <h5 class="product-card-title">
+                            <a asp-controller="Shop" asp-action="Product" asp-route-id="@item.ProductId">@item.Name</a>
+                        </h5>
+                        <div class="product-card-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <span>4.8</span>
+                        </div>
+                        <div class="product-card-price">@item.Price.ToString("N0")₫</div>
+                        <button class="btn btn-add-cart" onclick="addToCart(@item.ProductId)">
+                            <i class="fas fa-cart-plus"></i> Thêm vào giỏ hàng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="pagination-wrapper-simple mt-4">
+        <div class="pagination-container-styled">
+            <button class="btn-nav-round @(ViewBag.NewProductsPage <= 1 ? "disabled" : "")" 
+                    onclick="loadNewProducts(@(ViewBag.NewProductsPage - 1))">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <div class="page-number-active">@ViewBag.NewProductsPage</div>
+
+            <button class="btn-nav-round @(ViewBag.NewProductsPage >= (ViewBag.TotalNewPages ?? 1) ? "disabled" : "")" 
+                    onclick="loadNewProducts(@(ViewBag.NewProductsPage + 1))">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center py-5">
+        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+        <p class="text-muted">Hiện chưa có sản phẩm mới nào.</p>
+    </div>
+}
+
+<style>
+    /* THỐNG NHẤT THIẾT KẾ CARD & PHÂN TRANG */
+    .product-card {
+        border: 1px solid #f0f0f0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: #fff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        border-color: var(--primary);
+    }
+    .product-card-img {
+        position: relative;
+        aspect-ratio: 1/1;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: block;
+    }
+    .product-card-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    .product-card:hover .product-card-img img { transform: scale(1.08); }
+
+    /* Badges */
+    .product-badges {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .badge-hot, .badge-new {
+        padding: 4px 14px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-transform: uppercase;
+    }
+    .badge-hot { background: #ff4d4d; }
+    .badge-new { background: #3498db; }
+
+    /* Content */
+    .product-card-body {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+    .product-card-cat {
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .product-card-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        line-height: 1.4;
+        height: 42px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .product-card-title a { color: inherit; text-decoration: none; }
+    .product-card-rating {
+        color: #ff9f43;
+        font-size: 12px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .product-card-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ee4d2d;
+        margin-top: auto;
+        margin-bottom: 15px;
+    }
+    .btn-add-cart {
+        width: 100%;
+        padding: 10px;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: 0.3s;
+    }
+    .btn-add-cart:hover { background: #005f91; }
+
+    /* Pagination (Transparent) */
+    .pagination-wrapper-simple { display: flex; justify-content: center; margin: 30px 0; }
+    .pagination-container-styled { display: flex; align-items: center; gap: 20px; }
+    .btn-nav-round {
+        width: 42px; height: 42px; border: 1px solid #eee; background: #fff;
+        color: #555; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; cursor: pointer; transition: 0.3s;
+    }
+    .btn-nav-round:hover:not(.disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn-nav-round.disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-number-active {
+        width: 42px; height: 42px; background: var(--primary); color: #fff;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+</style>

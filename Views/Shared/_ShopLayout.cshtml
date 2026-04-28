@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     @await RenderSectionAsync("Styles", required: false)
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
         :root {
             --primary: #0077B6;
             --primary-dark: #005f8a;
@@ -82,6 +85,49 @@
             align-items: center;
             padding: 12px 0;
             gap: 20px;
+        }
+        /* NAVIGATION CATEGORY BUTTONS */
+        .nav-category-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-new {
+            background: #f0f9ff;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+        }
+
+        .btn-new:hover {
+            background: #0284c7;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.2);
+        }
+
+        .btn-hot {
+            background: #fff1f2;
+            color: #e11d48;
+            border: 1px solid #fecdd3;
+        }
+
+        .btn-hot:hover {
+            background: #e11d48;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(225, 29, 72, 0.2);
+        }
+
+        .nav-category-btn i {
+            font-size: 0.85rem;
         }
         .brand {
             display: flex;
@@ -570,8 +616,8 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <span><i class="fas fa-phone-alt me-1"></i> 0123 456 789</span>
-                    <span class="d-none d-md-inline ms-3"><i class="fas fa-envelope me-1"></i> support&#64;webstore.com</span>
+                    <span><i class="fas fa-phone-alt me-1"></i> 1800.6601 (Nhánh 1)</span>
+                    <span class="d-none d-md-inline ms-3"><i class="fas fa-envelope me-1"></i> Webstore@gmail.com</span>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="me-3"><i class="fas fa-truck me-1"></i> Miễn phí vận chuyển</a>
@@ -595,10 +641,10 @@
 
                 <!-- Search -->
                 <div class="search-container">
-                    <div class="search-bar">
-                        <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm..." autocomplete="off">
-                        <button type="button" onclick="goSearch()"><i class="fas fa-search"></i></button>
-                    </div>
+                    <form asp-controller="Shop" asp-action="Products" method="get" class="search-bar" id="searchForm">
+                        <input type="text" name="search" id="searchInput" placeholder="Tìm kiếm sản phẩm..." autocomplete="off" value="@ViewBag.Search">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
                     <div id="searchResults"></div>
                 </div>
 
@@ -672,16 +718,23 @@
                         </a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center gap-2">
-                    <a href="@Url.Action("Index", "Shop")#featured-products" class="nav-category-link"><i class="fas fa-bolt me-1"></i> Sản phẩm mới</a>
-                    <a href="@Url.Action("Index", "Shop")#hot-products" class="nav-category-link"><i class="fas fa-fire me-1"></i> Hot</a>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="@Url.Action("Index", "Shop")#sanpham-moi" class="nav-category-btn btn-new">
+                        <i class="fas fa-bolt"></i>
+                        <span>Sản phẩm mới</span>
+                    </a>
+                    <a href="@Url.Action("Index", "Shop")#sanpham-hot" class="nav-category-btn btn-hot">
+                        <i class="fas fa-fire"></i>
+                        <span>Hot</span>
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main>
+    <div id="page-progress" class="page-loader-progress" style="width: 0%"></div>
+    <main id="main-content">
         @RenderBody()
     </main>
 
@@ -702,34 +755,34 @@
                 <div class="col-lg-2 col-md-4 col-6">
                     <h5 class="footer-title">Mua hàng</h5>
                     <ul class="footer-links">
-                        <li><a asp-controller="Shop" asp-action="Products">Sản phẩm mới</a></li>
+                        <li><a asp-controller="Shop" asp-action="Products" asp-route-filter="new">Sản phẩm mới</a></li>
                         <li><a asp-controller="Shop" asp-action="Products">Danh mục</a></li>
                         <li><a asp-controller="Shop" asp-action="Products">Thương hiệu</a></li>
-                        <li><a asp-controller="Shop" asp-action="Products">Bán chạy</a></li>
+                        <li><a asp-controller="Shop" asp-action="Products" asp-route-filter="hot">Bán chạy</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-2 col-md-4 col-6">
                     <h5 class="footer-title">Hỗ trợ</h5>
                     <ul class="footer-links">
-                        <li><a href="#">Trung tâm trợ giúp</a></li>
-                        <li><a href="#">Chính sách đổi trả</a></li>
-                        <li><a href="#">Chính sách bảo hành</a></li>
-                        <li><a href="#">Bảo mật thông tin</a></li>
+                        <li><a asp-controller="Shop" asp-action="Support">Trung tâm trợ giúp</a></li>
+                        <li><a asp-controller="Shop" asp-action="Support">Chính sách đổi trả</a></li>
+                        <li><a asp-controller="Shop" asp-action="Support">Chính sách bảo hành</a></li>
+                        <li><a asp-controller="Shop" asp-action="Support">Bảo mật thông tin</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-4 col-md-6">
                     <h5 class="footer-title">Liên hệ</h5>
                     <div class="footer-contact-item">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>123 Đường ABC, Quận XYZ, TP.HCM</span>
+                        <span>Đường Trịnh Văn Bô, Xuân Phương, Nam Từ Liêm, Hà Nội</span>
                     </div>
                     <div class="footer-contact-item">
                         <i class="fas fa-phone-alt"></i>
-                        <span>0123 456 789</span>
+                        <span>1800.6601 (Nhánh 1)</span>
                     </div>
                     <div class="footer-contact-item">
                         <i class="fas fa-envelope"></i>
-                        <span>support&#64;webstore.com</span>
+                        <span>Webstore@gmail.com</span>
                     </div>
                     <div class="footer-contact-item">
                         <i class="fas fa-clock"></i>
@@ -796,11 +849,6 @@
             }, 300);
         });
 
-        $('#searchInput').on('keypress', function (e) { if (e.which === 13) goSearch(); });
-        function goSearch() {
-            const q = $('#searchInput').val().trim();
-            if (q.length > 0) window.location.href = '@Url.Action("Products", "Shop")?search=' + encodeURIComponent(q);
-        }
         $(document).click(function (e) { if (!$(e.target).closest('.search-container').length) $('#searchResults').hide(); });
 
         function addToCart(productId, quantity = 1) {
@@ -863,5 +911,116 @@
     @await Html.PartialAsync("_ChatWidget")
 
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        // SPA / No-reload Page Transitions
+        $(document).on('click', 'a', function(e) {
+            const url = $(this).attr('href');
+            if (!url || url.startsWith('javascript:') || url === '#' || $(this).attr('target') === '_blank' || $(this).attr('download')) return;
+            
+            // EXCLUDE ADMIN LINKS from AJAX loading to prevent layout breaking
+            if (url.toLowerCase().includes('/admin') || url.toLowerCase().includes('area=admin')) return;
+            
+            // Handle anchors for smooth scrolling
+            if (url.includes('#')) {
+                const parts = url.split('#');
+                const targetId = parts[1];
+                const targetPath = parts[0] || '/Shop'; // Default path if empty
+                
+                // If we are already on the target path (or the current page is the root and path is /Shop)
+                const currentPath = window.location.pathname;
+                if (currentPath === targetPath || (currentPath === '/' && targetPath === '/Shop')) {
+                    const element = document.getElementById(targetId);
+                    if (element) {
+                        e.preventDefault();
+                        element.scrollIntoView({ behavior: 'smooth' });
+                        return;
+                    }
+                }
+                // If not on same page, let SPA loadPage handle it but don't preventDefault yet 
+                // because we want the anchor to persist in URL or be handled after load
+            }
+
+            if (url.startsWith('#')) return; // handled by browser or scroll logic
+            if (url.startsWith('http') && !url.includes(window.location.host)) return;
+            if ($(this).closest('form').length > 0) return;
+
+            e.preventDefault();
+            loadPage(url);
+        });
+
+        window.onpopstate = function(e) {
+            if (e.state && e.state.url) loadPage(e.state.url, false);
+            else window.location.reload();
+        };
+
+        function loadPage(url, push = true) {
+            $('body').addClass('page-loading');
+            $('#page-progress').css('width', '30%');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    $('#page-progress').css('width', '70%');
+                    
+                    // Parse the response to get only the main content
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data, 'text/html');
+                    const newContent = doc.querySelector('#main-content').innerHTML;
+                    const newTitle = doc.title;
+
+                    // Update page
+                    $('#main-content').html(newContent);
+                    document.title = newTitle;
+                    
+                    if (push) history.pushState({url: url}, newTitle, url);
+                    
+                    // Re-init scripts if needed
+                    initPageScripts();
+                    
+                    $('#page-progress').css('width', '100%');
+                    setTimeout(() => {
+                        $('body').removeClass('page-loading');
+                        $('#page-progress').css('width', '0%');
+                        
+                        // Handle anchor scrolling after page load if URL has hash
+                        if (url.includes('#')) {
+                            const targetId = url.split('#')[1];
+                            const element = document.getElementById(targetId);
+                            if (element) element.scrollIntoView({ behavior: 'smooth' });
+                        } else {
+                            window.scrollTo(0, 0);
+                        }
+                    }, 200);
+                },
+                error: function() {
+                    window.location.href = url; // Fallback to normal load
+                }
+            });
+        }
+
+        function initPageScripts() {
+            // Re-run any page-specific JS initialization
+            if (typeof initStaggerCards === 'function') initStaggerCards();
+            updateCartCount();
+            updateActiveNav();
+        }
+
+        function updateActiveNav() {
+            const currentPath = window.location.pathname.toLowerCase();
+            $('.nav-link').removeClass('active');
+            
+            $('.nav-link').each(function() {
+                const href = $(this).attr('href').toLowerCase();
+                // Exact match or if root and path is /shop
+                if (currentPath === href || (currentPath === '/' && href === '/shop')) {
+                    $(this).addClass('active');
+                } else if (href !== '/shop' && href !== '/' && currentPath.startsWith(href)) {
+                    // For sub-pages like product details within /shop/products
+                    $(this).addClass('active');
+                }
+            });
+        }
+    </script>
 </body>
 </html>

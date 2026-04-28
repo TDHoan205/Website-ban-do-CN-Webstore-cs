@@ -11,12 +11,14 @@ namespace Webstore.Data
     {
         public static async Task SeedAsync(ApplicationDbContext context)
         {
-            await RepairCorruptedTextAsync(context);
-
-            if (await context.Accounts.AnyAsync())
-            {
-                return;
-            }
+            // Reset dữ liệu cũ theo thứ tự chuẩn để tránh lỗi Foreign Key
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM ProductVariants");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Inventory");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Products");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM FAQs");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Suppliers");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Categories");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Accounts");
 
             // Hash passwords properly: salt:hash format
             string HashPass(string p)
@@ -49,7 +51,16 @@ namespace Webstore.Data
                 new Account { Username = "khachhang13", FullName = "Hồ Thị Mai", Email = "mai.ho@email.com", Phone = "0917890123", Address = "951 Đường ZAB, Huyện Hóc Môn, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
                 new Account { Username = "khachhang14", FullName = "Nguyễn Văn Đức", Email = "duc.nguyen@email.com", Phone = "0918901234", Address = "246 Đường CDE, Huyện Củ Chi, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true }
             };
-            context.Accounts.AddRange(accounts);
+            try
+            {
+                context.Accounts.AddRange(accounts);
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi lưu Accounts: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
+            }
 
             // ========== DANH MỤC (20 mẫu) ==========
             var categories = new List<Category>
@@ -75,10 +86,28 @@ namespace Webstore.Data
                 new Category { Name = "Thiết bị thông minh" },
                 new Category { Name = "Phần mềm & Bản quyền" }
             };
-            context.Categories.AddRange(categories);
-            await context.SaveChangesAsync();
+            try
+            {
+                context.Categories.AddRange(categories);
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi lưu Categories: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
+            }
 
             // ========== NHÀ CUNG CẤP (20 mẫu) ==========
+            // Cleanup corrupted suppliers
+            var corruptedSuppliers = await context.Suppliers
+                .Where(s => s.Name.Contains("") || s.Name.Contains("?"))
+                .ToListAsync();
+            if (corruptedSuppliers.Any())
+            {
+                context.Suppliers.RemoveRange(corruptedSuppliers);
+                await context.SaveChangesAsync();
+            }
+
             var suppliers = new List<Supplier>
             {
                 new Supplier { Name = "Apple Vietnam", Email = "contact@apple.com.vn", Phone = "1800-1192", ContactPerson = "Phòng Kinh Doanh", Address = "Lầu 3, Sheraton Plaza, 175 Đồng Khởi, Q.1, TP.HCM" },
@@ -102,8 +131,16 @@ namespace Webstore.Data
                 new Supplier { Name = "Canon Vietnam", Email = "canon@vn.com", Phone = "1800-9999-26", ContactPerson = "Phòng Kinh doanh", Address = "Tòa nhà MB Center, Q.1, TP.HCM" },
                 new Supplier { Name = "Nikon Vietnam", Email = "nikon@vn.com", Phone = "1800-1234-65", ContactPerson = "Bộ phận Camera", Address = "Quận 3, TP.HCM" }
             };
-            context.Suppliers.AddRange(suppliers);
-            await context.SaveChangesAsync();
+            try
+            {
+                context.Suppliers.AddRange(suppliers);
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi lưu Suppliers: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
+            }
 
             // ========== SẢN PHẨM (50 mẫu với ảnh thực) ==========
             var phoneCat = await context.Categories.FirstAsync(c => c.Name == "Điện thoại di động");
@@ -134,220 +171,158 @@ namespace Webstore.Data
             var jbl = await context.Suppliers.FirstAsync(s => s.Name == "JBL Vietnam");
             var anker = await context.Suppliers.FirstAsync(s => s.Name == "Anker Vietnam");
             var corsair = await context.Suppliers.FirstAsync(s => s.Name == "Corsair Vietnam");
-            var wd = await context.Suppliers.FirstAsync(s => s.Name == "Western Digital Vietnam");
-            var tplink = await context.Suppliers.FirstAsync(s => s.Name == "TP-Link Vietnam");
-            var canon = await context.Suppliers.FirstAsync(s => s.Name == "Canon Vietnam");
-            var nikon = await context.Suppliers.FirstAsync(s => s.Name == "Nikon Vietnam");
 
             var products = new List<Product>
+
             {
                 // ========== ĐIỆN THOẠI (10 mẫu) ==========
-                new Product { Name = "iPhone 15 Pro Max 256GB", Description = "Titan grade 5, A17 Pro chip, camera 48MP, Dynamic Island, pin siêu bền cả ngày.", Price = 34990000, ImageUrl = "/images/products/iPhone_15_Pro_Max.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "iPhone 15 Pro 128GB", Description = "Chip A17 Pro, camera 48MP, titanium grade 5, USB-C 3.0.", Price = 27990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "iPhone 15 256GB", Description = "Chip A16 Bionic, camera 48MP, Dynamic Island, pin 24h.", Price = 22990000, ImageUrl = "/images/products/iPhone_14.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "iPhone 13 128GB", Description = "Chip A15 Bionic, camera kép 12MP, Face ID nhanh.", Price = 15990000, ImageUrl = "/images/products/iPhone_13.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Samsung Galaxy S24 Ultra 5G", Description = "S Pen tích hợp, màn hình Dynamic AMOLED 2X 6.8 inch, camera 200MP, pin 5000mAh.", Price = 29990000, ImageUrl = "/images/products/Galaxy_S24_Ultra.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy S24+ 5G", Description = "Màn hình 6.7 inch AMOLED 2X, camera 50MP, pin 4900mAh.", Price = 24990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Samsung Galaxy A55 5G", Description = "Màn hình 6.6 inch Super AMOLED, camera 50MP, pin 5000mAh.", Price = 9990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Samsung Galaxy A35 5G", Description = "Màn hình 6.6 inch FHD+, camera 50MP OIS, kháng nước IP67.", Price = 7490000, ImageUrl = "/images/products/Galaxy_A35_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung Galaxy Z Flip5", Description = "Màn hình gập nhỏ gọn 6.7 inch, Snapdragon 8 Gen 2, Flex Mode đa năng.", Price = 22990000, ImageUrl = "/images/products/Z_Flip5.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Xiaomi 13T Pro", Description = "Snapdragon 8 Gen 2, Leica camera 50MP, 120W HyperCharge siêu nhanh.", Price = 19990000, ImageUrl = "/images/products/Xiaomi_13T_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPhone 15 Pro Max 256GB Titan Tự Nhiên", Description = "Titan grade 5, A17 Pro chip, camera 48MP, Dynamic Island, pin siêu bền cả ngày.", Price = 34990000, ImageUrl = "/images/products/iPhone_15_Pro_Max.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "iPhone 15 Pro 128GB Titan Xanh", Description = "Chip A17 Pro, camera 48MP, titanium grade 5, USB-C 3.0.", Price = 27990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPhone 15 128GB Xanh Dương", Description = "Chip A16 Bionic, camera 48MP, Dynamic Island, pin 24h.", Price = 19990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPhone 13 128GB Hồng", Description = "Chip A15 Bionic, camera kép 12MP, Face ID nhanh.", Price = 15990000, ImageUrl = "/images/products/iPhone_13.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Samsung Galaxy S24 Ultra 256GB Titan Đen", Description = "S Pen tích hợp, màn hình Dynamic AMOLED 2X 6.8 inch, camera 200MP, pin 5000mAh.", Price = 29990000, ImageUrl = "/images/products/Galaxy_S24_Ultra.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy S24+ 256GB Tím", Description = "Màn hình 6.7 inch AMOLED 2X, camera 50MP, pin 4900mAh.", Price = 24990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Samsung Galaxy A55 5G 128GB Xanh", Description = "Màn hình 6.6 inch Super AMOLED, camera 50MP, pin 5000mAh.", Price = 9990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Samsung Galaxy A35 5G 128GB Vàng", Description = "Màn hình 6.6 inch FHD+, camera 50MP OIS, kháng nước IP67.", Price = 7490000, ImageUrl = "/images/products/Galaxy_A35_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung Galaxy Z Flip5 256GB Xanh", Description = "Màn hình gập nhỏ gọn 6.7 inch, Snapdragon 8 Gen 2, Flex Mode đa năng.", Price = 22990000, ImageUrl = "/images/products/Z_Flip5.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Xiaomi 13T Pro 512GB Xanh", Description = "Snapdragon 8 Gen 2, Leica camera 50MP, 120W HyperCharge siêu nhanh.", Price = 19990000, ImageUrl = "/images/products/Xiaomi_13T_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
 
                 // ========== LAPTOP (10 mẫu) ==========
-                new Product { Name = "MacBook Pro 14 inch M3 Pro", Description = "Chip M3 Pro 12-core CPU, 18-core GPU, 18GB RAM, 512GB SSD, Liquid Retina XDR, pin 17h.", Price = 49990000, ImageUrl = "/images/products/MacBook_Pro_14_M3_Pro.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "MacBook Air 15 M3", Description = "Chip M3, 15.3 inch Liquid Retina, 18GB RAM, 256GB SSD, pin 18h.", Price = 34990000, ImageUrl = "/images/products/MacBook_Air_M3.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Dell XPS 15 9530", Description = "Intel Core i9-13900H, RTX 4070, 32GB RAM, 1TB SSD, 15.6 inch 3.5K OLED Touch.", Price = 69990000, ImageUrl = "/images/products/Dell_XPS_15.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Dell Inspiron 15 3530", Description = "Intel Core i5-1335U, 8GB RAM, 512GB SSD, 15.6 inch FHD IPS.", Price = 15990000, ImageUrl = "/images/products/Inspiron_15_3530.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "ASUS ROG Zephyrus G14", Description = "AMD Ryzen 9 7940HS, RTX 4070, 16GB RAM, 1TB SSD, 14 inch 165Hz.", Price = 54990000, ImageUrl = "/images/products/ROG_Zephyrus_G14.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "ASUS VivoBook 15", Description = "Intel Core i5-1235U, 8GB RAM, 512GB SSD, 15.6 inch FHD.", Price = 13990000, ImageUrl = "/images/products/VivoBook_15.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "HP Pavilion Plus 14", Description = "Intel Core i7-13700H, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 29990000, ImageUrl = "/images/products/HP_Pavilion_Plus_14.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "HP Victus 15", Description = "AMD Ryzen 5 7535HS, RTX 2050, 8GB RAM, 512GB SSD, 15.6 inch 144Hz.", Price = 18990000, ImageUrl = "/images/products/HP_Victus_15.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Lenovo ThinkPad X1 Carbon", Description = "Intel Core i7-1365U, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 49990000, ImageUrl = "/images/products/ThinkPad_X1_Carbon.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Lenovo IdeaPad Gaming 3", Description = "AMD Ryzen 5 5600H, RTX 3050, 8GB RAM, 512GB SSD, 15.6 inch 120Hz.", Price = 16990000, ImageUrl = "/images/products/IdeaPad_Gaming_3.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "MacBook Pro 14 M3 Pro 512GB Bạc", Description = "Chip M3 Pro 12-core CPU, 18-core GPU, 18GB RAM, 512GB SSD, Liquid Retina XDR.", Price = 49990000, ImageUrl = "/images/products/MacBook_Pro_14_M3_Pro.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "MacBook Air 15 M3 256GB Xám", Description = "Chip M3, 15.3 inch Liquid Retina, 8GB RAM, 256GB SSD, pin 18h.", Price = 32990000, ImageUrl = "/images/products/MacBook_Air_M3.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Dell XPS 15 9530 1TB Bạc", Description = "Intel Core i9-13900H, RTX 4070, 32GB RAM, 1TB SSD, 15.6 inch 3.5K OLED.", Price = 69990000, ImageUrl = "/images/products/Dell_XPS_15.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Dell Inspiron 15 3530 512GB Đen", Description = "Intel Core i5-1335U, 8GB RAM, 512GB SSD, 15.6 inch FHD IPS.", Price = 15990000, ImageUrl = "/images/products/Inspiron_15_3530.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "ASUS ROG Zephyrus G14 1TB Trắng", Description = "AMD Ryzen 9 7940HS, RTX 4070, 16GB RAM, 1TB SSD, 14 inch 165Hz.", Price = 54990000, ImageUrl = "/images/products/ROG_Zephyrus_G14.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "ASUS VivoBook 15 512GB Bạc", Description = "Intel Core i5-1235U, 8GB RAM, 512GB SSD, 15.6 inch FHD.", Price = 13990000, ImageUrl = "/images/products/VivoBook_15.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "HP Pavilion Plus 14 512GB Xanh", Description = "Intel Core i7-13700H, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 29990000, ImageUrl = "/images/products/HP_Pavilion_Plus_14.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "HP Victus 15 512GB Đen", Description = "AMD Ryzen 5 7535HS, RTX 2050, 8GB RAM, 512GB SSD, 15.6 inch 144Hz.", Price = 18990000, ImageUrl = "/images/products/HP_Victus_15.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Lenovo ThinkPad X1 Carbon 512GB Đen", Description = "Intel Core i7-1365U, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 49990000, ImageUrl = "/images/products/ThinkPad_X1_Carbon.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Lenovo IdeaPad Gaming 3 512GB Đen", Description = "AMD Ryzen 5 5600H, RTX 3050, 8GB RAM, 512GB SSD, 15.6 inch 120Hz.", Price = 16990000, ImageUrl = "/images/products/IdeaPad_Gaming_3.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = true },
 
                 // ========== TABLET (5 mẫu) ==========
-                new Product { Name = "iPad Pro 12.9 inch M2", Description = "M2 chip, 12.9-inch Liquid Retina XDR, 256GB, WiFi + 5G, hỗ trợ Apple Pencil Gen 2.", Price = 32990000, ImageUrl = "/images/products/iPad_Pro_12.9.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "iPad Air M2", Description = "Chip M2, 11 inch Liquid Retina, 256GB, WiFi, hỗ trợ Apple Pencil Pro.", Price = 22990000, ImageUrl = "/images/products/iPad_Air_M2.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "iPad mini 6", Description = "Chip A15 Bionic, 8.3 inch Liquid Retina, hỗ trợ Apple Pencil Gen 2.", Price = 14990000, ImageUrl = "/images/products/iPad_mini_6.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung Galaxy Tab S9 Ultra", Description = "Snapdragon 8 Gen 2, 14.6 inch AMOLED 120Hz, S Pen included, 256GB.", Price = 28990000, ImageUrl = "/images/products/Tab_S9_Ultra.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy Tab S9 FE", Description = "Exynos 1380, 10.9 inch LCD, S Pen included, 128GB.", Price = 9990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "iPad Pro 12.9 inch M2 256GB Xám", Description = "M2 chip, 12.9-inch Liquid Retina XDR, 256GB, WiFi + 5G.", Price = 32990000, ImageUrl = "/images/products/iPad_Pro_12.9.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPad Air M2 256GB Tím", Description = "Chip M2, 11 inch Liquid Retina, 256GB, WiFi, hỗ trợ Apple Pencil Pro.", Price = 22990000, ImageUrl = "/images/products/iPad_Air_M2.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "iPad mini 6 64GB Hồng", Description = "Chip A15 Bionic, 8.3 inch Liquid Retina, hỗ trợ Apple Pencil Gen 2.", Price = 14990000, ImageUrl = "/images/products/iPad_mini_6.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung Galaxy Tab S9 Ultra 256GB Đen", Description = "Snapdragon 8 Gen 2, 14.6 inch AMOLED 120Hz, S Pen included.", Price = 28990000, ImageUrl = "/images/products/Tab_S9_Ultra.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy Tab S9 FE 128GB Bạc", Description = "Exynos 1380, 10.9 inch LCD, S Pen included, 128GB.", Price = 9990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
 
                 // ========== TAI NGHE & ÂM THANH (5 mẫu) ==========
-                new Product { Name = "Sony WH-1000XM5", Description = "Tai nghe chống ồn cao cấp, 30 giờ pin, LDAC, 8 micro khử ồn AI.", Price = 9990000, ImageUrl = "/images/products/Sony_WH-1000XM5.png", CategoryId = audioCat.CategoryId, SupplierId = sony.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "AirPods Pro 2", Description = "Chip H2, Active Noise Cancellation, Adaptive Audio, USB-C, 6h pin.", Price = 6490000, ImageUrl = "/images/products/AirPods_Pro_2.png", CategoryId = audioCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy Buds2 Pro", Description = "Tai nghe True Wireless, chống ồn chủ động, 360 Audio, IPX7.", Price = 4990000, ImageUrl = "/images/products/Galaxy_A35_5G.png", CategoryId = audioCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "JBL Tune 770NC", Description = "Tai nghe over-ear chống ồn, 70 giờ pin, JBL Pure Bass Sound.", Price = 2990000, ImageUrl = "/images/products/Sony_WH-1000XM5.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "JBL Flip 6", Description = "Loa bluetooth chống nước IPX7, 12 giờ pin, JBL Pro Sound.", Price = 2490000, ImageUrl = "/images/products/Sony_WH-1000XM5.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Sony WH-1000XM5 Đen", Description = "Tai nghe chống ồn cao cấp, 30 giờ pin, LDAC, 8 micro khử ồn AI.", Price = 9990000, ImageUrl = "/images/products/Sony_WH-1000XM5.png", CategoryId = audioCat.CategoryId, SupplierId = sony.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "AirPods Pro 2 Trắng", Description = "Chip H2, Active Noise Cancellation, Adaptive Audio, USB-C.", Price = 6490000, ImageUrl = "/images/products/AirPods_Pro_2.png", CategoryId = audioCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy Buds2 Pro Trắng", Description = "Tai nghe True Wireless, chống ồn chủ động, 360 Audio, IPX7.", Price = 4990000, ImageUrl = "/images/products/Galaxy_Buds2_Pro.png", CategoryId = audioCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "JBL Tune 770NC Đen", Description = "Tai nghe over-ear chống ồn, 70 giờ pin, JBL Pure Bass Sound.", Price = 2990000, ImageUrl = "/images/products/JBL_Tune_770NC.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "JBL Flip 6 Xanh", Description = "Loa bluetooth chống nước IPX7, 12 giờ pin, JBL Pro Sound.", Price = 2490000, ImageUrl = "/images/products/JBL_Flip_6.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = false },
 
                 // ========== BÀN PHÍM & CHUỘT (5 mẫu) ==========
-                new Product { Name = "Logitech MX Master 3S", Description = "Chuột không dây cao cấp, 8K DPI, scroll电磁, kết nối 3 thiết bị.", Price = 2490000, ImageUrl = "/images/products/MX_Master_3S.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Keychron K3 Pro", Description = "Bàn phím cơ low-profile, switch Gateron, kết nối đa thiết bị.", Price = 2290000, ImageUrl = "/images/products/Keychron_K3_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Logitech G Pro X Superlight 2", Description = "Chuột gaming siêu nhẹ 60g, HERO 25K sensor, 95h pin.", Price = 3490000, ImageUrl = "/images/products/MX_Master_3S.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Corsair K70 RGB Pro", Description = "Bàn phím gaming cơ, switch Cherry MX, RGB per-key, USB-C.", Price = 3990000, ImageUrl = "/images/products/Keychron_K3_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = corsair.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Logitech G502 X Plus", Description = "Chuột gaming, HERO 25K sensor, 13 nút có thể lập trình.", Price = 1990000, ImageUrl = "/images/products/MX_Master_3S.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Logitech MX Master 3S Đen", Description = "Chuột không dây cao cấp, 8K DPI, kết nối 3 thiết bị.", Price = 2490000, ImageUrl = "/images/products/MX_Master_3S.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Keychron K3 Pro Đen", Description = "Bàn phím cơ low-profile, switch Gateron, kết nối đa thiết bị.", Price = 2290000, ImageUrl = "/images/products/Keychron_K3_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Logitech G Pro X Superlight 2 Trắng", Description = "Chuột gaming siêu nhẹ 60g, HERO 25K sensor, 95h pin.", Price = 3490000, ImageUrl = "/images/products/G_Pro_X_Superlight_2.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Corsair K70 RGB Pro Đen", Description = "Bàn phím gaming cơ, switch Cherry MX, RGB per-key.", Price = 3990000, ImageUrl = "/images/products/Corsair_K70_RGB_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = corsair.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Logitech G502 X Plus Trắng", Description = "Chuột gaming, HERO 25K sensor, 13 nút lập trình.", Price = 1990000, ImageUrl = "/images/products/G502_X_Plus.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = true },
 
                 // ========== PHỤ KIỆN (5 mẫu) ==========
-                new Product { Name = "Anker 735 65W Gan", Description = "Sạc nhanh GaN 65W, 3 cổng USB-C, siêu nhỏ gọn.", Price = 1290000, ImageUrl = "/images/products/Anker_735_65W.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Anker PowerCore 20000", Description = "Pin dự phòng 20000mAh, sạc nhanh PowerIQ, 2 cổng USB-C.", Price = 1490000, ImageUrl = "/images/products/Anker_735_65W.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "HyperDrive Gen2", Description = "Hub USB-C 10 in 1, HDMI 4K, SD/microSD, Ethernet, 100W PD.", Price = 2490000, ImageUrl = "/images/products/HyperDrive_Gen2.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Targus Newport", Description = "Túi đựng laptop 15.6 inch, chống sốc, nhiều ngăn.", Price = 990000, ImageUrl = "/images/products/Targus_Newport.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung T7 1TB", Description = "Ổ SSD di động USB 3.2 Gen 2, tốc độ 1050MB/s, nhỏ gọn.", Price = 2490000, ImageUrl = "/images/products/Samsung_T7_1TB.png", CategoryId = accessoryCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Anker 735 65W GaN Đen", Description = "Sạc nhanh GaN 65W, 3 cổng USB-C, siêu nhỏ gọn.", Price = 1290000, ImageUrl = "/images/products/Anker_735_65W.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Anker PowerCore 20000 Đen", Description = "Pin dự phòng 20000mAh, sạc nhanh PowerIQ.", Price = 1490000, ImageUrl = "/images/products/Anker PowerCore.jpg", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "HyperDrive Gen2 Bạc", Description = "Hub USB-C 10 in 1, HDMI 4K, SD/microSD, 100W PD.", Price = 2490000, ImageUrl = "/images/products/HyperDrive_Gen2.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Targus Newport Đen", Description = "Túi đựng laptop 15.6 inch, chống sốc, nhiều ngăn.", Price = 990000, ImageUrl = "/images/products/Targus_Newport.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung T7 1TB Xám", Description = "Ổ SSD di động USB 3.2 Gen 2, tốc độ 1050MB/s.", Price = 2490000, ImageUrl = "/images/products/Samsung_T7_1TB.png", CategoryId = accessoryCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
 
                 // ========== ĐỒNG HỒ THÔNG MINH (3 mẫu) ==========
-                new Product { Name = "Apple Watch Series 9 45mm", Description = "Chip S9, màn hình Always-On Retina, theo dõi sức khỏe toàn diện.", Price = 11990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = watchCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy Watch 6 Classic", Description = "Màn hình Super AMOLED 47mm, bezel xoay, theo dõi sức khỏe, LTE.", Price = 9990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = watchCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Xiaomi Watch S3", Description = "Màn hình AMOLED 1.43 inch, GPS tích hợp, 21 ngày pin.", Price = 3990000, ImageUrl = "/images/products/Xiaomi_13T_Pro.png", CategoryId = watchCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Apple Watch Series 9 45mm Đen", Description = "Chip S9, màn hình Always-On Retina, theo dõi sức khỏe.", Price = 11990000, ImageUrl = "/images/products/Apple_Watch_S9.png", CategoryId = watchCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy Watch 6 Classic 47mm Bạc", Description = "Màn hình Super AMOLED 47mm, bezel xoay, LTE.", Price = 9990000, ImageUrl = "/images/products/Galaxy_Watch_6_Classic.png", CategoryId = watchCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Xiaomi Watch S3 Đen", Description = "Màn hình AMOLED 1.43 inch, GPS tích hợp, 21 ngày pin.", Price = 3990000, ImageUrl = "/images/products/Xiaomi_Watch_S3.png", CategoryId = watchCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
 
-                // ========== LAPTOP (tiếp theo cho đủ 50 sản phẩm) ==========
-                new Product { Name = "MSI Modern 15 H", Description = "Intel Core i7-13700H, RTX 2050, 16GB RAM, 512GB SSD, 15.6 inch FHD.", Price = 24990000, ImageUrl = "/images/products/MSI_Modern_15_H.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "ASUS ZenBook 14 OLED", Description = "Intel Core Ultra 7, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 27990000, ImageUrl = "/images/products/ZenBook_14_OLED.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Acer Aspire 5", Description = "Intel Core i5-1235U, 8GB RAM, 512GB SSD, 15.6 inch FHD IPS.", Price = 13990000, ImageUrl = "/images/products/Acer_Aspire_5.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Acer Swift Go 14", Description = "Intel Core Ultra 5, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 21990000, ImageUrl = "/images/products/Acer_Swift_Go_14.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Surface Laptop 5", Description = "Intel Core i7-1265U, 16GB RAM, 512GB SSD, 13.5 inch PixelSense.", Price = 39990000, ImageUrl = "/images/products/Surface_Laptop_5.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Realme C67", Description = "Snapdragon 685, camera 108MP, pin 5000mAh, sạc nhanh 33W.", Price = 4990000, ImageUrl = "/images/products/Realme_C67.png", CategoryId = phoneCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "OPPO Reno11 F 5G", Description = "Dimensity 7050, camera 64MP OIS, sạc nhanh 67W SUPERVOOC.", Price = 9990000, ImageUrl = "/images/products/Reno11_F_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Xiaomi Redmi Note 13 Pro", Description = "Snapdragon 7s Gen 2, camera 200MP OIS, sạc nhanh 120W.", Price = 7990000, ImageUrl = "/images/products/Redmi_Note_13_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Xiaomi POCO X6 Pro", Description = "Dimensity 8300-Ultra, camera 64MP OIS, 120Hz AMOLED.", Price = 9990000, ImageUrl = "/images/products/POCO_X6_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Xiaomi Pad 6", Description = "Snapdragon 870, 11 inch 2.8K LCD, 144Hz, hỗ trợ stylus.", Price = 8990000, ImageUrl = "/images/products/Xiaomi_Pad_6.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Huawei MatePad 11.5", Description = "Snapdragon 7 Gen 1, 11.5 inch 2K LCD, 120Hz, hỗ trợ M-Pencil.", Price = 7990000, ImageUrl = "/images/products/MatePad_11.5.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung Galaxy Tab S9 FE+", Description = "Exynos 1380, 12.4 inch LCD, S Pen included, 128GB.", Price = 15990000, ImageUrl = "/images/products/Tab_S9_Ultra.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "OPPO Pad Air2", Description = "Helio G99, 11.35 inch FHD+, 4 loa Harman Kardon, 8000mAh.", Price = 5990000, ImageUrl = "/images/products/OPPO_Pad_Air2.png", CategoryId = tabletCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Realme Pad X", Description = "Snapdragon 695, 10.95 inch 2K LCD, 5G, pin 8340mAh.", Price = 6990000, ImageUrl = "/images/products/Realme_Pad_X.png", CategoryId = tabletCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Vivo V30e 5G", Description = "Snapdragon 6 Gen 1, camera 50MP Sony IMX882, sạc nhanh 44W.", Price = 8990000, ImageUrl = "/images/products/V30e_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Nokia G22", Description = "Unisoc T606, camera 50MP, pin 5050mAh, sạc nhanh 20W.", Price = 3990000, ImageUrl = "/images/products/Nokia_G22.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false }
+                new Product { Name = "MSI Modern 15 H 512GB Đen", Description = "Intel Core i7-13700H, RTX 2050, 16GB RAM, 512GB SSD.", Price = 24990000, ImageUrl = "/images/products/MSI_Modern_15_H.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "ASUS ZenBook 14 OLED 512GB Xanh", Description = "Intel Core Ultra 7, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 27990000, ImageUrl = "/images/products/ZenBook_14_OLED.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Acer Swift Go 14 512GB Bạc", Description = "Intel Core Ultra 5, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 21990000, ImageUrl = "/images/products/Acer_Swift_Go_14.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Surface Laptop 5 512GB Bạch Kim", Description = "Intel Core i7-1265U, 16GB RAM, 512GB SSD, 13.5 inch PixelSense.", Price = 39990000, ImageUrl = "/images/products/Surface_Laptop_5.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Realme C67 128GB Xanh", Description = "Snapdragon 685, camera 108MP, pin 5000mAh, sạc nhanh 33W.", Price = 4990000, ImageUrl = "/images/products/Realme_C67.png", CategoryId = phoneCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "OPPO Reno11 F 5G 256GB Xanh", Description = "Dimensity 7050, camera 64MP OIS, sạc nhanh 67W SUPERVOOC.", Price = 9990000, ImageUrl = "/images/products/Reno11_F_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Xiaomi Redmi Note 13 Pro 256GB Đen", Description = "Snapdragon 7s Gen 2, camera 200MP OIS, sạc nhanh 120W.", Price = 7990000, ImageUrl = "/images/products/Redmi_Note_13_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Xiaomi POCO X6 Pro 256GB Vàng", Description = "Dimensity 8300-Ultra, camera 64MP OIS, 120Hz AMOLED.", Price = 9990000, ImageUrl = "/images/products/POCO_X6_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Xiaomi Pad 6 128GB Xám", Description = "Snapdragon 870, 11 inch 2.8K LCD, 144Hz, hỗ trợ stylus.", Price = 8990000, ImageUrl = "/images/products/Xiaomi_Pad_6.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Huawei MatePad 11.5 128GB Bạc", Description = "Snapdragon 7 Gen 1, 11.5 inch 2K LCD, 120Hz.", Price = 7990000, ImageUrl = "/images/products/MatePad_11.5.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung Galaxy Tab S9 FE+ 128GB Xám", Description = "Exynos 1380, 12.4 inch LCD, S Pen included, 128GB.", Price = 15990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "OPPO Pad Air2 128GB Tím", Description = "Helio G99, 11.35 inch FHD+, 4 loa Harman Kardon.", Price = 5990000, ImageUrl = "/images/products/OPPO_Pad_Air2.png", CategoryId = tabletCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Realme Pad X 128GB Xanh", Description = "Snapdragon 695, 10.95 inch 2K LCD, 5G, pin 8340mAh.", Price = 6990000, ImageUrl = "/images/products/Realme_Pad_X.png", CategoryId = tabletCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Vivo V30e 5G 256GB Nâu", Description = "Snapdragon 6 Gen 1, camera 50MP Sony IMX882.", Price = 8990000, ImageUrl = "/images/products/V30e_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Nokia G22 128GB Xanh", Description = "Unisoc T606, camera 50MP, pin 5050mAh.", Price = 3990000, ImageUrl = "/images/products/Nokia_G22.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false }
             };
 
-            context.Products.AddRange(products);
-            await context.SaveChangesAsync();
 
-            // ========== PRODUCT VARIANTS ==========
+            try
+            {
+                context.Products.AddRange(products);
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi lưu Products: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
+            }
+
+            // ========== PRODUCT VARIANTS (Tạo biến thể động cho tất cả sản phẩm) ==========
             var productList = await context.Products.ToListAsync();
 
-            // iPhone 15 Pro Max - Colors and Storage
-            var iphone15promax = productList.FirstOrDefault(p => p.Name.Contains("iPhone 15 Pro Max"));
-            if (iphone15promax != null)
+            foreach (var p in productList)
             {
-                var iphoneVariants = new List<ProductVariant>
+                var variants = new List<ProductVariant>();
+                
+                // Logic tạo tối thiểu 2 biến thể cho mỗi sản phẩm dựa trên Category
+                if (p.CategoryId == phoneCat.CategoryId || p.CategoryId == tabletCat.CategoryId)
                 {
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Black", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 25 },
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Black", Storage = "512GB", RAM = "8GB", Price = 39990000, StockQuantity = 15 },
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Black", Storage = "1TB", RAM = "8GB", Price = 44990000, StockQuantity = 10 },
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan White", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 20 },
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan White", Storage = "512GB", RAM = "8GB", Price = 39990000, StockQuantity = 12 },
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Natural", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 18 },
-                    new ProductVariant { ProductId = iphone15promax.ProductId, Color = "Titan Blue", Storage = "256GB", RAM = "8GB", Price = 34990000, StockQuantity = 22 },
-                };
-                context.ProductVariants.AddRange(iphoneVariants);
+                    // Biến thể Dung lượng cho Điện thoại & Máy tính bảng
+                    string name = p.Name;
+                    string currentStorage = "128GB";
+                    if (name.Contains("256GB")) currentStorage = "256GB";
+                    else if (name.Contains("512GB")) currentStorage = "512GB";
+                    else if (name.Contains("1TB")) currentStorage = "1TB";
+                    else if (name.Contains("64GB")) currentStorage = "64GB";
+
+                    string nextStorage = currentStorage switch
+                    {
+                        "64GB" => "128GB",
+                        "128GB" => "256GB",
+                        "256GB" => "512GB",
+                        "512GB" => "1TB",
+                        _ => "2TB"
+                    };
+
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, Storage = currentStorage, Color = "Mặc định", Price = p.Price, StockQuantity = 50 });
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, Storage = nextStorage, Color = "Mặc định", Price = p.Price + 3000000, StockQuantity = 30 });
+                }
+                else if (p.CategoryId == laptopCat.CategoryId)
+                {
+                    // Biến thể RAM & SSD cho Laptop
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, RAM = "16GB", Storage = "512GB", Price = p.Price, StockQuantity = 20 });
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, RAM = "32GB", Storage = "1TB", Price = p.Price + 5000000, StockQuantity = 10 });
+                }
+                else if (p.CategoryId == audioCat.CategoryId || p.CategoryId == watchCat.CategoryId)
+                {
+                    // Biến thể Màu sắc cho Tai nghe & Đồng hồ
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, Color = "Đen (Space Black)", Price = p.Price, StockQuantity = 40 });
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, Color = "Trắng (Pearl White)", Price = p.Price, StockQuantity = 35 });
+                }
+                else
+                {
+                    // Biến thể mặc định cho các loại khác
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, Color = "Bản tiêu chuẩn", Price = p.Price, StockQuantity = 100 });
+                    variants.Add(new ProductVariant { ProductId = p.ProductId, Color = "Bản cao cấp", Price = p.Price + 1000000, StockQuantity = 60 });
+                }
+
+                context.ProductVariants.AddRange(variants);
             }
 
-            // MacBook Pro 14 - RAM and Storage options
-            var macbookPro = productList.FirstOrDefault(p => p.Name.Contains("MacBook Pro 14"));
-            if (macbookPro != null)
+            try
             {
-                var macbookVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "512GB", RAM = "18GB", Price = 49990000, StockQuantity = 10 },
-                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "1TB", RAM = "18GB", Price = 54990000, StockQuantity = 8 },
-                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "512GB", RAM = "36GB", Price = 57990000, StockQuantity = 5 },
-                    new ProductVariant { ProductId = macbookPro.ProductId, Storage = "1TB", RAM = "36GB", Price = 62990000, StockQuantity = 4 },
-                };
-                context.ProductVariants.AddRange(macbookVariants);
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi lưu ProductVariants: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
             }
 
-            // Samsung Galaxy S24 Ultra - Storage variants
-            var galaxyS24Ultra = productList.FirstOrDefault(p => p.Name.Contains("Galaxy S24 Ultra"));
-            if (galaxyS24Ultra != null)
-            {
-                var samsungVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Black", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 30 },
-                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Black", Storage = "512GB", RAM = "12GB", Price = 33990000, StockQuantity = 18 },
-                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Gray", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 25 },
-                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Violet", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 20 },
-                    new ProductVariant { ProductId = galaxyS24Ultra.ProductId, Color = "Titanium Yellow", Storage = "256GB", RAM = "12GB", Price = 29990000, StockQuantity = 15 },
-                };
-                context.ProductVariants.AddRange(samsungVariants);
-            }
-
-            // Dell XPS 15 - RAM and Storage
-            var dellXps = productList.FirstOrDefault(p => p.Name.Contains("Dell XPS 15"));
-            if (dellXps != null)
-            {
-                var dellVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = dellXps.ProductId, Storage = "512GB", RAM = "16GB", Price = 59990000, StockQuantity = 8 },
-                    new ProductVariant { ProductId = dellXps.ProductId, Storage = "1TB", RAM = "32GB", Price = 69990000, StockQuantity = 5 },
-                    new ProductVariant { ProductId = dellXps.ProductId, Storage = "2TB", RAM = "64GB", Price = 89990000, StockQuantity = 3 },
-                };
-                context.ProductVariants.AddRange(dellVariants);
-            }
-
-            // iPad Pro 12.9 - Storage options
-            var ipadPro = productList.FirstOrDefault(p => p.Name.Contains("iPad Pro 12.9"));
-            if (ipadPro != null)
-            {
-                var ipadVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "256GB", RAM = "8GB", Price = 32990000, StockQuantity = 15 },
-                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "512GB", RAM = "8GB", Price = 37990000, StockQuantity = 10 },
-                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "1TB", RAM = "16GB", Price = 47990000, StockQuantity = 6 },
-                    new ProductVariant { ProductId = ipadPro.ProductId, Storage = "2TB", RAM = "16GB", Price = 57990000, StockQuantity = 3 },
-                };
-                context.ProductVariants.AddRange(ipadVariants);
-            }
-
-            // Sony WH-1000XM5 - Colors
-            var sonyHeadphones = productList.FirstOrDefault(p => p.Name.Contains("Sony WH-1000XM5"));
-            if (sonyHeadphones != null)
-            {
-                var sonyColorVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = sonyHeadphones.ProductId, Color = "Black", Price = 9990000, StockQuantity = 25 },
-                    new ProductVariant { ProductId = sonyHeadphones.ProductId, Color = "Silver", Price = 9990000, StockQuantity = 20 },
-                    new ProductVariant { ProductId = sonyHeadphones.ProductId, Color = "Midnight Blue", Price = 10490000, StockQuantity = 12 },
-                };
-                context.ProductVariants.AddRange(sonyColorVariants);
-            }
-
-            // AirPods Pro 2
-            var airpodsPro = productList.FirstOrDefault(p => p.Name.Contains("AirPods Pro 2"));
-            if (airpodsPro != null)
-            {
-                var airpodsVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = airpodsPro.ProductId, Color = "White", Price = 6490000, StockQuantity = 40 },
-                };
-                context.ProductVariants.AddRange(airpodsVariants);
-            }
-
-            // Xiaomi 13T Pro - Storage variants
-            var xiaomi13t = productList.FirstOrDefault(p => p.Name.Contains("Xiaomi 13T Pro"));
-            if (xiaomi13t != null)
-            {
-                var xiaomiVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Alpine Blue", Storage = "256GB", RAM = "12GB", Price = 19990000, StockQuantity = 20 },
-                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Alpine Blue", Storage = "512GB", RAM = "12GB", Price = 21990000, StockQuantity = 12 },
-                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Black", Storage = "256GB", RAM = "12GB", Price = 19990000, StockQuantity = 18 },
-                    new ProductVariant { ProductId = xiaomi13t.ProductId, Color = "Meadow Green", Storage = "256GB", RAM = "12GB", Price = 19990000, StockQuantity = 15 },
-                };
-                context.ProductVariants.AddRange(xiaomiVariants);
-            }
-
-            // Galaxy Tab S9 Ultra
-            var tabS9Ultra = productList.FirstOrDefault(p => p.Name.Contains("Galaxy Tab S9 Ultra"));
-            if (tabS9Ultra != null)
-            {
-                var tabVariants = new List<ProductVariant>
-                {
-                    new ProductVariant { ProductId = tabS9Ultra.ProductId, Color = "Graphite", Storage = "256GB", RAM = "12GB", Price = 28990000, StockQuantity = 10 },
-                    new ProductVariant { ProductId = tabS9Ultra.ProductId, Color = "Graphite", Storage = "512GB", RAM = "16GB", Price = 32990000, StockQuantity = 6 },
-                    new ProductVariant { ProductId = tabS9Ultra.ProductId, Color = "Beige", Storage = "256GB", RAM = "12GB", Price = 28990000, StockQuantity = 8 },
-                };
-                context.ProductVariants.AddRange(tabVariants);
-            }
-
-            await context.SaveChangesAsync();
 
             // ========== INVENTORY (50 mẫu - 1 cho mỗi sản phẩm) ==========
             productList = await context.Products.ToListAsync();
@@ -358,6 +333,15 @@ namespace Webstore.Data
                 LastUpdated = DateTime.Now
             }).ToList();
             context.Inventory.AddRange(inventories);
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi lưu Inventory: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
+            }
 
             // ========== FAQ (20 mẫu) ==========
             var faqs = new List<FAQ>
@@ -383,263 +367,17 @@ namespace Webstore.Data
                 new FAQ { Question = "Sản phẩm còn hàng không?", Answer = "Website cập nhật số lượng tồn kho theo thời gian thực. Nếu sản phẩm hết hàng, bạn có thể đặt trước.", Category = "Sản phẩm", Priority = 2 },
                 new FAQ { Question = "Làm sao để viết đánh giá sản phẩm?", Answer = "Sau khi nhận được hàng và đăng nhập, vào trang chi tiết sản phẩm để viết đánh giá và đánh sao.", Category = "Đánh giá", Priority = 3 }
             };
-            context.FAQs.AddRange(faqs);
-
-            await context.SaveChangesAsync();
-        }
-
-        private static async Task RepairCorruptedTextAsync(ApplicationDbContext context)
-        {
-            var changed = false;
-
-            if (context.Database.GetDbConnection() is not SqlConnection connection)
-            {
-                return;
-            }
-
-            if (connection.State != System.Data.ConnectionState.Open)
-            {
-                await connection.OpenAsync();
-            }
-
-            var canonicalCategoryNames = new Dictionary<int, string>
-            {
-                [1] = "Điện thoại",
-                [2] = "Laptop",
-                [3] = "Tablet",
-                [4] = "Phụ kiện",
-                [5] = "Đồng hồ thông minh",
-                [6] = "Gaming"
-            };
-
             try
             {
-                changed |= await RepairCategoriesAsync(connection, canonicalCategoryNames);
-                changed |= await RepairSuppliersAsync(connection);
-                changed |= await RepairProductsAsync(connection);
-
-                if (changed)
-                {
-                    await context.SaveChangesAsync();
-                }
+                context.FAQs.AddRange(faqs);
+                await context.SaveChangesAsync();
             }
-            finally
+            catch (DbUpdateException ex)
             {
-                if (connection.State == System.Data.ConnectionState.Open)
-                {
-                    await connection.CloseAsync();
-                }
+                Console.WriteLine($"❌ Lỗi khi lưu FAQs: {ex.InnerException?.Message ?? ex.Message}");
+                throw;
             }
         }
 
-        private static async Task<bool> RepairCategoriesAsync(SqlConnection connection, IReadOnlyDictionary<int, string> canonicalCategoryNames)
-        {
-            var changed = false;
-            using var select = new SqlCommand("SELECT category_id, name FROM Categories", connection);
-            using var reader = await select.ExecuteReaderAsync();
-            var rows = new List<(int Id, string? Name)>();
-
-            while (await reader.ReadAsync())
-            {
-                rows.Add((reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetString(1)));
-            }
-
-            await reader.CloseAsync();
-
-            foreach (var row in rows)
-            {
-                var normalized = ProductDescriptionText.NormalizePlainText(row.Name) ?? string.Empty;
-                if (canonicalCategoryNames.TryGetValue(row.Id, out var canonical)
-                    && (normalized.Contains('\uFFFD') || normalized.Length == 0 || normalized == row.Name))
-                {
-                    normalized = canonical;
-                }
-
-                if (!string.Equals(row.Name, normalized, StringComparison.Ordinal))
-                {
-                    await UpdateTextAsync(connection, "Categories", "category_id", "name", row.Id, normalized);
-                    changed = true;
-                }
-            }
-
-            return changed;
-        }
-
-        private static async Task<bool> RepairSuppliersAsync(SqlConnection connection)
-        {
-            var changed = false;
-            using var select = new SqlCommand("SELECT supplier_id, name, contact_person, address FROM Suppliers", connection);
-            using var reader = await select.ExecuteReaderAsync();
-            var rows = new List<(int Id, string? Name, string? Contact, string? Address)>();
-
-            while (await reader.ReadAsync())
-            {
-                rows.Add((
-                    reader.GetInt32(0),
-                    reader.IsDBNull(1) ? null : reader.GetString(1),
-                    reader.IsDBNull(2) ? null : reader.GetString(2),
-                    reader.IsDBNull(3) ? null : reader.GetString(3)));
-            }
-
-            await reader.CloseAsync();
-
-            foreach (var row in rows)
-            {
-                var normalizedName = ProductDescriptionText.NormalizePlainText(row.Name) ?? string.Empty;
-                var normalizedContact = ProductDescriptionText.NormalizePlainText(row.Contact);
-                var normalizedAddress = ProductDescriptionText.NormalizePlainText(row.Address);
-
-                if (!string.Equals(row.Name, normalizedName, StringComparison.Ordinal))
-                {
-                    await UpdateTextAsync(connection, "Suppliers", "supplier_id", "name", row.Id, normalizedName);
-                    changed = true;
-                }
-
-                if (!string.Equals(row.Contact, normalizedContact, StringComparison.Ordinal))
-                {
-                    await UpdateTextAsync(connection, "Suppliers", "supplier_id", "contact_person", row.Id, normalizedContact);
-                    changed = true;
-                }
-
-                if (!string.Equals(row.Address, normalizedAddress, StringComparison.Ordinal))
-                {
-                    await UpdateTextAsync(connection, "Suppliers", "supplier_id", "address", row.Id, normalizedAddress);
-                    changed = true;
-                }
-            }
-
-            return changed;
-        }
-
-        private static async Task<bool> RepairProductsAsync(SqlConnection connection)
-        {
-            var changed = false;
-            var canonicalProducts = await LoadCanonicalProductsAsync();
-            using var select = new SqlCommand("SELECT product_id, name, description FROM Products", connection);
-            using var reader = await select.ExecuteReaderAsync();
-            var rows = new List<(int Id, string? Name, string? Description)>();
-
-            while (await reader.ReadAsync())
-            {
-                rows.Add((
-                    reader.GetInt32(0),
-                    reader.IsDBNull(1) ? null : reader.GetString(1),
-                    reader.IsDBNull(2) ? null : reader.GetString(2)));
-            }
-
-            await reader.CloseAsync();
-
-            foreach (var row in rows)
-            {
-                var normalizedName = ProductDescriptionText.NormalizePlainText(row.Name) ?? string.Empty;
-                var normalizedDescription = ProductDescriptionText.SanitizeDescriptionHtmlNullable(row.Description);
-                var normalizedImageUrl = (string?)null;
-
-                if (canonicalProducts.TryGetValue(row.Id, out var canonical))
-                {
-                    if (!string.IsNullOrWhiteSpace(canonical.Name))
-                    {
-                        normalizedName = ProductDescriptionText.NormalizePlainText(canonical.Name) ?? normalizedName;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(canonical.Description))
-                    {
-                        normalizedDescription = ProductDescriptionText.SanitizeDescriptionHtmlNullable(canonical.Description);
-                    }
-
-                    normalizedImageUrl = NormalizeImageUrl(canonical.ImageUrl ?? canonical.Image);
-                }
-
-                normalizedImageUrl ??= NormalizeImageUrl(null);
-
-                if (!string.Equals(row.Name, normalizedName, StringComparison.Ordinal))
-                {
-                    await UpdateTextAsync(connection, "Products", "product_id", "name", row.Id, normalizedName);
-                    changed = true;
-                }
-
-                if (!string.Equals(row.Description, normalizedDescription, StringComparison.Ordinal))
-                {
-                    await UpdateTextAsync(connection, "Products", "product_id", "description", row.Id, normalizedDescription);
-                    changed = true;
-                }
-
-            }
-
-            return changed;
-        }
-
-        private static async Task<Dictionary<int, CanonicalProduct>> LoadCanonicalProductsAsync()
-        {
-            var candidatePaths = new[]
-            {
-                Path.Combine(Directory.GetCurrentDirectory(), "resources", "json", "sample_products.json"),
-                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "resources", "json", "sample_products.json")),
-                Path.Combine(Directory.GetCurrentDirectory(), "sample_products.json"),
-                Path.Combine(AppContext.BaseDirectory, "sample_products.json"),
-                Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "sample_products.json"))
-            };
-
-            var filePath = candidatePaths.FirstOrDefault(File.Exists);
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                return new Dictionary<int, CanonicalProduct>();
-            }
-
-            var json = await File.ReadAllTextAsync(filePath);
-            var products = System.Text.Json.JsonSerializer.Deserialize<List<CanonicalProduct>>(json, new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            if (products == null)
-            {
-                return new Dictionary<int, CanonicalProduct>();
-            }
-
-            return products
-                .Where(p => p.Id > 0)
-                .ToDictionary(p => p.Id, p => p);
-        }
-
-        private sealed class CanonicalProduct
-        {
-            public int Id { get; set; }
-            public string? Name { get; set; }
-            public string? Description { get; set; }
-            public string? Image { get; set; }
-            public string? ImageUrl { get; set; }
-        }
-
-        private static string NormalizeImageUrl(string? imageUrl)
-        {
-            if (string.IsNullOrWhiteSpace(imageUrl))
-            {
-                return "/images/products/placeholder.svg";
-            }
-
-            if (imageUrl.Contains("via.placeholder.com", StringComparison.OrdinalIgnoreCase))
-            {
-                return "/images/products/placeholder.svg";
-            }
-
-            return imageUrl.Trim();
-        }
-
-        private static async Task<bool> UpdateImageUrlAsync(SqlConnection connection, int id, string imageUrl)
-        {
-            using var update = new SqlCommand("UPDATE Products SET image_url = @imageUrl WHERE product_id = @id AND (image_url IS NULL OR image_url <> @imageUrl)", connection);
-            update.Parameters.AddWithValue("@id", id);
-            update.Parameters.AddWithValue("@imageUrl", imageUrl);
-            return await update.ExecuteNonQueryAsync() > 0;
-        }
-
-        private static async Task UpdateTextAsync(SqlConnection connection, string tableName, string keyColumn, string textColumn, int id, string? value)
-        {
-            using var update = new SqlCommand($"UPDATE {tableName} SET {textColumn} = @value WHERE {keyColumn} = @id", connection);
-            update.Parameters.AddWithValue("@id", id);
-            update.Parameters.AddWithValue("@value", (object?)value ?? DBNull.Value);
-            await update.ExecuteNonQueryAsync();
-        }
     }
 }
