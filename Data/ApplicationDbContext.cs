@@ -119,7 +119,7 @@ namespace Webstore.Data
 
             modelBuilder.Entity<Order>()
                 .Property(o => o.TotalAmount)
-                .HasColumnType("decimal(10,2)");
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<OrderItem>()
                 .Property(oi => oi.UnitPrice)

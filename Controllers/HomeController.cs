@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Webstore.Data;
 using Webstore.Models;
+using Webstore.Services;
 
 namespace Webstore.Controllers
 {
@@ -12,20 +13,19 @@ namespace Webstore.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly ApplicationDbContext _context;
+        private readonly IStatisticsService _statisticsService;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context, IStatisticsService statisticsService)
         {
             _logger = logger;
             _context = context;
+            _statisticsService = statisticsService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            ViewBag.ProductCount = _context.Products.Count();
-            ViewBag.OrderCount = _context.Orders.Count();
-            ViewBag.AccountCount = _context.Accounts.Count();
-            ViewBag.SupplierCount = _context.Suppliers.Count();
-            return View();
+            var model = await _statisticsService.GetDashboardStatsAsync();
+            return View(model);
         }
 
         public IActionResult Landing()

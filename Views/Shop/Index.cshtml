@@ -4,15 +4,35 @@
 }
 
 <!-- Hero Banner -->
-<section class="hero-section">
+<section class="hero-section" id="hero-banner">
+    <!-- Animated Grid Background -->
+    <div class="hero-grid-bg"></div>
+    <!-- Gradient Overlay -->
     <div class="hero-overlay"></div>
-    <div class="hero-particles"></div>
-    <div class="container position-relative">
+    <!-- Animated Particles -->
+    <div class="hero-particles">
+        <div class="particle p1"></div>
+        <div class="particle p2"></div>
+        <div class="particle p3"></div>
+        <div class="particle p4"></div>
+        <div class="particle p5"></div>
+        <div class="particle p6"></div>
+    </div>
+    <!-- Floating Geometric Shapes -->
+    <div class="hero-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="container position-relative" style="z-index: 5;">
         <div class="row align-items-center min-vh-80">
+            <!-- Left Content -->
             <div class="col-lg-6">
-                <div class="hero-badge-modern">
+                <div class="hero-badge-modern" data-aos="fade-right">
                     <span class="badge-icon"><i class="fas fa-robot"></i></span>
                     <span>AI Assistant powered</span>
+                    <span class="badge-pulse"></span>
                 </div>
                 <h1 class="hero-title-modern">
                     Khám phá
@@ -20,7 +40,7 @@
                     <br />Thông minh hơn
                 </h1>
                 <p class="hero-desc-modern">
-                    Hệ thống AI tư vấn thông minh giúp bạn tìm kiếm sản phẩm hoàn hảo. 
+                    Hệ thống AI tư vấn thông minh giúp bạn tìm kiếm sản phẩm hoàn hảo.
                     Cam kết chính hãng với bảo hành đáng tin cậy.
                 </p>
                 <div class="hero-actions-modern">
@@ -28,7 +48,7 @@
                         <i class="fas fa-shopping-bag me-2"></i>
                         <span>Mua sắm ngay</span>
                     </a>
-                    <a href="#featured-products" class="btn-hero-secondary-modern">
+                    <a href="#sanpham-moi" class="btn-hero-secondary-modern">
                         <i class="fas fa-play-circle me-2"></i>
                         <span>Xem sản phẩm</span>
                     </a>
@@ -45,42 +65,51 @@
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-item-modern">
-                        <span class="stat-number-modern">4.9</span>
+                        <span class="stat-number-modern">4.9 <i class="fas fa-star" style="color: #fbbf24; font-size: 0.8em;"></i></span>
                         <span class="stat-label-modern">Đánh giá</span>
                     </div>
                 </div>
             </div>
+            <!-- Right Visual - 3D Platform Product Showcase -->
             <div class="col-lg-6 d-none d-lg-block">
                 <div class="hero-visual-wrapper">
-                    <div class="hero-main-visual">
-                        <div class="main-product-display">
-                            <div class="product-glow"></div>
-                            <div class="product-circle-bg"></div>
-                            <div class="featured-product-card-modern">
-                                <img src="/images/products/iPhone_15_Pro_Max.png" alt="iPhone 15 Pro Max" class="featured-product-img" />
-                                <div class="featured-product-overlay">
-                                    <span class="featured-badge-float">Mới</span>
-                                    <div class="featured-info-float">
-                                        <span class="featured-name-float">iPhone 15 Pro Max</span>
-                                        <span class="featured-price-float">34.990.000đ</span>
-                                    </div>
-                                </div>
+                    <div class="hero-3d-scene">
+                        <!-- Holographic Ring -->
+                        <div class="holo-ring"></div>
+                        <div class="holo-ring holo-ring-2"></div>
+                        <!-- 3D Platform Base -->
+                        <div class="platform-base">
+                            <div class="platform-glow"></div>
+                            <div class="platform-grid-lines"></div>
+                        </div>
+                        <!-- Main Product Display -->
+                        <div class="hero-product-showcase">
+                            <img src="/images/products/iPhone_15_Pro_Max.png" alt="iPhone 15 Pro Max" class="showcase-product-img" />
+                        </div>
+                        <!-- Product Info Card (floating) -->
+                        <div class="hero-product-info-card">
+                            <span class="info-card-badge">MỚI</span>
+                            <div class="info-card-details">
+                                <span class="info-card-name">iPhone 15 Pro Max</span>
+                                <span class="info-card-price">34.990.000đ</span>
                             </div>
                         </div>
-                        <div class="floating-items">
-                            <div class="float-icon fi-1"><i class="fas fa-mobile-alt"></i></div>
-                            <div class="float-icon fi-2"><i class="fas fa-laptop"></i></div>
-                            <div class="float-icon fi-3"><i class="fas fa-headphones-alt"></i></div>
-                            <div class="float-icon fi-4"><i class="fas fa-tablet-alt"></i></div>
+                        <!-- Floating Tech Icons -->
+                        <div class="floating-tech-icons">
+                            <div class="tech-icon ti-1"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="tech-icon ti-2"><i class="fas fa-laptop"></i></div>
+                            <div class="tech-icon ti-3"><i class="fas fa-headphones-alt"></i></div>
+                            <div class="tech-icon ti-4"><i class="fas fa-tablet-alt"></i></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <!-- Modern Wave Divider -->
     <div class="hero-wave">
-        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#eef3f8"/>
+        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path d="M0 120L48 110C96 100 192 80 288 65C384 50 480 40 576 42C672 44 768 58 864 65C960 72 1056 72 1152 68C1248 64 1344 56 1392 52L1440 48V120H1392C1344 120 1248 120 1152 120C1056 120 960 120 864 120C768 120 672 120 576 120C480 120 384 120 288 120C192 120 96 120 48 120H0Z" fill="#eef3f8"/>
         </svg>
     </div>
 </section>
@@ -415,26 +444,7 @@
             border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;
         }
 
-        /* FIX HERO BANNER CONFLICTS */
-        .featured-product-card-modern {
-            position: relative; background: #fff; border-radius: 20px;
-            padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 400px; margin: 0 auto;
-        }
-        .featured-product-img { width: 100%; height: auto; object-fit: contain; }
-        .featured-product-overlay {
-            position: absolute; bottom: 20px; left: 20px; right: 20px;
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
-            padding: 15px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);
-        }
-        .featured-badge-float {
-            background: var(--primary); color: #fff; padding: 4px 12px;
-            border-radius: 50px; font-size: 10px; font-weight: 700;
-            text-transform: uppercase; margin-bottom: 8px; display: inline-block;
-        }
-        .featured-info-float { display: flex; justify-content: space-between; align-items: center; }
-        .featured-name-float { font-weight: 600; color: #333; }
-        .featured-price-float { color: #ee4d2d; font-weight: 700; }
+        /* Hero banner styles are in homepage.css */
     </style>
 }
 

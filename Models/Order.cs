@@ -19,7 +19,7 @@ namespace Webstore.Models
         public DateTime OrderDate { get; set; } = DateTime.Now;
 
         [Required]
-        [Column("total_amount", TypeName = "decimal(10,2)")]
+        [Column("total_amount", TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
         [Required]

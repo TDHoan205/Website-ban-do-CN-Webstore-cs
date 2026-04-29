@@ -3,35 +3,224 @@
     ViewData["Title"] = "Thêm Nhà Cung Cấp";
 }
 
-<h2>Thêm Nhà Cung Cấp</h2>
+<div class="supplier-form-page">
+    <div class="supplier-form-header">
+        <h2 class="supplier-form-title">Thêm Nhà Cung Cấp</h2>
+        <p class="supplier-form-subtitle">Nhập các thông tin chi tiết dưới đây để thêm một nhà cung cấp mới vào hệ thống.</p>
+    </div>
 
-<form asp-action="Create" method="post">
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+    <div class="supplier-form-card">
+        <form asp-action="Create" method="post" id="supplierForm">
+            @Html.AntiForgeryToken()
+
+            <div class="sf-group sf-full">
+                <label asp-for="Name" class="sf-label">Tên nhà cung cấp <span class="sf-required">*</span></label>
+                <input asp-for="Name" class="sf-input" placeholder="Nhập tên doanh nghiệp hoặc cá nhân cung cấp..." />
+                <span asp-validation-for="Name" class="sf-error"></span>
+            </div>
+
+            <div class="sf-row">
+                <div class="sf-group sf-half">
+                    <label asp-for="ContactPerson" class="sf-label">Người liên hệ</label>
+                    <input asp-for="ContactPerson" class="sf-input" placeholder="Họ và tên người đại diện" />
+                    <span asp-validation-for="ContactPerson" class="sf-error"></span>
+                </div>
+                <div class="sf-group sf-half">
+                    <label asp-for="Phone" class="sf-label">Số điện thoại <span class="sf-required">*</span></label>
+                    <input asp-for="Phone" class="sf-input" placeholder="Ví dụ: 0912 345 678" />
+                    <span asp-validation-for="Phone" class="sf-error"></span>
+                </div>
+            </div>
+
+            <div class="sf-group sf-full">
+                <label asp-for="Email" class="sf-label">Địa chỉ Email</label>
+                <input asp-for="Email" class="sf-input" type="email" placeholder="contact@domain.com" />
+                <span asp-validation-for="Email" class="sf-error"></span>
+            </div>
+
+            <div class="sf-group sf-full">
+                <label asp-for="Address" class="sf-label">Địa chỉ</label>
+                <textarea asp-for="Address" class="sf-textarea" rows="3" placeholder="Nhập địa chỉ chi tiết của nhà cung cấp..."></textarea>
+                <span asp-validation-for="Address" class="sf-error"></span>
+            </div>
+
+            <div class="sf-actions">
+                <a asp-action="Index" class="sf-btn sf-btn-back">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+                <button type="submit" class="sf-btn sf-btn-save">
+                    <i class="fas fa-save"></i> Lưu thông tin
+                </button>
+            </div>
+        </form>
     </div>
-    <div class="mb-3">
-        <label asp-for="ContactPerson" class="form-label"></label>
-        <input asp-for="ContactPerson" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Phone" class="form-label"></label>
-        <input asp-for="Phone" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Address" class="form-label"></label>
-        <input asp-for="Address" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-success">Lưu</button>
-    <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
-</form>
+</div>
+
+<style>
+    .supplier-form-page {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .supplier-form-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .supplier-form-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.35rem;
+    }
+
+    .supplier-form-subtitle {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .supplier-form-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 2rem 2rem 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .sf-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .sf-full {
+        width: 100%;
+    }
+
+    .sf-row {
+        display: flex;
+        gap: 1.25rem;
+    }
+
+    .sf-half {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .sf-label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.4rem;
+    }
+
+    .sf-required {
+        color: #ef4444;
+    }
+
+    .sf-input,
+    .sf-textarea {
+        width: 100%;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.88rem;
+        color: #1e293b;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .sf-input:focus,
+    .sf-textarea:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        background: #fff;
+    }
+
+    .sf-input::placeholder,
+    .sf-textarea::placeholder {
+        color: #94a3b8;
+    }
+
+    .sf-textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .sf-error {
+        display: block;
+        font-size: 0.78rem;
+        color: #ef4444;
+        margin-top: 0.25rem;
+    }
+
+    .sf-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .sf-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.6rem 1.4rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .sf-btn-back {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .sf-btn-back:hover {
+        background: #e2e8f0;
+        color: #334155;
+        text-decoration: none;
+    }
+
+    .sf-btn-save {
+        background: #10b981;
+        color: #fff;
+    }
+
+    .sf-btn-save:hover {
+        background: #059669;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    @@media (max-width: 576px) {
+        .sf-row {
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .supplier-form-card {
+            padding: 1.25rem;
+        }
+
+        .sf-actions {
+            flex-direction: column-reverse;
+        }
+
+        .sf-btn {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+</style>
 
 @section Scripts{
     <partial name="_ValidationScriptsPartial" />
 }
-

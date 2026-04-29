@@ -12,6 +12,12 @@ namespace Webstore.Data
         public static async Task SeedAsync(ApplicationDbContext context)
         {
             // Reset dữ liệu cũ theo thứ tự chuẩn để tránh lỗi Foreign Key
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM OrderDetails");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Orders");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('CartItems', 'U') IS NOT NULL DELETE FROM CartItems");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('Cart', 'U') IS NOT NULL DELETE FROM Cart");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('ReceiptShipments', 'U') IS NOT NULL DELETE FROM ReceiptShipments");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('Receipt_Shipments', 'U') IS NOT NULL DELETE FROM Receipt_Shipments");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM ProductVariants");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Inventory");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Products");
@@ -176,77 +182,77 @@ namespace Webstore.Data
 
             {
                 // ========== ĐIỆN THOẠI (10 mẫu) ==========
-                new Product { Name = "iPhone 15 Pro Max 256GB Titan Tự Nhiên", Description = "Titan grade 5, A17 Pro chip, camera 48MP, Dynamic Island, pin siêu bền cả ngày.", Price = 34990000, ImageUrl = "/images/products/iPhone_15_Pro_Max.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "iPhone 15 Pro 128GB Titan Xanh", Description = "Chip A17 Pro, camera 48MP, titanium grade 5, USB-C 3.0.", Price = 27990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "iPhone 15 128GB Xanh Dương", Description = "Chip A16 Bionic, camera 48MP, Dynamic Island, pin 24h.", Price = 19990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "iPhone 13 128GB Hồng", Description = "Chip A15 Bionic, camera kép 12MP, Face ID nhanh.", Price = 15990000, ImageUrl = "/images/products/iPhone_13.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Samsung Galaxy S24 Ultra 256GB Titan Đen", Description = "S Pen tích hợp, màn hình Dynamic AMOLED 2X 6.8 inch, camera 200MP, pin 5000mAh.", Price = 29990000, ImageUrl = "/images/products/Galaxy_S24_Ultra.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy S24+ 256GB Tím", Description = "Màn hình 6.7 inch AMOLED 2X, camera 50MP, pin 4900mAh.", Price = 24990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Samsung Galaxy A55 5G 128GB Xanh", Description = "Màn hình 6.6 inch Super AMOLED, camera 50MP, pin 5000mAh.", Price = 9990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Samsung Galaxy A35 5G 128GB Vàng", Description = "Màn hình 6.6 inch FHD+, camera 50MP OIS, kháng nước IP67.", Price = 7490000, ImageUrl = "/images/products/Galaxy_A35_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung Galaxy Z Flip5 256GB Xanh", Description = "Màn hình gập nhỏ gọn 6.7 inch, Snapdragon 8 Gen 2, Flex Mode đa năng.", Price = 22990000, ImageUrl = "/images/products/Z_Flip5.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Xiaomi 13T Pro 512GB Xanh", Description = "Snapdragon 8 Gen 2, Leica camera 50MP, 120W HyperCharge siêu nhanh.", Price = 19990000, ImageUrl = "/images/products/Xiaomi_13T_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPhone 15 Pro Max", Description = "Titan grade 5, A17 Pro chip, camera 48MP, Dynamic Island, pin siêu bền cả ngày.", Price = 34990000, ImageUrl = "/images/products/iPhone_15_Pro_Max.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "iPhone 15 Pro", Description = "Chip A17 Pro, camera 48MP, titanium grade 5, USB-C 3.0.", Price = 27990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPhone 15", Description = "Chip A16 Bionic, camera 48MP, Dynamic Island, pin 24h.", Price = 19990000, ImageUrl = "/images/products/iPhone_15.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPhone 13", Description = "Chip A15 Bionic, camera kép 12MP, Face ID nhanh.", Price = 15990000, ImageUrl = "/images/products/iPhone_13.png", CategoryId = phoneCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Samsung Galaxy S24 Ultra", Description = "S Pen tích hợp, màn hình Dynamic AMOLED 2X 6.8 inch, camera 200MP, pin 5000mAh.", Price = 29990000, ImageUrl = "/images/products/Galaxy_S24_Ultra.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy S24+", Description = "Màn hình 6.7 inch AMOLED 2X, camera 50MP, pin 4900mAh.", Price = 24990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Samsung Galaxy A55 5G", Description = "Màn hình 6.6 inch Super AMOLED, camera 50MP, pin 5000mAh.", Price = 9990000, ImageUrl = "/images/products/Galaxy_A55_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Samsung Galaxy A35 5G", Description = "Màn hình 6.6 inch FHD+, camera 50MP OIS, kháng nước IP67.", Price = 7490000, ImageUrl = "/images/products/Galaxy_A35_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung Galaxy Z Flip5", Description = "Màn hình gập nhỏ gọn 6.7 inch, Snapdragon 8 Gen 2, Flex Mode đa năng.", Price = 22990000, ImageUrl = "/images/products/Z_Flip5.png", CategoryId = phoneCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Xiaomi 13T Pro", Description = "Snapdragon 8 Gen 2, Leica camera 50MP, 120W HyperCharge siêu nhanh.", Price = 19990000, ImageUrl = "/images/products/Xiaomi_13T_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
 
                 // ========== LAPTOP (10 mẫu) ==========
-                new Product { Name = "MacBook Pro 14 M3 Pro 512GB Bạc", Description = "Chip M3 Pro 12-core CPU, 18-core GPU, 18GB RAM, 512GB SSD, Liquid Retina XDR.", Price = 49990000, ImageUrl = "/images/products/MacBook_Pro_14_M3_Pro.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "MacBook Air 15 M3 256GB Xám", Description = "Chip M3, 15.3 inch Liquid Retina, 8GB RAM, 256GB SSD, pin 18h.", Price = 32990000, ImageUrl = "/images/products/MacBook_Air_M3.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Dell XPS 15 9530 1TB Bạc", Description = "Intel Core i9-13900H, RTX 4070, 32GB RAM, 1TB SSD, 15.6 inch 3.5K OLED.", Price = 69990000, ImageUrl = "/images/products/Dell_XPS_15.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Dell Inspiron 15 3530 512GB Đen", Description = "Intel Core i5-1335U, 8GB RAM, 512GB SSD, 15.6 inch FHD IPS.", Price = 15990000, ImageUrl = "/images/products/Inspiron_15_3530.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "ASUS ROG Zephyrus G14 1TB Trắng", Description = "AMD Ryzen 9 7940HS, RTX 4070, 16GB RAM, 1TB SSD, 14 inch 165Hz.", Price = 54990000, ImageUrl = "/images/products/ROG_Zephyrus_G14.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "ASUS VivoBook 15 512GB Bạc", Description = "Intel Core i5-1235U, 8GB RAM, 512GB SSD, 15.6 inch FHD.", Price = 13990000, ImageUrl = "/images/products/VivoBook_15.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "HP Pavilion Plus 14 512GB Xanh", Description = "Intel Core i7-13700H, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 29990000, ImageUrl = "/images/products/HP_Pavilion_Plus_14.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "HP Victus 15 512GB Đen", Description = "AMD Ryzen 5 7535HS, RTX 2050, 8GB RAM, 512GB SSD, 15.6 inch 144Hz.", Price = 18990000, ImageUrl = "/images/products/HP_Victus_15.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Lenovo ThinkPad X1 Carbon 512GB Đen", Description = "Intel Core i7-1365U, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 49990000, ImageUrl = "/images/products/ThinkPad_X1_Carbon.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Lenovo IdeaPad Gaming 3 512GB Đen", Description = "AMD Ryzen 5 5600H, RTX 3050, 8GB RAM, 512GB SSD, 15.6 inch 120Hz.", Price = 16990000, ImageUrl = "/images/products/IdeaPad_Gaming_3.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "MacBook Pro 14 M3 Pro", Description = "Chip M3 Pro 12-core CPU, 18-core GPU, 18GB RAM, 512GB SSD, Liquid Retina XDR.", Price = 49990000, ImageUrl = "/images/products/MacBook_Pro_14_M3_Pro.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "MacBook Air 15 M3", Description = "Chip M3, 15.3 inch Liquid Retina, 8GB RAM, 256GB SSD, pin 18h.", Price = 32990000, ImageUrl = "/images/products/MacBook_Air_M3.png", CategoryId = laptopCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Dell XPS 15 9530", Description = "Intel Core i9-13900H, RTX 4070, 32GB RAM, 1TB SSD, 15.6 inch 3.5K OLED.", Price = 69990000, ImageUrl = "/images/products/Dell_XPS_15.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Dell Inspiron 15 3530", Description = "Intel Core i5-1335U, 8GB RAM, 512GB SSD, 15.6 inch FHD IPS.", Price = 15990000, ImageUrl = "/images/products/Inspiron_15_3530.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "ASUS ROG Zephyrus G14", Description = "AMD Ryzen 9 7940HS, RTX 4070, 16GB RAM, 1TB SSD, 14 inch 165Hz.", Price = 54990000, ImageUrl = "/images/products/ROG_Zephyrus_G14.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "ASUS VivoBook 15", Description = "Intel Core i5-1235U, 8GB RAM, 512GB SSD, 15.6 inch FHD.", Price = 13990000, ImageUrl = "/images/products/VivoBook_15.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "HP Pavilion Plus 14", Description = "Intel Core i7-13700H, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 29990000, ImageUrl = "/images/products/HP_Pavilion_Plus_14.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "HP Victus 15", Description = "AMD Ryzen 5 7535HS, RTX 2050, 8GB RAM, 512GB SSD, 15.6 inch 144Hz.", Price = 18990000, ImageUrl = "/images/products/HP_Victus_15.png", CategoryId = laptopCat.CategoryId, SupplierId = hp.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Lenovo ThinkPad X1 Carbon", Description = "Intel Core i7-1365U, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 49990000, ImageUrl = "/images/products/ThinkPad_X1_Carbon.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Lenovo IdeaPad Gaming 3", Description = "AMD Ryzen 5 5600H, RTX 3050, 8GB RAM, 512GB SSD, 15.6 inch 120Hz.", Price = 16990000, ImageUrl = "/images/products/IdeaPad_Gaming_3.png", CategoryId = laptopCat.CategoryId, SupplierId = lenovo.SupplierId, IsNew = false, IsHot = true },
 
                 // ========== TABLET (5 mẫu) ==========
-                new Product { Name = "iPad Pro 12.9 inch M2 256GB Xám", Description = "M2 chip, 12.9-inch Liquid Retina XDR, 256GB, WiFi + 5G.", Price = 32990000, ImageUrl = "/images/products/iPad_Pro_12.9.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "iPad Air M2 256GB Tím", Description = "Chip M2, 11 inch Liquid Retina, 256GB, WiFi, hỗ trợ Apple Pencil Pro.", Price = 22990000, ImageUrl = "/images/products/iPad_Air_M2.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "iPad mini 6 64GB Hồng", Description = "Chip A15 Bionic, 8.3 inch Liquid Retina, hỗ trợ Apple Pencil Gen 2.", Price = 14990000, ImageUrl = "/images/products/iPad_mini_6.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung Galaxy Tab S9 Ultra 256GB Đen", Description = "Snapdragon 8 Gen 2, 14.6 inch AMOLED 120Hz, S Pen included.", Price = 28990000, ImageUrl = "/images/products/Tab_S9_Ultra.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy Tab S9 FE 128GB Bạc", Description = "Exynos 1380, 10.9 inch LCD, S Pen included, 128GB.", Price = 9990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "iPad Pro 12.9 inch M2", Description = "M2 chip, 12.9-inch Liquid Retina XDR, 256GB, WiFi + 5G.", Price = 32990000, ImageUrl = "/images/products/iPad_Pro_12.9.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "iPad Air M2", Description = "Chip M2, 11 inch Liquid Retina, 256GB, WiFi, hỗ trợ Apple Pencil Pro.", Price = 22990000, ImageUrl = "/images/products/iPad_Air_M2.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "iPad mini 6", Description = "Chip A15 Bionic, 8.3 inch Liquid Retina, hỗ trợ Apple Pencil Gen 2.", Price = 14990000, ImageUrl = "/images/products/iPad_mini_6.png", CategoryId = tabletCat.CategoryId, SupplierId = apple.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung Galaxy Tab S9 Ultra", Description = "Snapdragon 8 Gen 2, 14.6 inch AMOLED 120Hz, S Pen included.", Price = 28990000, ImageUrl = "/images/products/Tab_S9_Ultra.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy Tab S9 FE", Description = "Exynos 1380, 10.9 inch LCD, S Pen included, 128GB.", Price = 9990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
 
                 // ========== TAI NGHE & ÂM THANH (5 mẫu) ==========
-                new Product { Name = "Sony WH-1000XM5 Đen", Description = "Tai nghe chống ồn cao cấp, 30 giờ pin, LDAC, 8 micro khử ồn AI.", Price = 9990000, ImageUrl = "/images/products/Sony_WH-1000XM5.png", CategoryId = audioCat.CategoryId, SupplierId = sony.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "AirPods Pro 2 Trắng", Description = "Chip H2, Active Noise Cancellation, Adaptive Audio, USB-C.", Price = 6490000, ImageUrl = "/images/products/AirPods_Pro_2.png", CategoryId = audioCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy Buds2 Pro Trắng", Description = "Tai nghe True Wireless, chống ồn chủ động, 360 Audio, IPX7.", Price = 4990000, ImageUrl = "/images/products/Galaxy_Buds2_Pro.png", CategoryId = audioCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "JBL Tune 770NC Đen", Description = "Tai nghe over-ear chống ồn, 70 giờ pin, JBL Pure Bass Sound.", Price = 2990000, ImageUrl = "/images/products/JBL_Tune_770NC.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "JBL Flip 6 Xanh", Description = "Loa bluetooth chống nước IPX7, 12 giờ pin, JBL Pro Sound.", Price = 2490000, ImageUrl = "/images/products/JBL_Flip_6.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Sony WH-1000XM5", Description = "Tai nghe chống ồn cao cấp, 30 giờ pin, LDAC, 8 micro khử ồn AI.", Price = 9990000, ImageUrl = "/images/products/Sony_WH-1000XM5.png", CategoryId = audioCat.CategoryId, SupplierId = sony.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "AirPods Pro 2", Description = "Chip H2, Active Noise Cancellation, Adaptive Audio, USB-C.", Price = 6490000, ImageUrl = "/images/products/AirPods_Pro_2.png", CategoryId = audioCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy Buds2 Pro", Description = "Tai nghe True Wireless, chống ồn chủ động, 360 Audio, IPX7.", Price = 4990000, ImageUrl = "/images/products/Galaxy_Buds2_Pro.png", CategoryId = audioCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "JBL Tune 770NC", Description = "Tai nghe over-ear chống ồn, 70 giờ pin, JBL Pure Bass Sound.", Price = 2990000, ImageUrl = "/images/products/JBL_Tune_770NC.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "JBL Flip 6", Description = "Loa bluetooth chống nước IPX7, 12 giờ pin, JBL Pro Sound.", Price = 2490000, ImageUrl = "/images/products/JBL_Flip_6.png", CategoryId = audioCat.CategoryId, SupplierId = jbl.SupplierId, IsNew = false, IsHot = false },
 
                 // ========== BÀN PHÍM & CHUỘT (5 mẫu) ==========
-                new Product { Name = "Logitech MX Master 3S Đen", Description = "Chuột không dây cao cấp, 8K DPI, kết nối 3 thiết bị.", Price = 2490000, ImageUrl = "/images/products/MX_Master_3S.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Keychron K3 Pro Đen", Description = "Bàn phím cơ low-profile, switch Gateron, kết nối đa thiết bị.", Price = 2290000, ImageUrl = "/images/products/Keychron_K3_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Logitech G Pro X Superlight 2 Trắng", Description = "Chuột gaming siêu nhẹ 60g, HERO 25K sensor, 95h pin.", Price = 3490000, ImageUrl = "/images/products/G_Pro_X_Superlight_2.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Corsair K70 RGB Pro Đen", Description = "Bàn phím gaming cơ, switch Cherry MX, RGB per-key.", Price = 3990000, ImageUrl = "/images/products/Corsair_K70_RGB_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = corsair.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Logitech G502 X Plus Trắng", Description = "Chuột gaming, HERO 25K sensor, 13 nút lập trình.", Price = 1990000, ImageUrl = "/images/products/G502_X_Plus.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Logitech MX Master 3S", Description = "Chuột không dây cao cấp, 8K DPI, kết nối 3 thiết bị.", Price = 2490000, ImageUrl = "/images/products/MX_Master_3S.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Keychron K3 Pro", Description = "Bàn phím cơ low-profile, switch Gateron, kết nối đa thiết bị.", Price = 2290000, ImageUrl = "/images/products/Keychron_K3_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Logitech G Pro X Superlight 2", Description = "Chuột gaming siêu nhẹ 60g, HERO 25K sensor, 95h pin.", Price = 3490000, ImageUrl = "/images/products/G_Pro_X_Superlight_2.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Corsair K70 RGB Pro", Description = "Bàn phím gaming cơ, switch Cherry MX, RGB per-key.", Price = 3990000, ImageUrl = "/images/products/Corsair_K70_RGB_Pro.png", CategoryId = keyboardCat.CategoryId, SupplierId = corsair.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Logitech G502 X Plus", Description = "Chuột gaming, HERO 25K sensor, 13 nút lập trình.", Price = 1990000, ImageUrl = "/images/products/G502_X_Plus.png", CategoryId = keyboardCat.CategoryId, SupplierId = logitech.SupplierId, IsNew = false, IsHot = true },
 
                 // ========== PHỤ KIỆN (5 mẫu) ==========
-                new Product { Name = "Anker 735 65W GaN Đen", Description = "Sạc nhanh GaN 65W, 3 cổng USB-C, siêu nhỏ gọn.", Price = 1290000, ImageUrl = "/images/products/Anker_735_65W.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Anker PowerCore 20000 Đen", Description = "Pin dự phòng 20000mAh, sạc nhanh PowerIQ.", Price = 1490000, ImageUrl = "/images/products/Anker PowerCore.jpg", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "HyperDrive Gen2 Bạc", Description = "Hub USB-C 10 in 1, HDMI 4K, SD/microSD, 100W PD.", Price = 2490000, ImageUrl = "/images/products/HyperDrive_Gen2.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Targus Newport Đen", Description = "Túi đựng laptop 15.6 inch, chống sốc, nhiều ngăn.", Price = 990000, ImageUrl = "/images/products/Targus_Newport.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung T7 1TB Xám", Description = "Ổ SSD di động USB 3.2 Gen 2, tốc độ 1050MB/s.", Price = 2490000, ImageUrl = "/images/products/Samsung_T7_1TB.png", CategoryId = accessoryCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Anker 735 65W GaN", Description = "Sạc nhanh GaN 65W, 3 cổng USB-C, siêu nhỏ gọn.", Price = 1290000, ImageUrl = "/images/products/Anker_735_65W.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Anker PowerCore 20000", Description = "Pin dự phòng 20000mAh, sạc nhanh PowerIQ.", Price = 1490000, ImageUrl = "/images/products/Anker PowerCore.jpg", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "HyperDrive Gen2", Description = "Hub USB-C 10 in 1, HDMI 4K, SD/microSD, 100W PD.", Price = 2490000, ImageUrl = "/images/products/HyperDrive_Gen2.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Targus Newport", Description = "Túi đựng laptop 15.6 inch, chống sốc, nhiều ngăn.", Price = 990000, ImageUrl = "/images/products/Targus_Newport.png", CategoryId = accessoryCat.CategoryId, SupplierId = anker.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung T7", Description = "Ổ SSD di động USB 3.2 Gen 2, tốc độ 1050MB/s.", Price = 2490000, ImageUrl = "/images/products/Samsung_T7_1TB.png", CategoryId = accessoryCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
 
                 // ========== ĐỒNG HỒ THÔNG MINH (3 mẫu) ==========
-                new Product { Name = "Apple Watch Series 9 45mm Đen", Description = "Chip S9, màn hình Always-On Retina, theo dõi sức khỏe.", Price = 11990000, ImageUrl = "/images/products/Apple_Watch_S9.png", CategoryId = watchCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Samsung Galaxy Watch 6 Classic 47mm Bạc", Description = "Màn hình Super AMOLED 47mm, bezel xoay, LTE.", Price = 9990000, ImageUrl = "/images/products/Galaxy_Watch_6_Classic.png", CategoryId = watchCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Xiaomi Watch S3 Đen", Description = "Màn hình AMOLED 1.43 inch, GPS tích hợp, 21 ngày pin.", Price = 3990000, ImageUrl = "/images/products/Xiaomi_Watch_S3.png", CategoryId = watchCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Apple Watch Series 9 45mm", Description = "Chip S9, màn hình Always-On Retina, theo dõi sức khỏe.", Price = 11990000, ImageUrl = "/images/products/Apple_Watch_S9.png", CategoryId = watchCat.CategoryId, SupplierId = apple.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Samsung Galaxy Watch 6 Classic 47mm", Description = "Màn hình Super AMOLED 47mm, bezel xoay, LTE.", Price = 9990000, ImageUrl = "/images/products/Galaxy_Watch_6_Classic.png", CategoryId = watchCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Xiaomi Watch S3", Description = "Màn hình AMOLED 1.43 inch, GPS tích hợp, 21 ngày pin.", Price = 3990000, ImageUrl = "/images/products/Xiaomi_Watch_S3.png", CategoryId = watchCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = false },
 
-                new Product { Name = "MSI Modern 15 H 512GB Đen", Description = "Intel Core i7-13700H, RTX 2050, 16GB RAM, 512GB SSD.", Price = 24990000, ImageUrl = "/images/products/MSI_Modern_15_H.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "ASUS ZenBook 14 OLED 512GB Xanh", Description = "Intel Core Ultra 7, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 27990000, ImageUrl = "/images/products/ZenBook_14_OLED.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Acer Swift Go 14 512GB Bạc", Description = "Intel Core Ultra 5, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 21990000, ImageUrl = "/images/products/Acer_Swift_Go_14.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Surface Laptop 5 512GB Bạch Kim", Description = "Intel Core i7-1265U, 16GB RAM, 512GB SSD, 13.5 inch PixelSense.", Price = 39990000, ImageUrl = "/images/products/Surface_Laptop_5.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Realme C67 128GB Xanh", Description = "Snapdragon 685, camera 108MP, pin 5000mAh, sạc nhanh 33W.", Price = 4990000, ImageUrl = "/images/products/Realme_C67.png", CategoryId = phoneCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "OPPO Reno11 F 5G 256GB Xanh", Description = "Dimensity 7050, camera 64MP OIS, sạc nhanh 67W SUPERVOOC.", Price = 9990000, ImageUrl = "/images/products/Reno11_F_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Xiaomi Redmi Note 13 Pro 256GB Đen", Description = "Snapdragon 7s Gen 2, camera 200MP OIS, sạc nhanh 120W.", Price = 7990000, ImageUrl = "/images/products/Redmi_Note_13_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Xiaomi POCO X6 Pro 256GB Vàng", Description = "Dimensity 8300-Ultra, camera 64MP OIS, 120Hz AMOLED.", Price = 9990000, ImageUrl = "/images/products/POCO_X6_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
-                new Product { Name = "Xiaomi Pad 6 128GB Xám", Description = "Snapdragon 870, 11 inch 2.8K LCD, 144Hz, hỗ trợ stylus.", Price = 8990000, ImageUrl = "/images/products/Xiaomi_Pad_6.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Huawei MatePad 11.5 128GB Bạc", Description = "Snapdragon 7 Gen 1, 11.5 inch 2K LCD, 120Hz.", Price = 7990000, ImageUrl = "/images/products/MatePad_11.5.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Samsung Galaxy Tab S9 FE+ 128GB Xám", Description = "Exynos 1380, 12.4 inch LCD, S Pen included, 128GB.", Price = 15990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "OPPO Pad Air2 128GB Tím", Description = "Helio G99, 11.35 inch FHD+, 4 loa Harman Kardon.", Price = 5990000, ImageUrl = "/images/products/OPPO_Pad_Air2.png", CategoryId = tabletCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = false, IsHot = false },
-                new Product { Name = "Realme Pad X 128GB Xanh", Description = "Snapdragon 695, 10.95 inch 2K LCD, 5G, pin 8340mAh.", Price = 6990000, ImageUrl = "/images/products/Realme_Pad_X.png", CategoryId = tabletCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
-                new Product { Name = "Vivo V30e 5G 256GB Nâu", Description = "Snapdragon 6 Gen 1, camera 50MP Sony IMX882.", Price = 8990000, ImageUrl = "/images/products/V30e_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
-                new Product { Name = "Nokia G22 128GB Xanh", Description = "Unisoc T606, camera 50MP, pin 5050mAh.", Price = 3990000, ImageUrl = "/images/products/Nokia_G22.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false }
+                new Product { Name = "MSI Modern 15 H", Description = "Intel Core i7-13700H, RTX 2050, 16GB RAM, 512GB SSD.", Price = 24990000, ImageUrl = "/images/products/MSI_Modern_15_H.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "ASUS ZenBook 14 OLED", Description = "Intel Core Ultra 7, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 27990000, ImageUrl = "/images/products/ZenBook_14_OLED.png", CategoryId = laptopCat.CategoryId, SupplierId = asus.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Acer Swift Go 14", Description = "Intel Core Ultra 5, 16GB RAM, 512GB SSD, 14 inch 2.8K OLED.", Price = 21990000, ImageUrl = "/images/products/Acer_Swift_Go_14.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Surface Laptop 5", Description = "Intel Core i7-1265U, 16GB RAM, 512GB SSD, 13.5 inch PixelSense.", Price = 39990000, ImageUrl = "/images/products/Surface_Laptop_5.png", CategoryId = laptopCat.CategoryId, SupplierId = dell.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Realme C67", Description = "Snapdragon 685, camera 108MP, pin 5000mAh, sạc nhanh 33W.", Price = 4990000, ImageUrl = "/images/products/Realme_C67.png", CategoryId = phoneCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "OPPO Reno11 F 5G", Description = "Dimensity 7050, camera 64MP OIS, sạc nhanh 67W SUPERVOOC.", Price = 9990000, ImageUrl = "/images/products/Reno11_F_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Xiaomi Redmi Note 13 Pro", Description = "Snapdragon 7s Gen 2, camera 200MP OIS, sạc nhanh 120W.", Price = 7990000, ImageUrl = "/images/products/Redmi_Note_13_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Xiaomi POCO X6 Pro", Description = "Dimensity 8300-Ultra, camera 64MP OIS, 120Hz AMOLED.", Price = 9990000, ImageUrl = "/images/products/POCO_X6_Pro.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = true, IsHot = true },
+                new Product { Name = "Xiaomi Pad 6", Description = "Snapdragon 870, 11 inch 2.8K LCD, 144Hz, hỗ trợ stylus.", Price = 8990000, ImageUrl = "/images/products/Xiaomi_Pad_6.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Huawei MatePad 11.5", Description = "Snapdragon 7 Gen 1, 11.5 inch 2K LCD, 120Hz.", Price = 7990000, ImageUrl = "/images/products/MatePad_11.5.png", CategoryId = tabletCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Samsung Galaxy Tab S9 FE+", Description = "Exynos 1380, 12.4 inch LCD, S Pen included, 128GB.", Price = 15990000, ImageUrl = "/images/products/Tab_S9_FE.png", CategoryId = tabletCat.CategoryId, SupplierId = samsung.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "OPPO Pad Air2", Description = "Helio G99, 11.35 inch FHD+, 4 loa Harman Kardon.", Price = 5990000, ImageUrl = "/images/products/OPPO_Pad_Air2.png", CategoryId = tabletCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = false, IsHot = false },
+                new Product { Name = "Realme Pad X", Description = "Snapdragon 695, 10.95 inch 2K LCD, 5G, pin 8340mAh.", Price = 6990000, ImageUrl = "/images/products/Realme_Pad_X.png", CategoryId = tabletCat.CategoryId, SupplierId = realme.SupplierId, IsNew = false, IsHot = true },
+                new Product { Name = "Vivo V30e 5G", Description = "Snapdragon 6 Gen 1, camera 50MP Sony IMX882.", Price = 8990000, ImageUrl = "/images/products/V30e_5G.png", CategoryId = phoneCat.CategoryId, SupplierId = oppo.SupplierId, IsNew = true, IsHot = false },
+                new Product { Name = "Nokia G22", Description = "Unisoc T606, camera 50MP, pin 5050mAh.", Price = 3990000, ImageUrl = "/images/products/Nokia_G22.png", CategoryId = phoneCat.CategoryId, SupplierId = xiaomi.SupplierId, IsNew = false, IsHot = false }
             };
 
 
@@ -267,7 +273,7 @@ namespace Webstore.Data
             foreach (var p in productList)
             {
                 var variants = new List<ProductVariant>();
-                
+
                 // Logic tạo tối thiểu 2 biến thể cho mỗi sản phẩm dựa trên Category
                 if (p.CategoryId == phoneCat.CategoryId || p.CategoryId == tabletCat.CategoryId)
                 {
@@ -376,6 +382,77 @@ namespace Webstore.Data
             {
                 Console.WriteLine($"❌ Lỗi khi lưu FAQs: {ex.InnerException?.Message ?? ex.Message}");
                 throw;
+            }
+
+            // ========== ĐƠN HÀNG MẪU (20 đơn, trải đều 7 ngày) ==========
+            var today = DateTime.Today;
+            var rng = new Random(42);
+            var allProducts = await context.Products.ToListAsync();
+            var customerAccounts = await context.Accounts.Where(a => a.Role == "Customer").ToListAsync();
+
+            var statuses = new[] { "New", "Processing", "Delivered", "Delivered", "Delivered", "Delivered", "Delivered", "Processing", "Canceled", "New" };
+
+            // Tạo trước danh sách order items cho từng đơn
+            var orderDataList = new List<(Order order, List<OrderItem> items)>();
+
+            for (int i = 0; i < 20; i++)
+            {
+                var daysAgo = rng.Next(0, 7);
+                var customer = customerAccounts[rng.Next(customerAccounts.Count)];
+                var status = statuses[i % statuses.Length];
+
+                // Chọn 1-3 sản phẩm ngẫu nhiên và tính tổng
+                var itemCount = rng.Next(1, 4);
+                decimal total = 0;
+                var items = new List<OrderItem>();
+                var usedProducts = new HashSet<int>();
+
+                for (int j = 0; j < itemCount; j++)
+                {
+                    Product product;
+                    do { product = allProducts[rng.Next(allProducts.Count)]; }
+                    while (usedProducts.Contains(product.ProductId));
+                    usedProducts.Add(product.ProductId);
+
+                    var qty = rng.Next(1, 3);
+                    var unitPrice = product.Price;
+                    total += qty * unitPrice;
+
+                    items.Add(new OrderItem
+                    {
+                        ProductId = product.ProductId,
+                        Quantity = qty,
+                        UnitPrice = unitPrice
+                    });
+                }
+
+                var order = new Order
+                {
+                    AccountId = customer.AccountId,
+                    OrderDate = today.AddDays(-daysAgo).AddHours(rng.Next(8, 22)).AddMinutes(rng.Next(0, 60)),
+                    TotalAmount = total,
+                    Status = status,
+                    CustomerName = customer.FullName,
+                    CustomerPhone = customer.Phone,
+                    CustomerAddress = customer.Address,
+                    Notes = i % 3 == 0 ? "Giao giờ hành chính" : null
+                };
+
+                orderDataList.Add((order, items));
+            }
+
+            // Lưu từng đơn hàng một để tránh conflict composite key (OrderId, ProductId)
+            foreach (var (order, items) in orderDataList)
+            {
+                context.Orders.Add(order);
+                await context.SaveChangesAsync(); // lấy OrderId trước
+
+                foreach (var item in items)
+                {
+                    item.OrderId = order.OrderId;
+                    context.OrderItems.Add(item);
+                }
+                await context.SaveChangesAsync();
             }
         }
 
