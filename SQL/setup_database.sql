@@ -4,6 +4,35 @@
 -- =====================================================
 
 -- =====================================================
+-- MIGRATION FIX: Make Orders.account_id nullable (guest checkout)
+-- Safe to re-run on existing databases
+-- =====================================================
+BEGIN TRY
+    DECLARE @fkName NVARCHAR(128);
+    SELECT @fkName = fk.name
+    FROM sys.foreign_keys fk
+    INNER JOIN sys.tables t ON fk.parent_object_id = t.object_id
+    WHERE t.name = 'Orders' AND fk.parent_object_id = OBJECT_ID('Orders');
+
+    IF @fkName IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE Orders DROP CONSTRAINT [' + @fkName + ']');
+        PRINT 'Dropped FK constraint on Orders.account_id';
+    END
+
+    IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'account_id'
+               AND is_nullable = 0)
+    BEGIN
+        ALTER TABLE Orders ALTER COLUMN account_id INT NULL;
+        PRINT 'Made Orders.account_id nullable';
+    END
+END TRY
+BEGIN CATCH
+    PRINT 'Migration note: ' + ERROR_MESSAGE();
+END CATCH
+GO
+
+-- =====================================================
 -- CREATE DATABASE
 -- =====================================================
 IF DB_ID(N'TechShopWebsite1') IS NULL
@@ -185,15 +214,14 @@ IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orders')
 BEGIN
     CREATE TABLE Orders (
         order_id INT PRIMARY KEY IDENTITY(1,1),
-        account_id INT NOT NULL,
+        account_id INT NULL,
         order_date DATETIME NOT NULL DEFAULT GETDATE(),
         total_amount DECIMAL(10, 2) NOT NULL,
         status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
         customer_name NVARCHAR(100),
         customer_phone NVARCHAR(20),
         customer_address NVARCHAR(255),
-        notes NVARCHAR(500),
-        FOREIGN KEY (account_id) REFERENCES Accounts(account_id)
+        notes NVARCHAR(500)
     );
     PRINT 'Created Orders table';
 END

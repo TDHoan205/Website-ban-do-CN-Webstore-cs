@@ -287,16 +287,11 @@ namespace Webstore.Controllers
             return View(cartItems);
         }
 
-        // POST: /Shop/PlaceOrder - Đặt hàng
+        // POST: /Shop/PlaceOrder - Đặt hàng (hỗ trợ cả guest và member)
         [HttpPost]
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> PlaceOrder([FromBody] PlaceOrderRequest req)
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return Json(new { success = false, message = "Vui lòng đăng nhập để đặt hàng." });
-            }
-
             if (req == null || string.IsNullOrWhiteSpace(req.CustomerName) || string.IsNullOrWhiteSpace(req.CustomerPhone) || string.IsNullOrWhiteSpace(req.CustomerAddress))
             {
                 return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin bắt buộc." });
@@ -304,8 +299,9 @@ namespace Webstore.Controllers
 
             try
             {
-                var accountId = GetCurrentAccountId();
-                var order = await _orderService.CreateOrderAsync(req, accountId);
+                var accountId = GetCurrentAccountIdOrNull();
+                var cartItems = await _cartService.GetCartItemsAsync();
+                var order = await _orderService.CreateOrderAsync(req, accountId, cartItems);
 
                 if (string.Equals(req.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
                 {
@@ -367,9 +363,13 @@ namespace Webstore.Controllers
 
                 await _orderService.UpdateOrderStatusAsync(orderId, "Confirmed");
 
-            if (isSuccess && User.Identity?.IsAuthenticated == true && GetCurrentAccountId() == order.AccountId)
+            if (isSuccess && User.Identity?.IsAuthenticated == true)
             {
-                await _cartService.ClearCart();
+                var accId = GetCurrentAccountIdOrNull();
+                if (accId == null || order.AccountId == null || accId == order.AccountId)
+                {
+                    await _cartService.ClearCart();
+                }
             }
 
             if (User.Identity?.IsAuthenticated != true)
@@ -378,7 +378,8 @@ namespace Webstore.Controllers
                 return RedirectToAction("Login", "Auth", new { returnUrl });
             }
 
-            if (GetCurrentAccountId() != order.AccountId)
+            var currentAccountId = GetCurrentAccountIdOrNull();
+            if (currentAccountId != null && order.AccountId != null && currentAccountId != order.AccountId)
             {
                 return RedirectToAction("OrderHistory");
             }
@@ -478,7 +479,7 @@ namespace Webstore.Controllers
             return RedirectToAction("OrderDetail", new { id = orderId, payment = "success" });
         }
 
-        // POST: /Shop/ConfirmPayment - Xác nhận thanh toán thực sự (clear cart sau khi user xác nhận đã chuyển khoản)
+        // POST: /Shop/ConfirmPayment - Xác nhận thanh toán (guest & member)
         [HttpPost]
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ConfirmPayment(int orderId)
@@ -488,23 +489,38 @@ namespace Webstore.Controllers
                 return Json(new { success = false, message = "Mã đơn hàng không hợp lệ." });
             }
 
-            var accountId = GetCurrentAccountId();
-            var order = await _orderService.GetOrderDetailsAsync(orderId, accountId);
+            var accountId = GetCurrentAccountIdOrNull();
+            var order = await _orderService.GetOrderByIdAsync(orderId);
             if (order == null)
             {
-                return Json(new { success = false, message = "Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về bạn." });
+                return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
             }
 
-            // Prevent double confirmation
+            if (accountId != null && order.AccountId != null && accountId != order.AccountId)
+            {
+                return Json(new { success = false, message = "Đơn hàng không thuộc về bạn." });
+            }
+
             if (order.Status == "Confirmed" || order.Status == "Paid")
             {
-                return Json(new { success = false, message = "Đơn hàng đã được xác nhận thanh toán trước đó." });
+                return Json(new { success = true, message = "Đơn hàng đã được xác nhận thanh toán trước đó." });
+            }
+
+            if (order.Status == "AwaitingConfirmation")
+            {
+                return Json(new { success = true, message = "Đơn hàng đang chờ admin xác nhận. Vui lòng đợi!" });
+            }
+
+            if (order.Status != "Pending")
+            {
+                return Json(new { success = false, message = $"Đơn hàng đang ở trạng thái: {Webstore.Models.OrderStatus.GetDisplayName(order.Status)}" });
             }
 
             try
             {
-                await _orderService.ConfirmPaymentAsync(orderId);
-                return Json(new { success = true, message = "Xác nhận thanh toán thành công!" });
+                // Chuyển sang "Chờ xác nhận thanh toán" - admin sẽ xác nhận hoặc từ chối
+                await _orderService.UpdateOrderStatusAsync(orderId, "AwaitingConfirmation");
+                return Json(new { success = true, message = "Đã gửi yêu cầu xác nhận thanh toán. Vui lòng chờ admin xử lý!" });
             }
             catch (Exception ex)
             {
@@ -601,15 +617,35 @@ namespace Webstore.Controllers
             return Json(count);
         }
 
-        private int GetCurrentAccountId()
+        // GET: /Shop/CheckOrderPaymentStatus - Kiểm tra trạng thái thanh toán của đơn hàng
+        [HttpGet]
+        public async Task<IActionResult> CheckOrderPaymentStatus(int orderId)
+        {
+            if (orderId <= 0)
+            {
+                return Json(new { status = "" });
+            }
+
+            var order = await _orderService.GetOrderByIdAsync(orderId);
+            if (order == null)
+            {
+                return Json(new { status = "" });
+            }
+
+            return Json(new { status = order.Status });
+        }
+
+        private int? GetCurrentAccountIdOrNull()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrEmpty(claim) && int.TryParse(claim, out var accountId))
             {
                 return accountId;
             }
-            return 1;
+            return null;
         }
+
+        private int GetCurrentAccountId() => GetCurrentAccountIdOrNull() ?? 0;
 
 
 
@@ -744,7 +780,7 @@ namespace Webstore.Controllers
             return Json(results);
         }
 
-        // GET: /Shop/OrderHistory - Lịch sử đơn hàng
+        // GET: /Shop/OrderHistory - Lịch sử đơn hàng (member only)
         public async Task<IActionResult> OrderHistory()
         {
             if (User.Identity?.IsAuthenticated != true)
@@ -752,26 +788,26 @@ namespace Webstore.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var accountId = GetCurrentAccountId();
+            var accountId = GetCurrentAccountIdOrNull() ?? 0;
             var orders = await _orderService.GetOrderHistoryAsync(accountId);
 
             return View(orders);
         }
 
-        // GET: /Shop/OrderDetail/{id} - Chi tiết đơn hàng
+        // GET: /Shop/OrderDetail/{id} - Chi tiết đơn hàng (guest & member)
         public async Task<IActionResult> OrderDetail(int id, string? payment = null)
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
-
-            var accountId = GetCurrentAccountId();
-            var order = await _orderService.GetOrderDetailsAsync(id, accountId);
+            var accountId = GetCurrentAccountIdOrNull();
+            var order = await _orderService.GetOrderByIdAsync(id);
 
             if (order == null)
             {
                 return NotFound();
+            }
+
+            if (accountId != null && order.AccountId != null && accountId != order.AccountId)
+            {
+                return RedirectToAction("Login", "Auth");
             }
 
             ViewBag.PaymentResult = payment;

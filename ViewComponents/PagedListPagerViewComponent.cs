@@ -14,6 +14,7 @@ public class PagedListPagerViewComponent : ViewComponent
         bool hasNext,
         string? search = null,
         string? sortOrder = null,
+        string? statusFilter = null,
         string? controllerName = null,
         string? actionName = null,
         string containerClass = "")
@@ -28,6 +29,7 @@ public class PagedListPagerViewComponent : ViewComponent
             HasNext = hasNext,
             Search = search,
             SortOrder = sortOrder,
+            StatusFilter = statusFilter,
             ContainerClass = containerClass,
             ControllerName = controllerName ?? Request.RouteValues["controller"]?.ToString() ?? "Home",
             ActionName = actionName ?? Request.RouteValues["action"]?.ToString() ?? "Index"
@@ -36,7 +38,7 @@ public class PagedListPagerViewComponent : ViewComponent
         return Task.FromResult<IViewComponentResult>(View(vm));
     }
 
-    public Task<IViewComponentResult> InvokeWithModel(PagedList<object> model, string? search = null, string? sortOrder = null, string containerClass = "")
+    public Task<IViewComponentResult> InvokeWithModel(PagedList<object> model, string? search = null, string? sortOrder = null, string? statusFilter = null, string containerClass = "")
     {
         return InvokeAsync(
             model.CurrentPage,
@@ -47,6 +49,7 @@ public class PagedListPagerViewComponent : ViewComponent
             model.HasNext,
             search,
             sortOrder,
+            statusFilter,
             null,
             null,
             containerClass);
@@ -63,6 +66,7 @@ public class PagerViewModel
     public bool HasNext { get; set; }
     public string? Search { get; set; }
     public string? SortOrder { get; set; }
+    public string? StatusFilter { get; set; }
     public string ContainerClass { get; set; } = "";
     public string ControllerName { get; set; } = "Home";
     public string ActionName { get; set; } = "Index";
@@ -74,6 +78,7 @@ public class PagerViewModel
             ["pageNumber"] = pageNumber.ToString(),
             ["search"] = Search,
             ["sortOrder"] = SortOrder,
+            ["statusFilter"] = StatusFilter,
             ["pageSize"] = PageSize.ToString()
         };
         var qs = string.Join("&", qp.Where(kv => !string.IsNullOrEmpty(kv.Value))
@@ -88,6 +93,7 @@ public class PagerViewModel
             ["pageNumber"] = "1",
             ["search"] = Search,
             ["sortOrder"] = SortOrder,
+            ["statusFilter"] = StatusFilter,
             ["pageSize"] = size.ToString()
         };
         var qs = string.Join("&", qp.Where(kv => kv.Value != null)

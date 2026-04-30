@@ -4,31 +4,12 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">
+    <h2 class="fw-bold mb-0">
         <i class="fas fa-shopping-bag me-2 text-primary"></i>Quản lý Đơn Hàng
     </h2>
-</div>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-8">
-                <form method="get" asp-action="Index" class="d-flex">
-                    <input type="text" name="search" value="@ViewBag.Search" class="form-control me-2" placeholder="Tìm theo ID, tài khoản, trạng thái..." />
-                    <input type="hidden" name="sortOrder" value="@ViewBag.SortOrder" />
-                    <input type="hidden" name="pageSize" value="@ViewBag.PageSize" />
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search me-1"></i>Tìm kiếm
-                    </button>
-                </form>
-            </div>
-            <div class="col-md-4 text-end">
-                <a asp-action="Create" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>Thêm mới
-                </a>
-            </div>
-        </div>
-    </div>
+    <a asp-action="Create" class="btn btn-success">
+        <i class="fas fa-plus me-1"></i>Tạo đơn
+    </a>
 </div>
 
 @if (TempData["Success"] != null)
@@ -38,7 +19,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
-
 @if (TempData["Error"] != null)
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -46,6 +26,105 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Warning"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* ===== STATUS FILTER TABS ===== *@
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-action="Index" asp-route-statusFilter="" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(string.IsNullOrEmpty(ViewBag.StatusFilter as string) ? "btn-primary" : "btn-outline-secondary")">
+                Tất cả
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="AwaitingConfirmation" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "AwaitingConfirmation" ? "btn-warning" : "btn-outline-secondary") position-relative">
+                <i class="fas fa-hourglass-half me-1"></i>Chờ xác nhận TT
+                @if ((int?)ViewBag.CountAwaiting > 0)
+                {
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">@ViewBag.CountAwaiting</span>
+                }
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="Pending" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "Pending" ? "btn-secondary" : "btn-outline-secondary")">
+                <i class="fas fa-clock me-1"></i>Chờ TT
+                @if ((int?)ViewBag.CountPending > 0)
+                {
+                    <span class="badge bg-secondary ms-1">@ViewBag.CountPending</span>
+                }
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="Confirmed" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "Confirmed" ? "btn-info" : "btn-outline-secondary")">
+                <i class="fas fa-check-circle me-1"></i>Đã xác nhận
+                @if ((int?)ViewBag.CountConfirmed > 0)
+                {
+                    <span class="badge bg-info ms-1">@ViewBag.CountConfirmed</span>
+                }
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="Processing" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "Processing" ? "btn-primary" : "btn-outline-secondary")">
+                <i class="fas fa-boxes-packing me-1"></i>Chuẩn bị hàng
+                @if ((int?)ViewBag.CountProcessing > 0)
+                {
+                    <span class="badge bg-primary ms-1">@ViewBag.CountProcessing</span>
+                }
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="Shipped" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "Shipped" ? "btn-violet" : "btn-outline-secondary")">
+                <i class="fas fa-truck-fast me-1"></i>Đang vận chuyển
+                @if ((int?)ViewBag.CountShipped > 0)
+                {
+                    <span class="badge bg-violet ms-1">@ViewBag.CountShipped</span>
+                }
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="Delivered" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "Delivered" ? "btn-success" : "btn-outline-secondary")">
+                <i class="fas fa-house-chimney me-1"></i>Đã giao
+                @if ((int?)ViewBag.CountDelivered > 0)
+                {
+                    <span class="badge bg-success ms-1">@ViewBag.CountDelivered</span>
+                }
+            </a>
+            <a asp-action="Index" asp-route-statusFilter="Cancelled" asp-route-search="@ViewBag.Search" asp-route-sortOrder="@ViewBag.SortOrder"
+               class="btn btn-sm @(ViewBag.StatusFilter as string == "Cancelled" ? "btn-danger" : "btn-outline-secondary")">
+                <i class="fas fa-times-circle me-1"></i>Đã hủy
+            </a>
+        </div>
+    </div>
+</div>
+
+@* ===== SEARCH ===== *@
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control"
+                       placeholder="Tìm ID đơn, tên, SĐT khách hàng..." />
+            </div>
+            <div class="col-md-3">
+                <select name="statusFilter" class="form-select">
+                    <option value="">Tất cả trạng thái</option>
+                    @foreach (var s in Webstore.Models.OrderStatus.All)
+                    {
+                        <option value="@s" selected="@(ViewBag.StatusFilter as string == s)">@Webstore.Models.OrderStatus.GetDisplayName(s)</option>
+                    }
+                </select>
+            </div>
+            <input type="hidden" name="sortOrder" value="@ViewBag.SortOrder" />
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-search me-1"></i>Tìm kiếm
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
 
 <vc:paged-list-pager
     current-page="@Model.CurrentPage"
@@ -56,90 +135,84 @@
     has-next="@Model.HasNext"
     search="@ViewBag.Search"
     sort-order="@ViewBag.SortOrder"
+    status-filter="@ViewBag.StatusFilter"
     controller-name="Orders"
     action-name="Index">
 </vc:paged-list-pager>
 
 <div class="card shadow-sm">
     <div class="card-body p-0">
-        <div class="table-scroll-container">
+        <div class="table-responsive">
             <table class="table table-hover mb-0 table-zebra">
                 <thead>
                     <tr>
-                        <th>#</th>
                         <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.OrderIdSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                ID Đơn Hàng <i class="fas fa-sort ms-1"></i>
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.OrderIdSortParm" asp-route-search="@ViewBag.Search" asp-route-statusFilter="@ViewBag.StatusFilter" class="text-white text-decoration-none">
+                                # <i class="fas fa-sort ms-1"></i>
                             </a>
                         </th>
                         <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.DateSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Ngày Đặt <i class="fas fa-sort ms-1"></i>
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.DateSortParm" asp-route-search="@ViewBag.Search" asp-route-statusFilter="@ViewBag.StatusFilter" class="text-white text-decoration-none">
+                                Ngày đặt <i class="fas fa-sort ms-1"></i>
                             </a>
                         </th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.AmountSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Tổng Tiền <i class="fas fa-sort ms-1"></i>
+                        <th>Khách hàng</th>
+                        <th class="text-center">
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.StatusSortParm" asp-route-search="@ViewBag.Search" asp-route-statusFilter="@ViewBag.StatusFilter" class="text-white text-decoration-none">
+                                Trạng thái <i class="fas fa-sort ms-1"></i>
                             </a>
                         </th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.StatusSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Trạng Thái <i class="fas fa-sort ms-1"></i>
+                        <th class="text-end">
+                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.AmountSortParm" asp-route-search="@ViewBag.Search" asp-route-statusFilter="@ViewBag.StatusFilter" class="text-white text-decoration-none">
+                                Tổng tiền <i class="fas fa-sort ms-1"></i>
                             </a>
                         </th>
-                        <th>Tài Khoản</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model)
                     {
+                        var statusBadge = Webstore.Models.OrderStatus.GetBadgeClass(item.Status);
+                        var statusIcon = Webstore.Models.OrderStatus.GetIcon(item.Status);
+                        var statusName = Webstore.Models.OrderStatus.GetDisplayName(item.Status);
                         <tr>
-                            <td>@item.OrderId</td>
-                            <td><strong>#@item.OrderId</strong></td>
-                            <td>@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td class="fw-bold text-primary">@item.TotalAmount.ToString("N0") ₫</td>
+                            <td><strong class="text-primary">#@item.OrderId</strong></td>
+                            <td>@item.OrderDate.ToString("dd/MM/yy HH:mm")</td>
                             <td>
-                                @{
-                                    var statusClass = item.Status switch {
-                                        "Pending" => "bg-warning text-dark",
-                                        "Processing" => "bg-info",
-                                        "Shipped" => "bg-primary",
-                                        "Completed" => "bg-success",
-                                        "Cancelled" => "bg-danger",
-                                        _ => "bg-secondary"
-                                    };
-                                    var statusIcon = item.Status switch {
-                                        "Pending" => "fa-clock",
-                                        "Processing" => "fa-spinner fa-spin",
-                                        "Shipped" => "fa-truck",
-                                        "Completed" => "fa-check-circle",
-                                        "Cancelled" => "fa-times-circle",
-                                        _ => "fa-question-circle"
-                                    };
-                                }
-                                <span class="badge @statusClass">
-                                    <i class="fas @statusIcon me-1"></i>@item.Status
-                                </span>
-                            </td>
-                            <td>
-                                <i class="fas fa-user me-1 text-muted"></i>@(item.Account?.Username ?? "N/A")
+                                <div class="fw-semibold">@item.CustomerName</div>
+                                <div class="small text-muted">@item.CustomerPhone</div>
                             </td>
                             <td class="text-center">
+                                <span class="badge @statusBadge">
+                                    <i class="fas @statusIcon me-1"></i>@statusName
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold text-primary">@item.TotalAmount.ToString("N0") ₫</td>
+                            <td class="text-center">
+                                <a asp-action="Manage" asp-route-id="@item.OrderId" class="btn btn-sm btn-primary" title="Quản lý">
+                                    <i class="fas fa-cog"></i>
+                                </a>
                                 <button type="button" class="btn btn-sm btn-secondary btn-details" data-id="@item.OrderId" title="Chi tiết">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-sm btn-primary" title="Sửa">
+                                <a asp-action="Edit" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-primary" title="Sửa">
                                     <i class="fas fa-edit"></i>
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@item.OrderId" class="btn btn-sm btn-danger" title="Xóa">
-                                    <i class="fas fa-trash"></i>
                                 </a>
                             </td>
                         </tr>
                         <tr class="order-details-row d-none" data-order-id="@item.OrderId">
-                            <td colspan="7" class="p-0">
+                            <td colspan="6" class="p-0">
                                 <div class="p-3 bg-light">Đang tải...</div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                Không có đơn hàng nào.
                             </td>
                         </tr>
                     }
@@ -148,6 +221,12 @@
         </div>
     </div>
 </div>
+
+<style>
+    .btn-violet { background: #7c3aed; color: white; border: none; }
+    .btn-violet:hover { background: #6d28d9; color: white; }
+    .bg-violet { background: #7c3aed !important; color: white !important; }
+</style>
 
 @section Scripts {
     <script>

@@ -10,9 +10,8 @@ namespace Webstore.Models
         [Column("order_id")]
         public int OrderId { get; set; }
 
-        [Required]
         [Column("account_id")]
-        public int AccountId { get; set; }
+        public int? AccountId { get; set; }
 
         [Required]
         [Column("order_date")]
@@ -45,7 +44,7 @@ namespace Webstore.Models
 
         // Navigation properties
         [ForeignKey("AccountId")]
-        public virtual Account Account { get; set; } = null!;
+        public virtual Account? Account { get; set; }
 
         public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public virtual ICollection<ReceiptShipment> ReceiptShipments { get; set; } = new List<ReceiptShipment>();

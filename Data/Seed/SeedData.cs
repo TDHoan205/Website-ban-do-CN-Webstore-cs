@@ -12,6 +12,8 @@ namespace Webstore.Data
         public static async Task SeedAsync(ApplicationDbContext context)
         {
             // Reset dữ liệu cũ theo thứ tự chuẩn để tránh lỗi Foreign Key
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM OrderDetails");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Orders");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM ProductVariants");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Inventory");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Products");

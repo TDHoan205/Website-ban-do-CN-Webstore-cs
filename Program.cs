@@ -260,6 +260,35 @@ END";
                             Console.WriteLine($"⚠️ Không thể thêm các cột ResetToken: {exResetToken.Message}");
                         }
 
+                        // Migration: Make Orders.account_id nullable (guest checkout support)
+                        try
+                        {
+                            var fixAccountIdMigration = @"
+                                BEGIN TRY
+                                    DECLARE @fkName NVARCHAR(128);
+                                    SELECT @fkName = fk.name
+                                    FROM sys.foreign_keys fk
+                                    INNER JOIN sys.tables t ON fk.parent_object_id = t.object_id
+                                    WHERE t.name = 'Orders' AND fk.parent_object_id = OBJECT_ID('Orders');
+                                    IF @fkName IS NOT NULL
+                                    BEGIN
+                                        EXEC('ALTER TABLE Orders DROP CONSTRAINT [' + @fkName + ']');
+                                        PRINT 'Dropped FK on Orders.account_id';
+                                    END
+                                    IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Orders') AND name = 'account_id' AND is_nullable = 0)
+                                    BEGIN
+                                        ALTER TABLE Orders ALTER COLUMN account_id INT NULL;
+                                        PRINT 'Made Orders.account_id nullable';
+                                    END
+                                END TRY BEGIN CATCH END CATCH";
+                            await db.Database.ExecuteSqlRawAsync(fixAccountIdMigration);
+                            Console.WriteLine("✅ Migration: Orders.account_id is now nullable (guest checkout).");
+                        }
+                        catch (Exception exMigration)
+                        {
+                            Console.WriteLine($"⚠️ Migration warning: {exMigration.Message}");
+                        }
+
                         // Seed dữ liệu mẫu
                         await SeedData.SeedAsync(db);
                         Console.WriteLine("✅ Đã thêm dữ liệu mẫu vào database!");

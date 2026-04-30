@@ -667,7 +667,25 @@
                 }).then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
-                        else { window.location.reload(); }
+                        else {
+                            // Xóa row khỏi DOM và cập nhật tóm tắt ngay lập tức
+                            var selector = '.cart-item[data-product-id="' + productId + '"]';
+                            if (variantId > 0) selector += '[data-variant-id="' + variantId + '"]';
+                            var item = document.querySelector(selector);
+                            if (item) item.remove();
+                            // Cập nhật số sản phẩm hiển thị
+                            var countEl = document.getElementById('totalItemsCount');
+                            if (countEl) {
+                                var currentCount = parseInt(countEl.textContent) || 0;
+                                countEl.textContent = Math.max(0, currentCount - 1);
+                            }
+                            // Nếu không còn sản phẩm nào, reload trang
+                            if (!document.querySelector('.cart-item')) {
+                                window.location.reload();
+                            } else {
+                                updateCartSummary();
+                            }
+                        }
                     }).catch(function () { window.location.reload(); });
             }
 

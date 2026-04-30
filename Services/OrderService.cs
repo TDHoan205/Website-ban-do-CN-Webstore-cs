@@ -18,9 +18,9 @@ namespace Webstore.Services
             _cartService = cartService;
         }
 
-        public async Task<Order> CreateOrderAsync(PlaceOrderRequest request, int? accountId)
+        public async Task<Order> CreateOrderAsync(PlaceOrderRequest request, int? accountId, List<CartItem>? preloadedCartItems = null)
         {
-            var cartItems = _cartService.GetCartItems();
+            var cartItems = preloadedCartItems ?? await _cartService.GetCartItemsAsync();
 
             if (request.SelectedProductIds != null && request.SelectedProductIds.Any())
             {
@@ -49,7 +49,7 @@ namespace Webstore.Services
 
             var order = new Order
             {
-                AccountId = accountId ?? 0, // Fallback if needed, though usually handled by auth
+                AccountId = accountId,
                 OrderDate = DateTime.Now,
                 Status = "Pending",
                 CustomerName = request.CustomerName.Trim(),
@@ -68,7 +68,7 @@ namespace Webstore.Services
             foreach (var item in cartItems)
             {
                 decimal unitPrice = item.VariantId.HasValue && item.Variant != null ? item.Variant.Price : (item.Product?.Price ?? 0m);
-                
+
                 await _orderItemRepo.AddAsync(new OrderItem
                 {
                     OrderId = order.OrderId,
@@ -90,6 +90,7 @@ namespace Webstore.Services
 
         public async Task<IEnumerable<Order>> GetOrderHistoryAsync(int accountId)
         {
+            if (accountId == 0) return Enumerable.Empty<Order>();
             return await _orderRepo.FindAsync(o => o.AccountId == accountId);
         }
 
@@ -109,7 +110,7 @@ namespace Webstore.Services
             var order = await _orderRepo.GetByIdAsync(orderId);
             if (order != null)
             {
-                order.Status = "Paid";
+                order.Status = "Confirmed";
                 _orderRepo.Update(order);
                 await _orderRepo.SaveChangesAsync();
                 await RemoveOrderedItemsFromSessionCartAsync(orderId);
@@ -120,7 +121,6 @@ namespace Webstore.Services
         {
             var items = await _orderItemRepo.FindAsync(oi => oi.OrderId == orderId);
             var orderedItems = items.Select(oi => new { oi.ProductId, oi.VariantId }).ToList();
-
             if (!orderedItems.Any()) return;
 
             var cartItems = await _cartService.GetCartItemsAsync();
@@ -139,6 +139,19 @@ namespace Webstore.Services
         public async Task<Order?> GetOrderByIdAsync(int orderId)
         {
             return await _orderRepo.GetByIdAsync(orderId);
+        }
+
+        public async Task<IEnumerable<Order>> GetOrdersByStatusAsync(string status)
+        {
+            return await _orderRepo.FindAsync(o => o.Status == status);
+        }
+
+        public async Task<int> GetPendingPaymentCountAsync()
+        {
+            var result = await _orderRepo.FindAsync(o =>
+                o.Status == "Pending" ||
+                o.Status == "AwaitingConfirmation");
+            return result.Count();
         }
 
         public async Task UpdateOrderStatusAsync(int orderId, string status)

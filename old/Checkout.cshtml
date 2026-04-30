@@ -830,31 +830,8 @@
             document.getElementById('step1-indicator').classList.add('completed');
             document.getElementById('step2-indicator').classList.add('active');
             document.getElementById('stepLine1').classList.add('active');
-            // Kiểm tra ngay trạng thái thanh toán - nếu đã thanh toán thì chuyển sang step 3
-            checkOrderPaymentStatusOnRestore();
+            startPaymentPolling();
         }
-    }
-
-    function checkOrderPaymentStatusOnRestore() {
-        var orderId = parseInt(sessionStorage.getItem('webstore_last_order_id') || '0');
-        if (!orderId) return;
-        fetch('@Url.Action("CheckOrderPaymentStatus", "Shop")?orderId=' + orderId)
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.status === 'Confirmed' || data.status === 'Paid') {
-                    _paymentConfirmed = true;
-                    stopPolling();
-                    document.getElementById('step2-qr').style.display = 'none';
-                    document.getElementById('step3-success').style.display = 'block';
-                    document.getElementById('step2-indicator').classList.remove('active');
-                    document.getElementById('step2-indicator').classList.add('completed');
-                    document.getElementById('step3-indicator').classList.add('active');
-                    document.getElementById('stepLine2').classList.add('active');
-                    document.getElementById('orderCodeDisplay').textContent = '#' + orderId;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            })
-            .catch(function () { });
     }
 
     // Restore state on page load
@@ -1113,7 +1090,7 @@
     }
 
     // =====================================================
-    // STEP 2: Manual confirm (khách bấm "Tôi đã chuyển khoản")
+    // STEP 2: Manual confirm (fallback button)
     // =====================================================
     function confirmPaymentManual() {
         var btn = document.getElementById('btnConfirmedPayment');
@@ -1135,9 +1112,12 @@
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-            if (data.success) {
-                // Chuyển sang trạng thái chờ admin xác nhận
-                showAwaitingConfirmation(orderId, data.message);
+            if (data.success || (data.message && data.message.indexOf('đã được xác nhận') >= 0)) {
+                _paymentConfirmed = true;
+                var overlay = document.getElementById('qrPaidOverlay');
+                if (overlay) overlay.style.display = 'flex';
+                setDetectStatus('paid', '✓ Xác nhận thành công!');
+                setTimeout(showSuccessStep, 1000);
             } else {
                 showToast('error', data.message || 'Xác nhận thất bại.');
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-2"></i>Tôi đã chuyển khoản'; }
@@ -1147,42 +1127,6 @@
             showToast('error', 'Lỗi kết nối. Vui lòng thử lại.');
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-2"></i>Tôi đã chuyển khoản'; }
         });
-    }
-
-    // Hiển thị trạng thái chờ admin xác nhận
-    function showAwaitingConfirmation(orderId, message) {
-        var step2 = document.getElementById('step2-qr');
-        if (!step2) return;
-
-        step2.querySelector('.checkout-card-body').innerHTML = `
-            <div class="text-center py-4">
-                <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2.5rem;color:white;">
-                    <i class="fas fa-hourglass-half"></i>
-                </div>
-                <h4 class="mb-2">Đã gửi yêu cầu!</h4>
-                <p class="text-muted mb-1">Mã đơn hàng: <strong class="text-primary">#${orderId}</strong></p>
-                <p class="text-muted mb-3">${message}</p>
-                <div class="alert alert-warning d-inline-block mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Admin đang xác nhận thanh toán của bạn. Vui lòng chờ và kiểm tra email/số điện thoại.
-                </div>
-                <div class="mt-3">
-                    <a href="/Shop/OrderDetail/${orderId}" class="btn btn-primary">
-                        <i class="fas fa-eye me-2"></i>Xem chi tiết đơn hàng
-                    </a>
-                    <a href="/" class="btn btn-outline-secondary ms-2">
-                        <i class="fas fa-home me-2"></i>Về trang chủ
-                    </a>
-                </div>
-            </div>
-        `;
-
-        var bar = document.getElementById('paymentDetectBar');
-        var pulse = document.getElementById('detectPulse');
-        var timer = document.getElementById('detectTimer');
-        if (bar) bar.style.display = 'none';
-        if (pulse) pulse.style.display = 'none';
-        if (timer) timer.style.display = 'none';
     }
 
     // =====================================================
