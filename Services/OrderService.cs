@@ -5,6 +5,7 @@ using Webstore.Data.Repositories;
 
 namespace Webstore.Services
 {
+
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepo;
@@ -91,13 +92,17 @@ namespace Webstore.Services
         public async Task<IEnumerable<Order>> GetOrderHistoryAsync(int accountId)
         {
             if (accountId == 0) return Enumerable.Empty<Order>();
-            return await _orderRepo.FindAsync(o => o.AccountId == accountId);
+            return await _orderRepo.GetOrdersByAccountIdAsync(accountId);
         }
 
         public async Task<Order?> GetOrderDetailsAsync(int orderId, int accountId)
         {
-            var orders = await _orderRepo.FindAsync(o => o.OrderId == orderId && o.AccountId == accountId);
-            return orders.FirstOrDefault();
+            // Use the repository method that includes OrderItems, Product, Category, Variant, Account
+            var order = await _orderRepo.GetOrderWithDetailsAsync(orderId);
+            if (order == null) return null;
+            // Security check: ensure the order belongs to this account
+            if (order.AccountId != accountId) return null;
+            return order;
         }
 
         public Task<Order?> GetOrderDetails(int orderId, int accountId)

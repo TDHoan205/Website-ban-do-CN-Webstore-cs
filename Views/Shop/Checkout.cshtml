@@ -951,7 +951,15 @@
             return res.json();
         })
         .then(function (data) {
-            if (!data.success) throw new Error(data.message || 'Đặt hàng thất bại.');
+            if (!data.success) {
+                // Nếu server yêu cầu đăng nhập lại (phiên hết hạn)
+                if (data.requireLogin && data.loginUrl) {
+                    showToast('error', data.message || 'Phiên đăng nhập đã hết hạn.');
+                    setTimeout(function() { window.location.href = data.loginUrl; }, 1500);
+                    return;
+                }
+                throw new Error(data.message || 'Đặt hàng thất bại.');
+            }
 
             _currentOrderId = data.orderId;
             try { sessionStorage.setItem('webstore_last_order_id', data.orderId); } catch (e) { }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -300,6 +301,19 @@ namespace Webstore.Controllers
             try
             {
                 var accountId = GetCurrentAccountIdOrNull();
+
+                // Nếu có accountId nhưng tài khoản không tồn tại (phiên đăng nhập cũ), bắt buộc đăng xuất
+                if (accountId.HasValue)
+                {
+                    var accountExists = await _accountService.GetAccountByIdAsync(accountId.Value);
+                    if (accountExists == null)
+                    {
+                        // Phiên cũ - tự động đăng xuất
+                        await HttpContext.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+                        return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn. Đang chuyển hướng đăng nhập lại...", requireLogin = true, loginUrl = Url.Action("Login", "Auth") });
+                    }
+                }
+
                 var cartItems = await _cartService.GetCartItemsAsync();
                 var order = await _orderService.CreateOrderAsync(req, accountId, cartItems);
 

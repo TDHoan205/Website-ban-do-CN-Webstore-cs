@@ -20,6 +20,13 @@ namespace Webstore.Data
             await context.Database.ExecuteSqlRawAsync("DELETE FROM FAQs");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Suppliers");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Categories");
+            
+            // Xóa dữ liệu AI/Chat trước khi xóa Accounts
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('AIConversationLogs', 'U') IS NOT NULL DELETE FROM AIConversationLogs");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('ChatMessages', 'U') IS NOT NULL DELETE FROM ChatMessages");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('ChatSessions', 'U') IS NOT NULL DELETE FROM ChatSessions");
+            await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('Notifications', 'U') IS NOT NULL DELETE FROM Notifications");
+
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Accounts");
 
             // Hash passwords properly: salt:hash format
@@ -378,6 +385,82 @@ namespace Webstore.Data
             {
                 Console.WriteLine($"❌ Lỗi khi lưu FAQs: {ex.InnerException?.Message ?? ex.Message}");
                 throw;
+            }
+            // ========== ĐƠN HÀNG MẪU (20 đơn, trải đều 7 ngày) ==========
+            var today = DateTime.Today;
+            var rng = new Random(42);
+            var allProducts = await context.Products.ToListAsync();
+            var customerAccounts = await context.Accounts.Where(a => a.Role == "Customer").ToListAsync();
+
+            var statuses = new[] { "New", "Processing", "Delivered", "Delivered", "Delivered", "Delivered", "Delivered", "Processing", "Canceled", "New" };
+
+            // Tạo trước danh sách order items cho từng đơn
+            var orderDataList = new List<(Order order, List<OrderItem> items)>();
+
+            for (int i = 0; i < 20; i++)
+            {
+                var daysAgo = rng.Next(0, 7);
+                var customer = customerAccounts[rng.Next(customerAccounts.Count)];
+                var status = statuses[i % statuses.Length];
+
+                // Chỉ tạo 1-2 sản phẩm mỗi đơn và số lượng 1 để tổng tiền không vượt quá decimal(10,2)
+                var itemCount = rng.Next(1, 3);
+                decimal total = 0;
+                var items = new List<OrderItem>();
+                var usedProducts = new HashSet<int>();
+
+                for (int j = 0; j < itemCount; j++)
+                {
+                    Product product;
+                    do { product = allProducts[rng.Next(allProducts.Count)]; }
+                    while (usedProducts.Contains(product.ProductId));
+                    usedProducts.Add(product.ProductId);
+
+                    var qty = 1; // Giữ qty = 1 để tránh lỗi Arithmetic overflow (decimal 10,2)
+                    var unitPrice = product.Price;
+                    total += qty * unitPrice;
+
+                    items.Add(new OrderItem
+                    {
+                        ProductId = product.ProductId,
+                        Quantity = qty,
+                        UnitPrice = unitPrice
+                    });
+                }
+                
+                // Nếu vượt quá 99 triệu (giới hạn của decimal(10,2)), gán cứng thành 99 triệu
+                if (total > 99000000m)
+                {
+                    total = 99000000m;
+                }
+
+                var order = new Order
+                {
+                    AccountId = customer.AccountId,
+                    OrderDate = today.AddDays(-daysAgo).AddHours(rng.Next(8, 22)).AddMinutes(rng.Next(0, 60)),
+                    TotalAmount = total,
+                    Status = status,
+                    CustomerName = customer.FullName,
+                    CustomerPhone = customer.Phone,
+                    CustomerAddress = customer.Address,
+                    Notes = i % 3 == 0 ? "Giao giờ hành chính" : null
+                };
+
+                orderDataList.Add((order, items));
+            }
+
+            // Lưu từng đơn hàng một để tránh conflict composite key (OrderId, ProductId)
+            foreach (var (order, items) in orderDataList)
+            {
+                context.Orders.Add(order);
+                await context.SaveChangesAsync(); // lấy OrderId trước
+
+                foreach (var item in items)
+                {
+                    item.OrderId = order.OrderId;
+                    context.OrderItems.Add(item);
+                }
+                await context.SaveChangesAsync();
             }
         }
 

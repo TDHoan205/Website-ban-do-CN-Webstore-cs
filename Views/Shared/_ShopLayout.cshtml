@@ -1353,121 +1353,44 @@
                             @await RenderSectionAsync("Scripts", required: false)
                             <script>
                                 // SPA / No-reload Page Transitions
+                                // SPA / No-reload Page Transitions (DISABLED due to missing CSS issues)
                                 $(document).on('click', 'a', function (e) {
-                                const url = $(this).attr('href');
-                                if (!url || url.startsWith('javascript:') || url === '#' || $(this).attr('target') === '_blank' || $(this).attr('download')) return;
-
-                                // EXCLUDE ADMIN LINKS from AJAX loading to prevent layout breaking
-                                if (url.toLowerCase().includes('/admin') || url.toLowerCase().includes('area=admin')) return;
-
-                                // Handle anchors for smooth scrolling
-                                if (url.includes('#')) {
-                                const parts = url.split('#');
-                                const targetId = parts[1];
-                                const targetPath = parts[0] || '/Shop'; // Default path if empty
-
-                                // If we are already on the target path (or the current page is the root and path is /Shop)
-                                const currentPath = window.location.pathname;
-                                if (currentPath === targetPath || (currentPath === '/' && targetPath === '/Shop')) {
-                                const element = document.getElementById(targetId);
-                                if (element) {
-                                e.preventDefault();
-                                element.scrollIntoView({ behavior: 'smooth' });
-                                return;
-                                }
-                                }
-                                // If not on same page, let SPA loadPage handle it but don't preventDefault yet
-                                // because we want the anchor to persist in URL or be handled after load
-                                }
-
-                                if (url.startsWith('#')) return; // handled by browser or scroll logic
-                                if (url.startsWith('http') && !url.includes(window.location.host)) return;
-                                if ($(this).closest('form').length > 0) return;
-
-                                e.preventDefault();
-                                loadPage(url);
+                                    // Let the browser handle navigation normally
+                                    // This fixes the issue where page-specific CSS in <head> is lost during AJAX loading
                                 });
 
                                 window.onpopstate = function (e) {
-                                if (e.state && e.state.url) loadPage(e.state.url, false);
-                                else window.location.reload();
+                                    if (e.state && e.state.url) {
+                                        window.location.href = e.state.url;
+                                    } else {
+                                        window.location.reload();
+                                    }
                                 };
 
-                                function loadPage(url, push = true) {
-                                $('body').addClass('page-loading');
-                                $('#page-progress').css('width', '30%');
-
-                                $.ajax({
-                                url: url,
-                                type: 'GET',
-                                success: function (data) {
-                                $('#page-progress').css('width', '70%');
-
-                                // Parse the response to get only the main content
-                                const parser = new DOMParser();
-                                const doc = parser.parseFromString(data, 'text/html');
-                                const contentEl = doc.querySelector('#main-content');
-                                if (!contentEl) {
-                                // Fallback to full page load if the target container is missing.
-                                window.location.href = url;
-                                return;
-                                }
-
-                                const newContent = contentEl.innerHTML;
-                                const newTitle = doc.title;
-
-                                // Update page
-                                $('#main-content').html(newContent);
-                                document.title = newTitle;
-
-                                if (push) history.pushState({ url: url }, newTitle, url);
-
-                                // Re-init scripts if needed
-                                initPageScripts();
-
-                                $('#page-progress').css('width', '100%');
-                                setTimeout(() => {
-                                $('body').removeClass('page-loading');
-                                $('#page-progress').css('width', '0%');
-
-                                // Handle anchor scrolling after page load if URL has hash
-                                if (url.includes('#')) {
-                                const targetId = url.split('#')[1];
-                                const element = document.getElementById(targetId);
-                                if (element) element.scrollIntoView({ behavior: 'smooth' });
-                                } else {
-                                window.scrollTo(0, 0);
-                                }
-                                }, 200);
-                                },
-                                error: function () {
-                                window.location.href = url; // Fallback to normal load
-                                }
-                                });
-                                }
-
                                 function initPageScripts() {
-                                // Re-run any page-specific JS initialization
-                                if (typeof initStaggerCards === 'function') initStaggerCards();
-                                updateCartCount();
-                                updateActiveNav();
+                                    // Re-run any page-specific JS initialization
+                                    if (typeof initStaggerCards === 'function') initStaggerCards();
+                                    updateCartCount();
+                                    updateActiveNav();
                                 }
 
                                 function updateActiveNav() {
-                                const currentPath = window.location.pathname.toLowerCase();
-                                $('.nav-link').removeClass('active');
+                                    const currentPath = window.location.pathname.toLowerCase();
+                                    $('.nav-link').removeClass('active');
 
-                                $('.nav-link').each(function () {
-                                const href = $(this).attr('href').toLowerCase();
-                                // Exact match or if root and path is /shop
-                                if (currentPath === href || (currentPath === '/' && href === '/shop')) {
-                                $(this).addClass('active');
-                                } else if (href !== '/shop' && href !== '/' && currentPath.startsWith(href)) {
-                                // For sub-pages like product details within /shop/products
-                                $(this).addClass('active');
+                                    $('.nav-link').each(function () {
+                                        const href = $(this).attr('href').toLowerCase();
+                                        if (currentPath === href || (currentPath === '/' && href === '/shop')) {
+                                            $(this).addClass('active');
+                                        } else if (href !== '/shop' && href !== '/' && currentPath.startsWith(href)) {
+                                            $(this).addClass('active');
+                                        }
+                                    });
                                 }
+
+                                $(document).ready(function() {
+                                    initPageScripts();
                                 });
-                                }
                             </script>
                         </body>
 

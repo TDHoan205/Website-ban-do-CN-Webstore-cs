@@ -26,16 +26,20 @@ namespace Webstore.Data.Repositories
 
         public async Task<IEnumerable<Order>> GetOrdersByAccountIdAsync(int accountId)
         {
-            return await _dbSet.Where(o => o.AccountId == accountId)
+            return await _dbSet
+                               .Include(o => o.OrderItems)
+                               .Where(o => o.AccountId == accountId)
                                .OrderByDescending(o => o.OrderDate)
                                .ToListAsync();
         }
 
         public async Task<Order?> GetOrderWithDetailsAsync(int id)
         {
-            return await _dbSet.Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
-                               .Include(o => o.Account)
-                               .FirstOrDefaultAsync(o => o.OrderId == id);
+            return await _dbSet
+                .Include(o => o.OrderItems).ThenInclude(oi => oi.Product).ThenInclude(p => p.Category)
+                .Include(o => o.OrderItems).ThenInclude(oi => oi.Variant)
+                .Include(o => o.Account)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
         }
     }
 

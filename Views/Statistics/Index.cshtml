@@ -22,60 +22,44 @@
     </div>
 
     <!-- Quick Stats Grid -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-3">
-            <div class="stats-card stats-primary">
-                <div class="stats-card-body">
-                    <div class="stats-icon"><i class="fas fa-shopping-cart"></i></div>
-                    <div class="stats-info">
-                        <h3 class="stats-value">@Model.TotalOrders</h3>
-                        <p class="stats-label">Tổng Đơn Hàng</p>
-                    </div>
-                </div>
-                <div class="stats-card-footer">
-                    <span class="text-success"><i class="fas fa-arrow-up me-1"></i>+@Model.TodayOrders hôm nay</span>
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-blue">
+                <div class="kpi-icon-wrap"><i class="fas fa-shopping-cart"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Tổng Đơn Hàng</span>
+                    <span class="kpi-value" data-count="@Model.TotalOrders">@Model.TotalOrders.ToString("N0")</span>
+                    <span class="kpi-change kpi-up"><i class="fas fa-arrow-up"></i> +@Model.TodayOrders hôm nay</span>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="stats-card stats-success">
-                <div class="stats-card-body">
-                    <div class="stats-icon"><i class="fas fa-wallet"></i></div>
-                    <div class="stats-info">
-                        <h3 class="stats-value">@Model.TotalRevenue.ToString("N0")₫</h3>
-                        <p class="stats-label">Tổng Doanh Thu</p>
-                    </div>
-                </div>
-                <div class="stats-card-footer">
-                    <span class="text-success"><i class="fas fa-arrow-up me-1"></i>+@Model.TodayRevenue.ToString("N0")₫ hôm nay</span>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-green">
+                <div class="kpi-icon-wrap"><i class="fas fa-wallet"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Tổng Doanh Thu</span>
+                    <span class="kpi-value">@FormatCurrency(Model.TotalRevenue)</span>
+                    <span class="kpi-change kpi-up"><i class="fas fa-arrow-up"></i> +@FormatCurrency(Model.TodayRevenue) hôm nay</span>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="stats-card stats-warning">
-                <div class="stats-card-body">
-                    <div class="stats-icon"><i class="fas fa-box-open"></i></div>
-                    <div class="stats-info">
-                        <h3 class="stats-value">@Model.TotalStock</h3>
-                        <p class="stats-label">Sản Phẩm Trong Kho</p>
-                    </div>
-                </div>
-                <div class="stats-card-footer">
-                    <span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>@Model.PendingOrders đơn chờ duyệt</span>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-orange">
+                <div class="kpi-icon-wrap"><i class="fas fa-box-open"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Sản Phẩm Trong Kho</span>
+                    <span class="kpi-value" data-count="@Model.TotalStock">@Model.TotalStock.ToString("N0")</span>
+                    <span class="kpi-change kpi-warn"><i class="fas fa-exclamation-triangle"></i> @Model.PendingOrders đơn chờ duyệt</span>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="stats-card stats-info">
-                <div class="stats-card-body">
-                    <div class="stats-icon"><i class="fas fa-users"></i></div>
-                    <div class="stats-info">
-                        <h3 class="stats-value">@Model.AccountCount</h3>
-                        <p class="stats-label">Khách Hàng</p>
-                    </div>
-                </div>
-                <div class="stats-card-footer">
-                    <span class="text-primary"><i class="fas fa-user-plus me-1"></i>Tăng trưởng ổn định</span>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-icon-wrap"><i class="fas fa-users"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Khách Hàng</span>
+                    <span class="kpi-value" data-count="@Model.AccountCount">@Model.AccountCount.ToString("N0")</span>
+                    <span class="kpi-change kpi-up"><i class="fas fa-user-plus"></i> Tăng trưởng ổn định</span>
                 </div>
             </div>
         </div>
@@ -214,6 +198,14 @@
 </div>
 
 @functions {
+    string FormatCurrency(decimal amount)
+    {
+        if (amount >= 1_000_000_000) return (amount / 1_000_000_000).ToString("0.#") + "B ₫";
+        if (amount >= 1_000_000) return (amount / 1_000_000).ToString("0.#") + "M ₫";
+        if (amount >= 1_000) return (amount / 1_000).ToString("0.#") + "K ₫";
+        return amount.ToString("N0") + "₫";
+    }
+
     string GetStatusBadgeClass(string status) => status switch
     {
         "Completed" => "bg-success-soft",
@@ -277,6 +269,18 @@
                     plugins: { legend: { display: false } }
                 }
             });
+            // Animate KPI numbers
+            document.querySelectorAll('.kpi-value[data-count]').forEach(el => {
+                const target = parseInt(el.dataset.count);
+                if (isNaN(target) || target === 0) return;
+                let current = 0;
+                const step = Math.ceil(target / 40);
+                const timer = setInterval(() => {
+                    current += step;
+                    if (current >= target) { current = target; clearInterval(timer); }
+                    el.textContent = current.toLocaleString('vi-VN');
+                }, 30);
+            });
         });
     </script>
 }
@@ -316,30 +320,42 @@
     }
     .btn-glass:hover { background: white; color: var(--primary); }
 
-    /* Stats Cards */
-    .stats-card { 
-        background: white; 
-        border-radius: var(--radius-md); 
-        padding: 1.5rem; 
-        box-shadow: var(--shadow);
-        border: 1px solid rgba(0,0,0,0.02);
-        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* ============ KPI CARDS ============ */
+    .kpi-card {
+        background: white; border-radius: 20px; padding: 22px 24px;
+        display: flex; align-items: center; gap: 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.04);
+        transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative; overflow: hidden;
+        height: 100%; /* Đảm bảo các thẻ có chiều cao bằng nhau */
     }
-    .stats-card:hover { transform: translateY(-10px); }
-    .stats-card-body { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 1rem; }
-    .stats-icon { 
-        width: 56px; height: 56px; border-radius: 16px; 
-        display: flex; align-items: center; justify-content: center; 
-        font-size: 1.5rem; 
+    .kpi-card::after {
+        content: ''; position: absolute; top: 0; right: 0;
+        width: 100px; height: 100px; border-radius: 50%;
+        opacity: 0.06; transform: translate(30px, -30px);
     }
-    .stats-value { font-size: 1.5rem; font-weight: 800; margin-bottom: 0px; color: #1e293b; }
-    .stats-label { font-size: 0.85rem; color: #64748b; margin-bottom: 0; font-weight: 600; }
-    .stats-card-footer { font-size: 0.8rem; font-weight: 600; border-top: 1px solid #f1f5f9; pt: 0.8rem; }
+    .kpi-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
+    .kpi-icon-wrap {
+        width: 56px; height: 56px; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem; flex-shrink: 0;
+    }
+    .kpi-blue .kpi-icon-wrap { background: rgba(0,119,182,0.1); color: #0077b6; }
+    .kpi-blue::after { background: #0077b6; }
+    .kpi-green .kpi-icon-wrap { background: rgba(16,185,129,0.1); color: #10b981; }
+    .kpi-green::after { background: #10b981; }
+    .kpi-orange .kpi-icon-wrap { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    .kpi-orange::after { background: #f59e0b; }
+    .kpi-purple .kpi-icon-wrap { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+    .kpi-purple::after { background: #8b5cf6; }
 
-    .stats-primary .stats-icon { background: var(--primary-soft); color: var(--primary); }
-    .stats-success .stats-icon { background: var(--success-soft); color: var(--success); }
-    .stats-warning .stats-icon { background: var(--warning-soft); color: var(--warning); }
-    .stats-info    .stats-icon { background: var(--light-soft); color: #475569; }
+    .kpi-body { display: flex; flex-direction: column; min-width: 0; }
+    .kpi-label { font-size: 0.78rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .kpi-value { font-size: 1.65rem; font-weight: 800; color: #1e293b; line-height: 1.2; }
+    .kpi-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
+    .kpi-up { color: #10b981; }
+    .kpi-warn { color: #f59e0b; }
 
     /* Glass Card */
     .glass-card {
