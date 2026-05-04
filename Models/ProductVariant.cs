@@ -33,6 +33,10 @@ namespace Webstore.Models
         [StringLength(100)]
         public string? VariantName { get; set; }
 
+        [Column("sku")]
+        [StringLength(50)]
+        public string? SKU { get; set; }
+
         [Column("price", TypeName = "decimal(10,2)")]
         public decimal Price { get; set; }
 

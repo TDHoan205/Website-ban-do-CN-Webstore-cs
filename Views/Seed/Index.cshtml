@@ -59,8 +59,8 @@
                                         <td>@account.FullName</td>
                                         <td>@account.Email</td>
                                         <td>
-                                            <span class="badge bg-@(account.Role == "Admin" ? "danger" : account.Role == "Employee" ? "warning" : "info")">
-                                                @account.Role
+                                            <span class="badge bg-@(account.RoleName == "Admin" ? "danger" : account.RoleName == "Employee" ? "warning" : "info")">
+                                                @account.RoleName
                                             </span>
                                         </td>
                                         <td>@account.Phone</td>

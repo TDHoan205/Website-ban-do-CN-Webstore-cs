@@ -19,12 +19,16 @@ namespace Webstore.Controllers
         // GET: /CartItems
         public async Task<IActionResult> Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
-            var query = _context.CartItems.Include(ci => ci.Account).Include(ci => ci.Product).AsQueryable();
+            var query = _context.CartItems
+                .Include(ci => ci.Cart).ThenInclude(c => c.Account)
+                .Include(ci => ci.Product)
+                .Include(ci => ci.Variant)
+                .AsQueryable();
             
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(ci => ci.CartItemId.ToString().Contains(search)
-                                       || (ci.Account != null && ci.Account.Username.Contains(search))
+                                       || (ci.Cart != null && ci.Cart.Account != null && ci.Cart.Account.Username.Contains(search))
                                        || (ci.Product != null && ci.Product.Name.Contains(search)));
             }
 
@@ -37,8 +41,8 @@ namespace Webstore.Controllers
             query = sortOrder switch
             {
                 "cartitemid_desc" => query.OrderByDescending(ci => ci.CartItemId),
-                "account" => query.OrderBy(ci => ci.Account != null ? ci.Account.Username : ""),
-                "account_desc" => query.OrderByDescending(ci => ci.Account != null ? ci.Account.Username : ""),
+                "account" => query.OrderBy(ci => ci.Cart != null && ci.Cart.Account != null ? ci.Cart.Account.Username : ""),
+                "account_desc" => query.OrderByDescending(ci => ci.Cart != null && ci.Cart.Account != null ? ci.Cart.Account.Username : ""),
                 "product" => query.OrderBy(ci => ci.Product != null ? ci.Product.Name : ""),
                 "product_desc" => query.OrderByDescending(ci => ci.Product != null ? ci.Product.Name : ""),
                 "quantity" => query.OrderBy(ci => ci.Quantity),
@@ -57,8 +61,9 @@ namespace Webstore.Controllers
 
         private async Task LoadLookups()
         {
-            ViewBag.Accounts = await _context.Accounts.OrderBy(a => a.Username).ToListAsync();
+            ViewBag.Carts = await _context.Carts.Include(c => c.Account).OrderByDescending(c => c.CartId).ToListAsync();
             ViewBag.Products = await _context.Products.OrderBy(p => p.Name).ToListAsync();
+            ViewBag.Variants = await _context.ProductVariants.OrderBy(v => v.VariantId).ToListAsync();
         }
 
         // GET: /CartItems/Create
@@ -71,7 +76,7 @@ namespace Webstore.Controllers
         // POST: /CartItems/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("AccountId,ProductId,Quantity,AddedDate")] CartItem cartItem)
+        public async Task<IActionResult> Create([Bind("CartId,ProductId,VariantId,Quantity,AddedDate")] CartItem cartItem)
         {
             await LoadLookups();
             if (!ModelState.IsValid)
@@ -98,7 +103,7 @@ namespace Webstore.Controllers
         // POST: /CartItems/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("CartItemId,AccountId,ProductId,Quantity,AddedDate")] CartItem cartItem)
+        public async Task<IActionResult> Edit(int id, [Bind("CartItemId,CartId,ProductId,VariantId,Quantity,AddedDate")] CartItem cartItem)
         {
             if (id != cartItem.CartItemId) return NotFound();
             await LoadLookups();
@@ -130,7 +135,7 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-            var cartItem = await _context.CartItems.Include(ci => ci.Account).Include(ci => ci.Product)
+            var cartItem = await _context.CartItems.Include(ci => ci.Cart).ThenInclude(c => c.Account).Include(ci => ci.Product)
                 .FirstOrDefaultAsync(m => m.CartItemId == id);
             if (cartItem == null) return NotFound();
             return View(cartItem);

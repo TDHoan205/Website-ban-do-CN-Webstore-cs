@@ -10,7 +10,6 @@ namespace Webstore.Controllers
     public class AccountsController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private static readonly string[] Roles = new[] { "Customer", "Admin", "Employee" };
 
         public AccountsController(ApplicationDbContext context)
         {
@@ -20,7 +19,7 @@ namespace Webstore.Controllers
         // GET: /Accounts
         public IActionResult Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
-            var query = _context.Accounts.AsQueryable();
+            var query = _context.Accounts.Include(a => a.Role).AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(a => a.Username.Contains(search)
@@ -41,8 +40,8 @@ namespace Webstore.Controllers
                 "fullname_desc" => query.OrderByDescending(a => a.FullName),
                 "email" => query.OrderBy(a => a.Email),
                 "email_desc" => query.OrderByDescending(a => a.Email),
-                "role" => query.OrderBy(a => a.Role),
-                "role_desc" => query.OrderByDescending(a => a.Role),
+                "role" => query.OrderBy(a => a.Role != null ? a.Role.RoleName : string.Empty),
+                "role_desc" => query.OrderByDescending(a => a.Role != null ? a.Role.RoleName : string.Empty),
                 _ => query.OrderBy(a => a.Username)
             };
 
@@ -56,24 +55,25 @@ namespace Webstore.Controllers
         // GET: /Accounts/Create
         public IActionResult Create()
         {
-            ViewBag.Roles = Roles;
+            ViewBag.Roles = _context.Roles.OrderBy(r => r.RoleName).ToList();
             return View();
         }
 
         // POST: /Accounts/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Username,PasswordHash,Email,FullName,Phone,Address,Role")] Account account)
+        public async Task<IActionResult> Create([Bind("Username,PasswordHash,Email,FullName,Phone,Address,RoleId")] Account account)
         {
-            ViewBag.Roles = Roles;
+            ViewBag.Roles = await _context.Roles.OrderBy(r => r.RoleName).ToListAsync();
             if (!ModelState.IsValid)
             {
                 return View(account);
             }
 
-            if (!Roles.Contains(account.Role))
+            var roleExists = await _context.Roles.AnyAsync(r => r.RoleId == account.RoleId);
+            if (!roleExists)
             {
-                ModelState.AddModelError("Role", "Vai trò không hợp lệ");
+                ModelState.AddModelError("RoleId", "Vai trò không hợp lệ");
                 return View(account);
             }
 
@@ -98,27 +98,28 @@ namespace Webstore.Controllers
             var account = await _context.Accounts.FindAsync(id);
             if (account == null) return NotFound();
 
-            ViewBag.Roles = Roles;
+            ViewBag.Roles = await _context.Roles.OrderBy(r => r.RoleName).ToListAsync();
             return View(account);
         }
 
         // POST: /Accounts/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AccountId,Username,PasswordHash,Email,FullName,Phone,Address,Role")] Account account)
+        public async Task<IActionResult> Edit(int id, [Bind("AccountId,Username,PasswordHash,Email,FullName,Phone,Address,RoleId")] Account account)
         {
             if (id != account.AccountId) return NotFound();
 
-            ViewBag.Roles = Roles;
+            ViewBag.Roles = await _context.Roles.OrderBy(r => r.RoleName).ToListAsync();
 
             if (!ModelState.IsValid)
             {
                 return View(account);
             }
 
-            if (!Roles.Contains(account.Role))
+            var roleExists = await _context.Roles.AnyAsync(r => r.RoleId == account.RoleId);
+            if (!roleExists)
             {
-                ModelState.AddModelError("Role", "Vai trò không hợp lệ");
+                ModelState.AddModelError("RoleId", "Vai trò không hợp lệ");
                 return View(account);
             }
 

@@ -132,16 +132,13 @@ namespace Webstore
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[OrderDetails]') AND type in (N'U'))
 BEGIN
     CREATE TABLE [dbo].[OrderDetails](
+        [order_detail_id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
         [OrderID] [int] NOT NULL,
         [ProductID] [int] NOT NULL,
+        [VariantID] [int] NULL,
         [Quantity] [int] NOT NULL,
-        [Price] [decimal](18, 2) NOT NULL,
-     CONSTRAINT [PK_OrderDetails] PRIMARY KEY CLUSTERED 
-    (
-        [OrderID] ASC,
-        [ProductID] ASC
-    ) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-    ) ON [PRIMARY];
+        [Price] [decimal](18, 2) NOT NULL
+    );
 END";
 
                         try
@@ -153,6 +150,41 @@ END";
                         catch (Exception exTable)
                         {
                             Console.WriteLine($"⚠️ Không thể đảm bảo bảng OrderDetails: {exTable.Message}");
+                        }
+
+                        var upgradeOrderDetails = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[OrderDetails]') AND type in (N'U'))
+BEGIN
+    IF COL_LENGTH('dbo.OrderDetails', 'order_detail_id') IS NULL
+        ALTER TABLE [dbo].[OrderDetails] ADD [order_detail_id] [int] IDENTITY(1,1) NOT NULL;
+
+    IF COL_LENGTH('dbo.OrderDetails', 'VariantID') IS NULL
+        ALTER TABLE [dbo].[OrderDetails] ADD [VariantID] [int] NULL;
+
+    DECLARE @pkName nvarchar(128);
+    SELECT @pkName = kc.name
+    FROM sys.key_constraints kc
+    WHERE kc.parent_object_id = OBJECT_ID(N'[dbo].[OrderDetails]') AND kc.type = 'PK';
+
+    IF @pkName IS NOT NULL AND @pkName <> 'PK_OrderDetails_OrderDetailId'
+    BEGIN
+        EXEC('ALTER TABLE [dbo].[OrderDetails] DROP CONSTRAINT [' + @pkName + ']');
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'PK_OrderDetails_OrderDetailId' AND parent_object_id = OBJECT_ID(N'[dbo].[OrderDetails]'))
+    BEGIN
+        ALTER TABLE [dbo].[OrderDetails] ADD CONSTRAINT [PK_OrderDetails_OrderDetailId] PRIMARY KEY CLUSTERED ([order_detail_id]);
+    END
+END";
+
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(upgradeOrderDetails);
+                            Console.WriteLine("✅ Đã kiểm tra nâng cấp bảng OrderDetails (nếu cần).");
+                        }
+                        catch (Exception exUpgrade)
+                        {
+                            Console.WriteLine($"⚠️ Không thể nâng cấp bảng OrderDetails: {exUpgrade.Message}");
                         }
 
                         var createKnowledgeChunksIfMissing = @"
@@ -219,10 +251,107 @@ END";
                             await db.Database.ExecuteSqlRawAsync(createReceiptsShipmentsIfMissing);
                             Console.WriteLine("✅ Đảm bảo bảng Receipts_Shipments tồn tại.");
                         }
-                        catch (Exception exRsTable)
+                        catch (Exception ex)
                         {
-                            Console.WriteLine($"⚠️ Không thể đảm bảo bảng Receipts_Shipments: {exRsTable.Message}");
+                            Console.WriteLine($"⚠️ Lỗi khi kiểm tra bảng Receipts_Shipments: {ex.Message}");
                         }
+
+
+                        // 1. Ensure Carts table and its columns exist
+                        var hardeningCarts = @"
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Carts]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[Carts](
+        [cart_id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [account_id] [int] NULL,
+        [session_id] [nvarchar](64) NULL,
+        [role_name] [nvarchar](30) NULL,
+        [created_at] [datetime2] NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('dbo.Carts', 'session_id') IS NULL
+        ALTER TABLE [dbo].[Carts] ADD [session_id] [nvarchar](64) NULL;
+    IF COL_LENGTH('dbo.Carts', 'role_name') IS NULL
+        ALTER TABLE [dbo].[Carts] ADD [role_name] [nvarchar](30) NULL;
+END";
+
+                        // 2. Ensure Roles table exists
+                        var hardeningRoles = @"
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Roles]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[Roles](
+        [role_id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [role_name] [nvarchar](30) NOT NULL
+    );
+    CREATE UNIQUE INDEX [IX_Roles_RoleName] ON [dbo].[Roles]([role_name]);
+END";
+
+                        // 3. Ensure ProductImages table exists
+                        var hardeningProductImages = @"
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ProductImages]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[ProductImages](
+        [image_id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [product_id] [int] NOT NULL,
+        [variant_id] [int] NULL,
+        [image_url] [nvarchar](500) NOT NULL,
+        [is_primary] [bit] NOT NULL DEFAULT 0
+    );
+END";
+
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(hardeningCarts);
+                            await db.Database.ExecuteSqlRawAsync(hardeningRoles);
+                            await db.Database.ExecuteSqlRawAsync(hardeningProductImages);
+                            Console.WriteLine("✅ Database Hardening: Carts/Roles/ProductImages OK.");
+                        }
+                        catch (Exception exHard)
+                        {
+                            Console.WriteLine($"⚠️ Lỗi Hardening: {exHard.Message}");
+                        }
+
+                        // 4. Upgrade Accounts with role_id
+                        var hardeningAccounts = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Accounts]') AND type in (N'U'))
+BEGIN
+    IF COL_LENGTH('dbo.Accounts', 'role_id') IS NULL
+        ALTER TABLE [dbo].[Accounts] ADD [role_id] [int] NULL;
+END";
+                        await db.Database.ExecuteSqlRawAsync(hardeningAccounts);
+
+                        // 5. Upgrade Cart_Items with cart_id and PK
+                        var hardeningCartItems = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Cart_Items]') AND type in (N'U'))
+BEGIN
+    IF COL_LENGTH('dbo.Cart_Items', 'cart_item_id') IS NULL
+        ALTER TABLE [dbo].[Cart_Items] ADD [cart_item_id] [int] IDENTITY(1,1) NOT NULL;
+    
+    IF COL_LENGTH('dbo.Cart_Items', 'cart_id') IS NULL
+        ALTER TABLE [dbo].[Cart_Items] ADD [cart_id] [int] NULL;
+        
+    IF COL_LENGTH('dbo.Cart_Items', 'variant_id') IS NULL
+        ALTER TABLE [dbo].[Cart_Items] ADD [variant_id] [int] NULL;
+END";
+                        await db.Database.ExecuteSqlRawAsync(hardeningCartItems);
+
+                        // 6. Upgrade OrderDetails with order_detail_id and VariantID
+                        var hardeningOrderDetails = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[OrderDetails]') AND type in (N'U'))
+BEGIN
+    IF COL_LENGTH('dbo.OrderDetails', 'order_detail_id') IS NULL
+    BEGIN
+        -- If it was a composite PK, we might need to drop it first, but for now just add column if missing
+        ALTER TABLE [dbo].[OrderDetails] ADD [order_detail_id] [int] IDENTITY(1,1) NOT NULL;
+    END
+    
+    IF COL_LENGTH('dbo.OrderDetails', 'VariantID') IS NULL
+        ALTER TABLE [dbo].[OrderDetails] ADD [VariantID] [int] NULL;
+END";
+                        await db.Database.ExecuteSqlRawAsync(hardeningOrderDetails);
+
 
                         // Tạo cột is_available cho Products nếu chưa tồn tại
                         var addIsAvailableColumn = @"
@@ -238,6 +367,22 @@ END";
                         catch (Exception exIsAvail)
                         {
                             Console.WriteLine($"⚠️ Không thể thêm cột is_available: {exIsAvail.Message}");
+                        }
+
+                        var addSkuColumn = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ProductVariants]') AND type in (N'U'))
+BEGIN
+    IF COL_LENGTH('dbo.ProductVariants', 'sku') IS NULL
+        ALTER TABLE [dbo].[ProductVariants] ADD [sku] NVARCHAR(50) NULL;
+END";
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(addSkuColumn);
+                            Console.WriteLine("✅ Đảm bảo cột sku tồn tại trong bảng ProductVariants.");
+                        }
+                        catch (Exception exSku)
+                        {
+                            Console.WriteLine($"⚠️ Không thể thêm cột sku: {exSku.Message}");
                         }
 
                         // Tạo cột reset_token và reset_token_expiry cho Accounts nếu chưa tồn tại

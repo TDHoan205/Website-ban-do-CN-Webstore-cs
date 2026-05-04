@@ -24,12 +24,12 @@
                     <div class="profile-info">
                         <h4>@(string.IsNullOrEmpty(Model.FullName) ? Model.Username : Model.FullName)</h4>
                         <span class="profile-role">
-                            <i class="fas @(Model.Role switch {
+                            <i class="fas @(Model.RoleName switch {
                                 "Admin" => "fa-crown text-warning",
                                 "Employee" => "fa-user-tie text-info",
                                 _ => "fa-user text-secondary"
                             }) me-1"></i>
-                            @(Model.Role switch {
+                            @(Model.RoleName switch {
                                 "Admin" => "Quản trị viên",
                                 "Employee" => "Nhân viên",
                                 _ => "Khách hàng"

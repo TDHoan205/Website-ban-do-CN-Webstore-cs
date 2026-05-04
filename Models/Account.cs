@@ -39,9 +39,8 @@ namespace Webstore.Models
         public bool? IsActive { get; set; } = true;
 
         [Required]
-        [StringLength(20)]
-        [Column("role")]
-        public string Role { get; set; } = "Customer";
+        [Column("role_id")]
+        public int RoleId { get; set; }
 
         [StringLength(64)]
         [Column("reset_token")]
@@ -50,9 +49,13 @@ namespace Webstore.Models
         [Column("reset_token_expiry")]
         public DateTime? ResetTokenExpiry { get; set; }
 
+        [NotMapped]
+        public string RoleName => Role?.RoleName ?? "Customer";
+
         // Navigation properties
         public virtual Employee? Employee { get; set; }
+        public virtual Role? Role { get; set; }
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-        public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+        public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
     }
 }

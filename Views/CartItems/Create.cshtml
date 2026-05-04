@@ -1,23 +1,24 @@
 @model Webstore.Models.CartItem
 @{
     ViewData["Title"] = "Thêm Giỏ Hàng";
-    var accounts = ViewBag.Accounts as List<Webstore.Models.Account> ?? new List<Webstore.Models.Account>();
+    var carts = ViewBag.Carts as List<Webstore.Models.Cart> ?? new List<Webstore.Models.Cart>();
     var products = ViewBag.Products as List<Webstore.Models.Product> ?? new List<Webstore.Models.Product>();
+    var variants = ViewBag.Variants as List<Webstore.Models.ProductVariant> ?? new List<Webstore.Models.ProductVariant>();
 }
 
 <h2>Thêm Giỏ Hàng</h2>
 
 <form asp-action="Create" method="post">
     <div class="mb-3">
-        <label asp-for="AccountId" class="form-label">Tài khoản</label>
-        <select asp-for="AccountId" class="form-select">
-            <option value="">-- Chọn tài khoản --</option>
-            @foreach (var a in accounts)
+        <label asp-for="CartId" class="form-label">Cart</label>
+        <select asp-for="CartId" class="form-select">
+            <option value="">-- Chọn cart --</option>
+            @foreach (var c in carts)
             {
-                <option value="@a.AccountId">@a.Username (@a.FullName)</option>
+                <option value="@c.CartId">#@c.CartId - @(c.Account?.Username ?? "Guest")</option>
             }
         </select>
-        <span asp-validation-for="AccountId" class="text-danger"></span>
+        <span asp-validation-for="CartId" class="text-danger"></span>
     </div>
     <div class="mb-3">
         <label asp-for="ProductId" class="form-label">Sản phẩm</label>
@@ -29,6 +30,17 @@
             }
         </select>
         <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="VariantId" class="form-label">Biến thể</label>
+        <select asp-for="VariantId" class="form-select">
+            <option value="">-- Không chọn --</option>
+            @foreach (var v in variants)
+            {
+                <option value="@v.VariantId">#@v.VariantId - @v.Color @(!string.IsNullOrEmpty(v.Storage) ? "/ " + v.Storage : "")</option>
+            }
+        </select>
+        <span asp-validation-for="VariantId" class="text-danger"></span>
     </div>
     <div class="mb-3">
         <label asp-for="Quantity" class="form-label">Số lượng</label>

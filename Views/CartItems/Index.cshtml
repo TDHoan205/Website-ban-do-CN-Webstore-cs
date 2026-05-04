@@ -85,7 +85,7 @@
                         <tr>
                             <td>@item.CartItemId</td>
                             <td>@item.CartItemId</td>
-                            <td>@item.Account?.Username</td>
+                            <td>@(item.Cart?.Account?.Username ?? "Guest")</td>
                             <td>@item.Product?.Name</td>
                             <td>@item.Quantity</td>
                             <td>@item.AddedDate.ToString("dd/MM/yyyy HH:mm")</td>

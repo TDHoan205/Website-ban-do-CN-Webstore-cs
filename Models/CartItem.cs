@@ -10,8 +10,9 @@ namespace Webstore.Models
         [Column("cart_item_id")]
         public int CartItemId { get; set; }
 
-        [Column("account_id")]
-        public int? AccountId { get; set; }
+        [Required]
+        [Column("cart_id")]
+        public int CartId { get; set; }
 
         [Required]
         [Column("product_id")]
@@ -30,8 +31,8 @@ namespace Webstore.Models
         public DateTime AddedDate { get; set; } = DateTime.Now;
 
         // Navigation properties
-        [ForeignKey("AccountId")]
-        public virtual Account? Account { get; set; }
+        [ForeignKey("CartId")]
+        public virtual Cart? Cart { get; set; }
 
         [ForeignKey("ProductId")]
         public virtual Product? Product { get; set; }

@@ -12,9 +12,12 @@ namespace Webstore.Data
         public static async Task SeedAsync(ApplicationDbContext context)
         {
             // Reset dữ liệu cũ theo thứ tự chuẩn để tránh lỗi Foreign Key
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Cart_Items");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Carts");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM OrderDetails");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Orders");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM ProductVariants");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM ProductImages");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Inventory");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Products");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM FAQs");
@@ -28,6 +31,7 @@ namespace Webstore.Data
             await context.Database.ExecuteSqlRawAsync("IF OBJECT_ID('Notifications', 'U') IS NOT NULL DELETE FROM Notifications");
 
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Accounts");
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM Roles");
 
             // Hash passwords properly: salt:hash format
             string HashPass(string p)
@@ -36,29 +40,42 @@ namespace Webstore.Data
                 return salt + ":" + PasswordHasher.HashPassword(p, salt);
             }
 
+            // ========== ROLE ==========
+            var roles = new List<Role>
+            {
+                new Role { RoleName = "Admin" },
+                new Role { RoleName = "Employee" },
+                new Role { RoleName = "Customer" }
+            };
+
+            context.Roles.AddRange(roles);
+            await context.SaveChangesAsync();
+
+            var roleMap = roles.ToDictionary(r => r.RoleName, r => r.RoleId);
+
             // ========== TÀI KHOẢN (20 mẫu) ==========
             var accounts = new List<Account>
             {
-                new Account { Username = "admin", FullName = "Nguyễn Văn An", Email = "admin@webstore.com", Phone = "0123456789", Address = "123 Đường ABC, Quận 1, TP.HCM", Role = "Admin", PasswordHash = HashPass("admin123"), IsActive = true },
-                new Account { Username = "employee", FullName = "Trần Thị Bình", Email = "employee@webstore.com", Phone = "0987654321", Address = "456 Đường XYZ, Quận 2, TP.HCM", Role = "Employee", PasswordHash = HashPass("employee123"), IsActive = true },
-                new Account { Username = "khachhang1", FullName = "Lê Minh Cường", Email = "cuong.le@email.com", Phone = "0901234567", Address = "789 Đường DEF, Quận 3, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang2", FullName = "Phạm Hoàng Duy", Email = "duy.pham@email.com", Phone = "0902345678", Address = "321 Đường GHI, Quận 4, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang3", FullName = "Vũ Thị Em", Email = "em.vu@email.com", Phone = "0903456789", Address = "654 Đường JKL, Quận 5, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang4", FullName = "Đặng Minh Phong", Email = "phong.dang@email.com", Phone = "0904567890", Address = "987 Đường MNO, Quận 6, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang5", FullName = "Bùi Thị Quỳnh", Email = "quynh.bui@email.com", Phone = "0905678901", Address = "147 Đường PQR, Quận 7, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang6", FullName = "Hoàng Văn Sơn", Email = "son.hoang@email.com", Phone = "0906789012", Address = "258 Đường STU, Quận 8, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang7", FullName = "Ngô Thị Thanh", Email = "thanh.ngo@email.com", Phone = "0907890123", Address = "369 Đường VWX, Quận 9, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang8", FullName = "Trịnh Văn Tùng", Email = "tung.trinh@email.com", Phone = "0908901234", Address = "741 Đường YZA, Quận 10, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang9", FullName = "Lý Thị Vân", Email = "van.ly@email.com", Phone = "0909012345", Address = "852 Đường BCD, Quận 11, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang10", FullName = "Đinh Minh Tuấn", Email = "tuan.dinh@email.com", Phone = "0910123456", Address = "963 Đường EFG, Quận 12, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "nhanvien1", FullName = "Cao Thị Hương", Email = "huong.cao@webstore.com", Phone = "0911234567", Address = "159 Đường HIJ, Quận Bình Thạnh, TP.HCM", Role = "Employee", PasswordHash = HashPass("employee123"), IsActive = true },
-                new Account { Username = "nhanvien2", FullName = "Bạch Văn Kiên", Email = "kien.bach@webstore.com", Phone = "0912345678", Address = "753 Đường KLM, Quận Gò Vấp, TP.HCM", Role = "Employee", PasswordHash = HashPass("employee123"), IsActive = true },
-                new Account { Username = "nhanvien3", FullName = "Tạ Thị Lan", Email = "lan.ta@webstore.com", Phone = "0913456789", Address = "951 Đường NOP, Quận Phú Nhuận, TP.HCM", Role = "Employee", PasswordHash = HashPass("employee123"), IsActive = true },
-                new Account { Username = "nhanvien4", FullName = "Phùng Văn Mạnh", Email = "manh.phung@webstore.com", Phone = "0914567890", Address = "357 Đường QRS, Quận Tân Bình, TP.HCM", Role = "Employee", PasswordHash = HashPass("employee123"), IsActive = true },
-                new Account { Username = "khachhang11", FullName = "Võ Thị Ngọc", Email = "ngoc.vo@email.com", Phone = "0915678901", Address = "159 Đường TUV, Quận Tân Phú, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang12", FullName = "Đỗ Văn Hùng", Email = "hung.do@email.com", Phone = "0916789012", Address = "753 Đường WXY, Quận Bình Tân, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang13", FullName = "Hồ Thị Mai", Email = "mai.ho@email.com", Phone = "0917890123", Address = "951 Đường ZAB, Huyện Hóc Môn, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true },
-                new Account { Username = "khachhang14", FullName = "Nguyễn Văn Đức", Email = "duc.nguyen@email.com", Phone = "0918901234", Address = "246 Đường CDE, Huyện Củ Chi, TP.HCM", Role = "Customer", PasswordHash = HashPass("password123"), IsActive = true }
+                new Account { Username = "admin", FullName = "Nguyễn Văn An", Email = "admin@webstore.com", Phone = "0123456789", Address = "123 Đường ABC, Quận 1, TP.HCM", RoleId = roleMap["Admin"], PasswordHash = HashPass("admin123"), IsActive = true },
+                new Account { Username = "employee", FullName = "Trần Thị Bình", Email = "employee@webstore.com", Phone = "0987654321", Address = "456 Đường XYZ, Quận 2, TP.HCM", RoleId = roleMap["Employee"], PasswordHash = HashPass("employee123"), IsActive = true },
+                new Account { Username = "khachhang1", FullName = "Lê Minh Cường", Email = "cuong.le@email.com", Phone = "0901234567", Address = "789 Đường DEF, Quận 3, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang2", FullName = "Phạm Hoàng Duy", Email = "duy.pham@email.com", Phone = "0902345678", Address = "321 Đường GHI, Quận 4, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang3", FullName = "Vũ Thị Em", Email = "em.vu@email.com", Phone = "0903456789", Address = "654 Đường JKL, Quận 5, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang4", FullName = "Đặng Minh Phong", Email = "phong.dang@email.com", Phone = "0904567890", Address = "987 Đường MNO, Quận 6, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang5", FullName = "Bùi Thị Quỳnh", Email = "quynh.bui@email.com", Phone = "0905678901", Address = "147 Đường PQR, Quận 7, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang6", FullName = "Hoàng Văn Sơn", Email = "son.hoang@email.com", Phone = "0906789012", Address = "258 Đường STU, Quận 8, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang7", FullName = "Ngô Thị Thanh", Email = "thanh.ngo@email.com", Phone = "0907890123", Address = "369 Đường VWX, Quận 9, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang8", FullName = "Trịnh Văn Tùng", Email = "tung.trinh@email.com", Phone = "0908901234", Address = "741 Đường YZA, Quận 10, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang9", FullName = "Lý Thị Vân", Email = "van.ly@email.com", Phone = "0909012345", Address = "852 Đường BCD, Quận 11, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang10", FullName = "Đinh Minh Tuấn", Email = "tuan.dinh@email.com", Phone = "0910123456", Address = "963 Đường EFG, Quận 12, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "nhanvien1", FullName = "Cao Thị Hương", Email = "huong.cao@webstore.com", Phone = "0911234567", Address = "159 Đường HIJ, Quận Bình Thạnh, TP.HCM", RoleId = roleMap["Employee"], PasswordHash = HashPass("employee123"), IsActive = true },
+                new Account { Username = "nhanvien2", FullName = "Bạch Văn Kiên", Email = "kien.bach@webstore.com", Phone = "0912345678", Address = "753 Đường KLM, Quận Gò Vấp, TP.HCM", RoleId = roleMap["Employee"], PasswordHash = HashPass("employee123"), IsActive = true },
+                new Account { Username = "nhanvien3", FullName = "Tạ Thị Lan", Email = "lan.ta@webstore.com", Phone = "0913456789", Address = "951 Đường NOP, Quận Phú Nhuận, TP.HCM", RoleId = roleMap["Employee"], PasswordHash = HashPass("employee123"), IsActive = true },
+                new Account { Username = "nhanvien4", FullName = "Phùng Văn Mạnh", Email = "manh.phung@webstore.com", Phone = "0914567890", Address = "357 Đường QRS, Quận Tân Bình, TP.HCM", RoleId = roleMap["Employee"], PasswordHash = HashPass("employee123"), IsActive = true },
+                new Account { Username = "khachhang11", FullName = "Võ Thị Ngọc", Email = "ngoc.vo@email.com", Phone = "0915678901", Address = "159 Đường TUV, Quận Tân Phú, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang12", FullName = "Đỗ Văn Hùng", Email = "hung.do@email.com", Phone = "0916789012", Address = "753 Đường WXY, Quận Bình Tân, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang13", FullName = "Hồ Thị Mai", Email = "mai.ho@email.com", Phone = "0917890123", Address = "951 Đường ZAB, Huyện Hóc Môn, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true },
+                new Account { Username = "khachhang14", FullName = "Nguyễn Văn Đức", Email = "duc.nguyen@email.com", Phone = "0918901234", Address = "246 Đường CDE, Huyện Củ Chi, TP.HCM", RoleId = roleMap["Customer"], PasswordHash = HashPass("password123"), IsActive = true }
             };
             try
             {
@@ -263,6 +280,22 @@ namespace Webstore.Data
             {
                 context.Products.AddRange(products);
                 await context.SaveChangesAsync();
+
+                var productImages = products
+                    .Where(p => !string.IsNullOrWhiteSpace(p.ImageUrl))
+                    .Select(p => new ProductImage
+                    {
+                        ProductId = p.ProductId,
+                        ImageUrl = p.ImageUrl!,
+                        IsPrimary = true
+                    })
+                    .ToList();
+
+                if (productImages.Any())
+                {
+                    context.ProductImages.AddRange(productImages);
+                    await context.SaveChangesAsync();
+                }
             }
             catch (DbUpdateException ex)
             {
@@ -390,7 +423,10 @@ namespace Webstore.Data
             var today = DateTime.Today;
             var rng = new Random(42);
             var allProducts = await context.Products.ToListAsync();
-            var customerAccounts = await context.Accounts.Where(a => a.Role == "Customer").ToListAsync();
+            var customerAccounts = await context.Accounts
+                .Include(a => a.Role)
+                .Where(a => a.Role != null && a.Role.RoleName == "Customer")
+                .ToListAsync();
 
             var statuses = new[] { "New", "Processing", "Delivered", "Delivered", "Delivered", "Delivered", "Delivered", "Processing", "Canceled", "New" };
 

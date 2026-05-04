@@ -70,6 +70,7 @@ namespace Webstore.Models
 
         public virtual Inventory? Inventory { get; set; }
         public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+        public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
         public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
         public virtual ICollection<ReceiptShipment> ReceiptShipments { get; set; } = new List<ReceiptShipment>();

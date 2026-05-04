@@ -105,71 +105,47 @@ namespace Webstore.Controllers
             }
 
             ViewBag.RelatedProducts = await _productService.GetRelatedProductsAsync(id, product.CategoryId ?? 0, 4);
-            ViewBag.ProductImages = GetProductImageUrls(product);
+            ViewBag.ProductImages = BuildProductImages(product);
 
             return View(product);
         }
 
-        private List<string> GetProductImageUrls(Product product)
+        private static List<ProductImage> BuildProductImages(Product product)
         {
-            var results = new List<string>();
+            var results = new List<ProductImage>();
 
-            if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+            if (product.ProductImages != null && product.ProductImages.Any())
             {
-                results.Add(NormalizeUrl(product.ImageUrl));
-            }
-
-            // Try to auto-discover additional images in the same folder with the same base name.
-            // Example: /images/products/iPhone_15.png -> also match iPhone_15_1.png, iPhone_15-side.webp, ...
-            if (!string.IsNullOrWhiteSpace(product.ImageUrl))
-            {
-                try
-                {
-                    var webRoot = _env.WebRootPath ?? string.Empty;
-                    if (!string.IsNullOrWhiteSpace(webRoot))
+                results.AddRange(product.ProductImages
+                    .Where(pi => !string.IsNullOrWhiteSpace(pi.ImageUrl))
+                    .OrderByDescending(pi => pi.IsPrimary)
+                    .ThenBy(pi => pi.ImageId)
+                    .Select(pi => new ProductImage
                     {
-                        var normalized = NormalizeUrl(product.ImageUrl);
-                        var relativePath = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-                        var physicalPath = Path.Combine(webRoot, relativePath);
-                        var directory = Path.GetDirectoryName(physicalPath);
+                        ImageUrl = NormalizeUrl(pi.ImageUrl),
+                        VariantId = pi.VariantId,
+                        IsPrimary = pi.IsPrimary
+                    }));
+            }
 
-                        if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
-                        {
-                            var baseName = Path.GetFileNameWithoutExtension(physicalPath);
-
-                            var discovered = Directory.EnumerateFiles(directory)
-                                .Where(f => Path.GetFileNameWithoutExtension(f)
-                                    .StartsWith(baseName, StringComparison.OrdinalIgnoreCase))
-                                .OrderBy(f => f)
-                                .Select(f => "/" + Path.GetRelativePath(webRoot, f).Replace('\\', '/'))
-                                .ToList();
-
-                            foreach (var url in discovered)
-                            {
-                                var u = NormalizeUrl(url);
-                                if (!results.Any(r => string.Equals(r, u, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                    results.Add(u);
-                                }
-                            }
-                        }
-                    }
-                }
-                catch
+            if (!string.IsNullOrWhiteSpace(product.ImageUrl) && !results.Any())
+            {
+                results.Add(new ProductImage
                 {
-                    // Non-blocking: fall back to ImageUrl only
-                }
+                    ImageUrl = NormalizeUrl(product.ImageUrl),
+                    VariantId = null,
+                    IsPrimary = true
+                });
             }
 
-            if (results.Count == 0)
+            if (!results.Any())
             {
-                results.Add("/images/products/placeholder.svg");
-            }
-
-            // Ensure at least 5 thumbnails as requested.
-            while (results.Count < 5)
-            {
-                results.Add(results[0]);
+                results.Add(new ProductImage
+                {
+                    ImageUrl = "/images/products/placeholder.svg",
+                    VariantId = null,
+                    IsPrimary = true
+                });
             }
 
             return results;
@@ -195,10 +171,7 @@ namespace Webstore.Controllers
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> AddToCart(int productId, int quantity = 1, int? variantId = null)
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return Json(new { success = false, requiresLogin = true, message = "Vui lòng đăng nhập để mua hàng." });
-            }
+            if (variantId == 0) variantId = null;
 
             try
             {
@@ -226,6 +199,7 @@ namespace Webstore.Controllers
         {
             try
             {
+                if (variantId == 0) variantId = null;
                 await _cartService.UpdateQuantityAsync(productId, variantId, quantity);
                 var count = await _cartService.GetCartCount();
                 return Json(new { success = true, newQuantity = quantity, cartCount = count });
@@ -240,6 +214,7 @@ namespace Webstore.Controllers
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> RemoveFromCart(int productId, int? variantId)
         {
+            if (variantId == 0) variantId = null;
             await _cartService.RemoveFromCartAsync(productId, variantId);
             var count = await _cartService.GetCartCount();
             return Json(new { success = true, cartCount = count });
@@ -317,6 +292,11 @@ namespace Webstore.Controllers
                 var cartItems = await _cartService.GetCartItemsAsync();
                 var order = await _orderService.CreateOrderAsync(req, accountId, cartItems);
 
+                if (!string.Equals(req.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
+                {
+                    await _cartService.ClearCart();
+                }
+
                 if (string.Equals(req.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
                 {
                     var paymentUrl = BuildVnPayPaymentUrl(order);
@@ -377,7 +357,7 @@ namespace Webstore.Controllers
 
                 await _orderService.UpdateOrderStatusAsync(orderId, "Confirmed");
 
-            if (isSuccess && User.Identity?.IsAuthenticated == true)
+            if (isSuccess)
             {
                 var accId = GetCurrentAccountIdOrNull();
                 if (accId == null || order.AccountId == null || accId == order.AccountId)

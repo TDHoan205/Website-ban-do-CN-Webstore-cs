@@ -111,6 +111,7 @@ namespace Webstore.Services
                 .Include(p => p.Supplier)
                 .Include(p => p.Inventory)
                 .Include(p => p.Variants)
+                .Include(p => p.ProductImages)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (product != null)

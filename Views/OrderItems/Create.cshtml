@@ -31,6 +31,11 @@
         <span asp-validation-for="ProductId" class="text-danger"></span>
     </div>
     <div class="mb-3">
+        <label asp-for="VariantId" class="form-label">Biến thể</label>
+        <input asp-for="VariantId" class="form-control" type="number" />
+        <span asp-validation-for="VariantId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
         <label asp-for="Quantity" class="form-label">Số lượng</label>
         <input asp-for="Quantity" class="form-control" type="number" min="1" />
         <span asp-validation-for="Quantity" class="text-danger"></span>

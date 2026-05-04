@@ -3,7 +3,7 @@
     ViewData["Title"] = "Thanh toán";
     Layout = "_ShopLayout";
     var isSandboxPayment = ViewBag.IsSandboxPayment is bool b && b;
-    var total = Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity);
+    var total = Model.Sum(c => (c.VariantId.HasValue && c.Variant != null ? c.Variant.Price : (c.Product?.Price ?? 0m)) * c.Quantity);
     var transferCode = "WEBSTORE" + DateTime.Now.ToString("yyyyMMddHHmmss");
     var paymentInfo = ViewBag.PaymentInfo ?? new
     {

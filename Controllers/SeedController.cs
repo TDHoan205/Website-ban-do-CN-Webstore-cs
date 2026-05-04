@@ -20,7 +20,7 @@ namespace Webstore.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var accounts = await _context.Accounts.ToListAsync();
+            var accounts = await _context.Accounts.Include(a => a.Role).ToListAsync();
             var categories = await _context.Categories.ToListAsync();
             var suppliers = await _context.Suppliers.ToListAsync();
             var products = await _context.Products.ToListAsync();
@@ -52,6 +52,8 @@ namespace Webstore.Controllers
                 _context.OrderItems.RemoveRange(_context.OrderItems);
                 _context.Orders.RemoveRange(_context.Orders);
                 _context.CartItems.RemoveRange(_context.CartItems);
+                _context.Carts.RemoveRange(_context.Carts);
+                _context.ProductImages.RemoveRange(_context.ProductImages);
                 _context.ReceiptShipments.RemoveRange(_context.ReceiptShipments);
                 _context.Inventory.RemoveRange(_context.Inventory);
                 _context.Employees.RemoveRange(_context.Employees);
@@ -62,6 +64,7 @@ namespace Webstore.Controllers
                 _context.Suppliers.RemoveRange(_context.Suppliers);
                 _context.Accounts.RemoveRange(_context.Accounts);
                 _context.ProductVariants.RemoveRange(_context.ProductVariants);
+                _context.Roles.RemoveRange(_context.Roles);
 
                 await _context.SaveChangesAsync();
 

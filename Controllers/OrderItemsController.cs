@@ -19,11 +19,12 @@ namespace Webstore.Controllers
         // GET: /OrderItems
         public async Task<IActionResult> Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
-            var query = _context.OrderItems.Include(oi => oi.Order).Include(oi => oi.Product).AsQueryable();
+            var query = _context.OrderItems.Include(oi => oi.Order).Include(oi => oi.Product).Include(oi => oi.Variant).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(oi => oi.OrderId.ToString().Contains(search)
+                query = query.Where(oi => oi.OrderItemId.ToString().Contains(search)
+                                       || oi.OrderId.ToString().Contains(search)
                                        || (oi.Order != null && oi.Order.OrderId.ToString().Contains(search))
                                        || (oi.Product != null && oi.Product.Name.Contains(search)));
             }
@@ -36,14 +37,14 @@ namespace Webstore.Controllers
 
             query = sortOrder switch
             {
-                "orderitemid_desc" => query.OrderByDescending(oi => oi.OrderId).ThenByDescending(oi => oi.ProductId),
+                "orderitemid_desc" => query.OrderByDescending(oi => oi.OrderItemId),
                 "order" => query.OrderBy(oi => oi.Order != null ? oi.Order.OrderId : 0),
                 "order_desc" => query.OrderByDescending(oi => oi.Order != null ? oi.Order.OrderId : 0),
                 "product" => query.OrderBy(oi => oi.Product != null ? oi.Product.Name : ""),
                 "product_desc" => query.OrderByDescending(oi => oi.Product != null ? oi.Product.Name : ""),
                 "quantity" => query.OrderBy(oi => oi.Quantity),
                 "quantity_desc" => query.OrderByDescending(oi => oi.Quantity),
-                _ => query.OrderBy(oi => oi.OrderId).ThenBy(oi => oi.ProductId)
+                _ => query.OrderBy(oi => oi.OrderItemId)
             };
 
             var orderItems = await PagedList<OrderItem>.CreateAsync(query, pageNumber, pageSize);
@@ -71,7 +72,7 @@ namespace Webstore.Controllers
         // POST: /OrderItems/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("OrderId,ProductId,Quantity,UnitPrice")] OrderItem orderItem)
+        public async Task<IActionResult> Create([Bind("OrderId,ProductId,VariantId,Quantity,UnitPrice")] OrderItem orderItem)
         {
             await LoadLookups();
             if (!ModelState.IsValid)
@@ -86,10 +87,10 @@ namespace Webstore.Controllers
         }
 
         // GET: /OrderItems/Edit/5
-        public async Task<IActionResult> Edit(int? orderId, int? productId)
+        public async Task<IActionResult> Edit(int? id)
         {
-            if (orderId == null || productId == null) return NotFound();
-            var orderItem = await _context.OrderItems.FindAsync(orderId.Value, productId.Value);
+            if (id == null) return NotFound();
+            var orderItem = await _context.OrderItems.FindAsync(id.Value);
             if (orderItem == null) return NotFound();
             await LoadLookups();
             return View(orderItem);
@@ -98,9 +99,9 @@ namespace Webstore.Controllers
         // POST: /OrderItems/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int orderId, int productId, [Bind("OrderId,ProductId,Quantity,UnitPrice")] OrderItem orderItem)
+        public async Task<IActionResult> Edit(int id, [Bind("OrderItemId,OrderId,ProductId,VariantId,Quantity,UnitPrice")] OrderItem orderItem)
         {
-            if (orderId != orderItem.OrderId || productId != orderItem.ProductId) return NotFound();
+            if (id != orderItem.OrderItemId) return NotFound();
             await LoadLookups();
             if (!ModelState.IsValid)
             {
@@ -114,7 +115,7 @@ namespace Webstore.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await _context.OrderItems.AnyAsync(e => e.OrderId == orderId && e.ProductId == productId))
+                if (!await _context.OrderItems.AnyAsync(e => e.OrderItemId == id))
                 {
                     return NotFound();
                 }
@@ -127,11 +128,11 @@ namespace Webstore.Controllers
         }
 
         // GET: /OrderItems/Delete
-        public async Task<IActionResult> Delete(int? orderId, int? productId)
+        public async Task<IActionResult> Delete(int? id)
         {
-            if (orderId == null || productId == null) return NotFound();
+            if (id == null) return NotFound();
             var orderItem = await _context.OrderItems.Include(oi => oi.Order).Include(oi => oi.Product)
-                .FirstOrDefaultAsync(m => m.OrderId == orderId && m.ProductId == productId);
+                .FirstOrDefaultAsync(m => m.OrderItemId == id.Value);
             if (orderItem == null) return NotFound();
             return View(orderItem);
         }
@@ -139,9 +140,9 @@ namespace Webstore.Controllers
         // POST: /OrderItems/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int orderId, int productId)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var orderItem = await _context.OrderItems.FindAsync(orderId, productId);
+            var orderItem = await _context.OrderItems.FindAsync(id);
             if (orderItem == null) return NotFound();
             _context.OrderItems.Remove(orderItem);
             await _context.SaveChangesAsync();

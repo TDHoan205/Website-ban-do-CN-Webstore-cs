@@ -6,30 +6,29 @@
     var fallbackDescriptionHtml = ProductDescriptionText.SanitizeDescriptionHtml("Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp.");
     var descriptionHtml = string.IsNullOrWhiteSpace(Model.Description) ? fallbackDescriptionHtml : Model.Description;
 
-    // Images for gallery (prefer DB/controller-provided list; fallback to ImageUrl; ensure at least 5 thumbnails)
-    var productImages = (ViewBag.ProductImages as List<string>) ?? new List<string>();
-    
+    var productImages = (ViewBag.ProductImages as List<Webstore.Models.ProductImage>) ?? new List<Webstore.Models.ProductImage>();
+
     if (productImages.Count == 0 && !string.IsNullOrWhiteSpace(Model.ImageUrl))
     {
-        productImages.Add(Model.ImageUrl!);
-        
-        // [Code mới] Tự động tìm thêm 4 ảnh phụ dựa trên tên file chính
-        var mainImgPath = Model.ImageUrl!;
-        var fileName = System.IO.Path.GetFileNameWithoutExtension(mainImgPath);
-        var ext = System.IO.Path.GetExtension(mainImgPath);
-        
-        for (int i = 1; i <= 4; i++) {
-            var extraUrl = $"/images/products/{fileName}__{i:02}.jpg";
-            productImages.Add(extraUrl);
-        }
+        productImages.Add(new Webstore.Models.ProductImage
+        {
+            ImageUrl = Model.ImageUrl!,
+            VariantId = null,
+            IsPrimary = true
+        });
     }
-    
+
     if (productImages.Count == 0)
     {
-        productImages.Add("/images/products/placeholder.svg");
+        productImages.Add(new Webstore.Models.ProductImage
+        {
+            ImageUrl = "/images/products/placeholder.svg",
+            VariantId = null,
+            IsPrimary = true
+        });
     }
-    
-    var productImagesJson = JsonSerializer.Serialize(productImages);
+
+    var productImagesJson = JsonSerializer.Serialize(productImages.Select(pi => new { pi.ImageUrl, pi.VariantId, pi.IsPrimary }));
 }
 
 <!-- Page Header -->
@@ -60,7 +59,7 @@
                     <button class="nav-btn next" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
                     
                     <div class="main-image-wrapper">
-                        <img id="currentMainImg" src="@Model.ImageUrl" alt="@Model.Name" />
+                        <img id="currentMainImg" src="@(productImages.FirstOrDefault()?.ImageUrl ?? Model.ImageUrl ?? "/images/products/placeholder.svg")" alt="@Model.Name" />
                     </div>
 
                     <!-- 8. Zoom Result (Sẽ hiện khi hover) -->
@@ -760,6 +759,8 @@
                 stockText.innerText = 'Hết hàng';
                 cartBtn.disabled = true;
             }
+
+            applyVariantImages(match.VariantId);
         }
     }
 
@@ -768,6 +769,9 @@
         if (variants.length > 0) {
             selectConfig(variants[0].config);
             selectColor(variants[0].Color);
+        } else {
+            renderThumbs();
+            initZoomLogic();
         }
     });
 
@@ -809,14 +813,37 @@
     }
 
     // 9. Dữ liệu ảnh sản phẩm - LOẠI BỎ ẢNH TRÙNG
-    const rawImages = @Html.Raw(JsonSerializer.Serialize(productImages));
-    const productImages = [...new Set(rawImages)]; // Chỉ giữ lại các ảnh duy nhất
+    const imageItems = @Html.Raw(productImagesJson);
+    const allImages = [...new Set(imageItems.map(i => i.ImageUrl))];
+    let currentImages = allImages.length ? allImages : ['/images/products/placeholder.svg'];
     let currentIndex = 0;
+
+    function getImagesForVariant(variantId) {
+        const variantImages = imageItems.filter(i => i.VariantId === variantId).map(i => i.ImageUrl);
+        if (variantImages.length) {
+            return [...new Set(variantImages)];
+        }
+        const baseImages = imageItems.filter(i => i.VariantId == null).map(i => i.ImageUrl);
+        if (baseImages.length) {
+            return [...new Set(baseImages)];
+        }
+        return allImages.length ? allImages : ['/images/products/placeholder.svg'];
+    }
+
+    function applyVariantImages(variantId) {
+        currentImages = getImagesForVariant(variantId);
+        currentIndex = 0;
+        const mainImg = document.getElementById('currentMainImg');
+        mainImg.src = currentImages[0];
+        renderThumbs();
+        updateThumbHighlight();
+        initZoomLogic();
+    }
 
     // Render Thumbnails ban đầu
     function renderThumbs() {
         const container = document.getElementById('thumbContainer');
-        container.innerHTML = productImages.map((img, idx) => `
+        container.innerHTML = currentImages.map((img, idx) => `
             <div class="thumb-item ${idx === 0 ? 'active' : ''}" onclick="changeSlide(${idx})">
                 <img src="${img}" onerror="this.src='/images/products/placeholder.svg'" />
             </div>
@@ -825,8 +852,8 @@
 
     // 3. Xử lý đổi ảnh khi click thumbnail
     function changeSlide(index) {
-        if (index < 0) index = productImages.length - 1;
-        if (index >= productImages.length) index = 0;
+        if (index < 0) index = currentImages.length - 1;
+        if (index >= currentImages.length) index = 0;
         
         currentIndex = index;
         const mainImg = document.getElementById('currentMainImg');
@@ -834,7 +861,7 @@
         // 6. Hiệu ứng mượt (Fade out -> change src -> Fade in)
         mainImg.style.opacity = '0';
         setTimeout(() => {
-            mainImg.src = productImages[currentIndex];
+            mainImg.src = currentImages[currentIndex];
             mainImg.style.opacity = '1';
             updateThumbHighlight();
             initZoomLogic(); // Re-init zoom for new image

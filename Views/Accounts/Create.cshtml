@@ -1,7 +1,7 @@
 @model Webstore.Models.Account
 @{
     ViewData["Title"] = "Thêm Tài Khoản";
-    var roles = ViewBag.Roles as string[] ?? Array.Empty<string>();
+    var roles = ViewBag.Roles as List<Webstore.Models.Role> ?? new List<Webstore.Models.Role>();
 }
 
 <h2>Thêm Tài Khoản</h2>
@@ -34,14 +34,14 @@
         <input asp-for="Address" class="form-control" />
     </div>
     <div class="mb-3">
-        <label asp-for="Role" class="form-label"></label>
-        <select asp-for="Role" class="form-select">
+        <label asp-for="RoleId" class="form-label">Vai trò</label>
+        <select asp-for="RoleId" class="form-select">
             @foreach (var r in roles)
             {
-                <option value="@r">@r</option>
+                <option value="@r.RoleId">@r.RoleName</option>
             }
         </select>
-        <span asp-validation-for="Role" class="text-danger"></span>
+        <span asp-validation-for="RoleId" class="text-danger"></span>
     </div>
     <button type="submit" class="btn btn-success">Lưu</button>
     <a asp-action="Index" class="btn btn-secondary">Quay lại</a>

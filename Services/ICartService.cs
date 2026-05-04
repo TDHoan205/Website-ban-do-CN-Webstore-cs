@@ -13,5 +13,6 @@ namespace Webstore.Services
         Task RemoveFromCartAsync(int productId, int? variantId);
         Task ClearCart();
         Task<int> GetCartCount();
+        Task MergeGuestCartAsync(int accountId);
     }
 }

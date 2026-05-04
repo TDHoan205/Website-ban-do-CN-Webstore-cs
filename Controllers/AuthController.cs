@@ -11,11 +11,13 @@ namespace Webstore.Controllers
     {
         private readonly IAccountService _accountService;
         private readonly IEmailService _emailService;
+        private readonly ICartService _cartService;
 
-        public AuthController(IAccountService accountService, IEmailService emailService)
+        public AuthController(IAccountService accountService, IEmailService emailService, ICartService cartService)
         {
             _accountService = accountService;
             _emailService = emailService;
+            _cartService = cartService;
         }
 
         [HttpGet]
@@ -70,7 +72,7 @@ namespace Webstore.Controllers
             {
                 new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString()),
                 new Claim(ClaimTypes.Name, account.Username),
-                new Claim(ClaimTypes.Role, account.Role ?? "Customer")
+                new Claim(ClaimTypes.Role, account.RoleName)
             };
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -79,7 +81,9 @@ namespace Webstore.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-            var redirectUrl = account.Role == "Admin" || account.Role == "Employee"
+            await _cartService.MergeGuestCartAsync(account.AccountId);
+
+            var redirectUrl = account.RoleName == "Admin" || account.RoleName == "Employee"
                 ? Url.Action("Index", "Home") : Url.Action("Index", "Shop");
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) redirectUrl = returnUrl;

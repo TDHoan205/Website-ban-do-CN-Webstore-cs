@@ -84,7 +84,7 @@
                     @foreach (var item in Model)
                     {
                         <tr>
-                            <td>@item.OrderId-@item.ProductId</td>
+                            <td>@item.OrderItemId</td>
                             <td>#@item.OrderId</td>
                             <td>@item.Order?.OrderId</td>
                             <td>@item.Product?.Name</td>
@@ -92,8 +92,8 @@
                             <td>@item.UnitPrice.ToString("N2")</td>
                             <td>@((item.Quantity * item.UnitPrice).ToString("N2"))</td>
                             <td>
-                                <a asp-action="Edit" asp-route-orderId="@item.OrderId" asp-route-productId="@item.ProductId" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
-                                <a asp-action="Delete" asp-route-orderId="@item.OrderId" asp-route-productId="@item.ProductId" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                <a asp-action="Edit" asp-route-id="@item.OrderItemId" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.OrderItemId" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
                             </td>
                         </tr>
                     }

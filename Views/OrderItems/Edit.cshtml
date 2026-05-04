@@ -7,9 +7,8 @@
 
 <h2>Sửa Chi Tiết Đơn Hàng</h2>
 
-<form asp-action="Edit" asp-route-orderId="@Model.OrderId" asp-route-productId="@Model.ProductId" method="post">
-    <input type="hidden" asp-for="OrderId" />
-    <input type="hidden" asp-for="ProductId" />
+<form asp-action="Edit" asp-route-id="@Model.OrderItemId" method="post">
+    <input type="hidden" asp-for="OrderItemId" />
     <div class="mb-3">
         <label asp-for="OrderId" class="form-label">Đơn hàng</label>
         <select asp-for="OrderId" class="form-select">
@@ -33,6 +32,11 @@
             }
         </select>
         <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="VariantId" class="form-label">Biến thể</label>
+        <input asp-for="VariantId" class="form-control" type="number" />
+        <span asp-validation-for="VariantId" class="text-danger"></span>
     </div>
     <div class="mb-3">
         <label asp-for="Quantity" class="form-label">Số lượng</label>

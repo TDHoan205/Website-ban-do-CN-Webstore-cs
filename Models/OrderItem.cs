@@ -6,7 +6,9 @@ namespace Webstore.Models
     [Table("OrderDetails")]
     public class OrderItem
     {
-        // Composite key (OrderID, ProductID) will be configured in DbContext fluent API
+        [Key]
+        [Column("order_detail_id")]
+        public int OrderItemId { get; set; }
 
         [Required]
         [Column("OrderID")]

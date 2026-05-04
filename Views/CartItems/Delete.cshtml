@@ -11,7 +11,7 @@
     <dt class="col-sm-2">ID Giỏ Hàng</dt>
     <dd class="col-sm-10">@Model.CartItemId</dd>
     <dt class="col-sm-2">Tài khoản</dt>
-    <dd class="col-sm-10">@Model.Account?.Username</dd>
+    <dd class="col-sm-10">@(Model.Cart?.Account?.Username ?? "Guest")</dd>
     <dt class="col-sm-2">Sản phẩm</dt>
     <dd class="col-sm-10">@Model.Product?.Name</dd>
     <dt class="col-sm-2">Số lượng</dt>

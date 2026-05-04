@@ -118,27 +118,12 @@ namespace Webstore.Services
                 order.Status = "Confirmed";
                 _orderRepo.Update(order);
                 await _orderRepo.SaveChangesAsync();
-                await RemoveOrderedItemsFromSessionCartAsync(orderId);
             }
         }
 
         public async Task RemoveOrderedItemsFromSessionCartAsync(int orderId)
         {
-            var items = await _orderItemRepo.FindAsync(oi => oi.OrderId == orderId);
-            var orderedItems = items.Select(oi => new { oi.ProductId, oi.VariantId }).ToList();
-            if (!orderedItems.Any()) return;
-
-            var cartItems = await _cartService.GetCartItemsAsync();
-            cartItems.RemoveAll(c => orderedItems.Any(oi => oi.ProductId == c.ProductId && oi.VariantId == c.VariantId));
-
-            if (cartItems.Any())
-            {
-                await _cartService.SaveCartItemsAsync(cartItems);
-            }
-            else
-            {
-                await _cartService.ClearCart();
-            }
+            await Task.CompletedTask;
         }
 
         public async Task<Order?> GetOrderByIdAsync(int orderId)

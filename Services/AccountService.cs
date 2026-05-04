@@ -1,35 +1,39 @@
+using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
+using Webstore.Data;
 using Webstore.Data.Repositories;
 using Webstore.Models;
-using System.Security.Cryptography;
 
 namespace Webstore.Services
 {
     public class AccountService : IAccountService
     {
         private readonly IAccountRepository _accountRepository;
+        private readonly ApplicationDbContext _context;
 
-        public AccountService(IAccountRepository accountRepository)
+        public AccountService(IAccountRepository accountRepository, ApplicationDbContext context)
         {
             _accountRepository = accountRepository;
+            _context = context;
         }
 
         public async Task<Account?> GetAccountByIdAsync(int id)
         {
-            return await _accountRepository.GetByIdAsync(id);
+            return await _context.Accounts.Include(a => a.Role).FirstOrDefaultAsync(a => a.AccountId == id);
         }
 
         public async Task<Account?> GetAccountByUsernameAsync(string username)
         {
-            var accounts = await _accountRepository.FindAsync(a => a.Username == username);
-            return accounts.FirstOrDefault();
+            return await _context.Accounts.Include(a => a.Role)
+                .FirstOrDefaultAsync(a => a.Username == username);
         }
 
         public async Task<Account?> GetAccountByEmailAsync(string email)
         {
             if (string.IsNullOrWhiteSpace(email)) return null;
             var normalizedEmail = email.Trim().ToLowerInvariant();
-            var accounts = await _accountRepository.FindAsync(a => a.Email != null && a.Email.Trim().ToLower() == normalizedEmail);
-            return accounts.FirstOrDefault();
+            return await _context.Accounts.Include(a => a.Role)
+                .FirstOrDefaultAsync(a => a.Email != null && a.Email.Trim().ToLower() == normalizedEmail);
         }
 
         public async Task UpdateProfileAsync(int accountId, string fullName, string? email, string phone, string? address)
@@ -87,7 +91,15 @@ namespace Webstore.Services
             
             var salt = Webstore.Models.Security.PasswordHasher.GenerateSalt();
             account.PasswordHash = salt + ":" + Webstore.Models.Security.PasswordHasher.HashPassword(password, salt);
-            if (string.IsNullOrEmpty(account.Role)) account.Role = "Customer";
+
+            if (account.RoleId == 0)
+            {
+                var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer");
+                if (customerRole != null)
+                {
+                    account.RoleId = customerRole.RoleId;
+                }
+            }
 
             await _accountRepository.AddAsync(account);
             await _accountRepository.SaveChangesAsync();

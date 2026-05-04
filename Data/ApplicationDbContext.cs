@@ -16,12 +16,15 @@ namespace Webstore.Data
         public DbSet<Supplier> Suppliers => Set<Supplier>();
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Account> Accounts => Set<Account>();
+        public DbSet<Role> Roles => Set<Role>();
         public DbSet<Employee> Employees => Set<Employee>();
         public DbSet<Inventory> Inventory => Set<Inventory>();
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+        public DbSet<Cart> Carts => Set<Cart>();
         public DbSet<CartItem> CartItems => Set<CartItem>();
         public DbSet<ReceiptShipment> ReceiptShipments => Set<ReceiptShipment>();
+        public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
         // AI Chat Models
         public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
@@ -62,13 +65,24 @@ namespace Webstore.Data
                 .HasIndex(i => i.ProductId)
                 .IsUnique();
 
-            // OrderDetails uses composite primary key (OrderID, ProductID)
-            modelBuilder.Entity<OrderItem>()
-                .HasKey(oi => new { oi.OrderId, oi.ProductId });
+            modelBuilder.Entity<Role>()
+                .HasIndex(r => r.RoleName)
+                .IsUnique();
+
+            modelBuilder.Entity<Cart>()
+                .HasIndex(c => c.AccountId)
+                .IsUnique();
+
+            modelBuilder.Entity<Cart>()
+                .HasIndex(c => c.SessionId)
+                .IsUnique();
 
             modelBuilder.Entity<CartItem>()
-                .HasIndex(ci => new { ci.AccountId, ci.ProductId, ci.VariantId })
+                .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.VariantId })
                 .IsUnique();
+
+            modelBuilder.Entity<ProductImage>()
+                .HasIndex(pi => new { pi.ProductId, pi.VariantId, pi.IsPrimary });
 
             // Enum-like constraints (Role, Status, MovementType) can be validated at service/controller level.
             // Configure decimal precision where necessary

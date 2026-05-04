@@ -208,7 +208,8 @@ namespace Webstore.Controllers
 
             // Create notification for admins
             var admins = await _context.Accounts
-                .Where(a => a.Role == "Admin" || a.Role == "admin")
+                .Include(a => a.Role)
+                .Where(a => a.Role != null && (a.Role.RoleName == "Admin" || a.Role.RoleName == "admin"))
                 .ToListAsync();
 
             foreach (var admin in admins)

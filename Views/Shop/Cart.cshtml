@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Giỏ hàng";
     Layout = "_ShopLayout";
-    var totalAmount = Model.Sum(c => (c.Product?.Price ?? 0m) * c.Quantity);
+    var totalAmount = Model.Sum(c => (c.VariantId.HasValue && c.Variant != null ? c.Variant.Price : (c.Product?.Price ?? 0m)) * c.Quantity);
 }
 
 <!-- Page Header -->
@@ -38,9 +38,10 @@
                         <div class="cart-items">
                             @foreach (var item in Model)
                             {
-                                var lineTotal = ((item.Product?.Price ?? 0m) * item.Quantity).ToString("F2",
-                        System.Globalization.CultureInfo.InvariantCulture);
                                 var price = item.VariantId.HasValue && item.Variant != null ? item.Variant.Price : (item.Product?.Price ?? 0m);
+                                var lineTotal = (price * item.Quantity).ToString("F2",
+                                        System.Globalization.CultureInfo.InvariantCulture);
+
                                 <div class="cart-item" data-product-id="@item.ProductId" data-variant-id="@(item.VariantId ?? 0)"
                                      data-price="@(price.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                      data-quantity="@item.Quantity">
@@ -86,7 +87,7 @@
                                         </div>
                                     </div>
                                     <div class="cart-item-total">
-                                        <span class="line-total">@(((item.Product?.Price ?? 0m) * item.Quantity).ToString("N0"))
+                                        <span class="line-total">@((price * item.Quantity).ToString("N0"))
                                             ₫</span>
                                         </div>
                                         <div class="cart-item-actions">
