@@ -126,13 +126,32 @@ namespace Webstore.Controllers
 
             try
             {
+                // Validate inputs
+                if (productId <= 0)
+                    return Json(new { success = false, message = "Sản phẩm không hợp lệ." });
+                if (quantity <= 0)
+                    return Json(new { success = false, message = "Số lượng không hợp lệ." });
+
+                // Log the request for debugging
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "(anonymous)";
+                var logMsg = $"[AddToCart] user={userId}, productId={productId}, variantId={variantId ?? 0}, qty={quantity}";
+                Console.WriteLine(logMsg);
+
                 await _cartService.AddToCartAsync(productId, variantId, quantity);
                 var count = await _cartService.GetCartCount();
                 return Json(new { success = true, message = "Đã thêm vào giỏ hàng!", cartCount = count });
             }
+            catch (InvalidOperationException ex)
+            {
+                // Business logic errors - safe to return to client
+                Console.WriteLine($"[AddToCart] Business error: {ex.Message}");
+                return Json(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Lỗi: " + ex.Message });
+                // Unexpected errors - log full details, return generic message
+                Console.WriteLine($"[AddToCart] UNEXPECTED ERROR: {ex}");
+                return Json(new { success = false, message = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại." });
             }
         }
 

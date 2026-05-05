@@ -596,6 +596,7 @@
             // =====================================================
             // Thay đổi số lượng (đọc qty hiện tại từ data-attribute)
             // =====================================================
+            // Fix: Chỉ gửi variantId khi > 0, KHÔNG gửi variantId=0
             function changeQuantity(productId, variantId, delta) {
                 var selector = '.cart-item[data-product-id="' + productId + '"]';
                 if (variantId > 0) {
@@ -618,24 +619,25 @@
                 if (lineTotalEl) lineTotalEl.textContent = formatCurrency(price * newQty);
                 updateCartSummary();
 
-                // Gửi lên server
+                // Gửi lên server - chỉ gửi variantId khi > 0
                 var token = getAntiForgeryToken();
+                var body = 'productId=' + productId + '&quantity=' + newQty;
+                if (variantId > 0) body += '&variantId=' + variantId;
+
                 fetch('@Url.Action("UpdateCart", "Shop")', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRF-TOKEN': token
                     },
-                    body: 'productId=' + productId + '&variantId=' + variantId + '&quantity=' + newQty
+                    body: body
                 }).then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (!data) return;
-                        // Server trả về redirectUrl khi xóa item (qty=0) => reload
                         if (data.redirectUrl) {
                             window.location.href = data.redirectUrl;
                             return;
                         }
-                        // Nếu server điều chỉnh lại số lượng (ví dụ vượt tồn kho)
                         if (data.success === false && data.message) {
                             if (window.showToast) window.showToast('warning', data.message);
                             else alert(data.message);
@@ -655,16 +657,20 @@
             // =====================================================
             // Xóa sản phẩm khỏi giỏ hàng
             // =====================================================
+            // Fix: Chỉ gửi variantId khi > 0, KHÔNG gửi variantId=0
             function removeCartItem(productId, variantId) {
                 if (!confirm('Xóa sản phẩm này khỏi giỏ hàng?')) return;
                 var token = getAntiForgeryToken();
+                var body = 'productId=' + productId;
+                if (variantId > 0) body += '&variantId=' + variantId;
+
                 fetch('@Url.Action("RemoveFromCart", "Shop")', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRF-TOKEN': token
                     },
-                    body: 'productId=' + productId + '&variantId=' + variantId
+                    body: body
                 }).then(function (res) { return res.json(); })
                     .then(function (data) {
                         if (data && data.redirectUrl) { window.location.href = data.redirectUrl; }
@@ -693,6 +699,7 @@
             // =====================================================
             // Xóa nhiều sản phẩm đã chọn
             // =====================================================
+            // Fix: Chỉ gửi variantId khi > 0
             function clearSelected() {
                 var checked = document.querySelectorAll('.select-for-checkout:checked');
                 if (checked.length === 0) {
@@ -704,13 +711,17 @@
                 var promises = [];
                 var token = getAntiForgeryToken();
                 checked.forEach(function (cb) {
+                    var pId = cb.getAttribute('data-product-id');
+                    var vId = cb.getAttribute('data-variant-id');
+                    var body = 'productId=' + pId;
+                    if (vId && parseInt(vId) > 0) body += '&variantId=' + vId;
                     promises.push(fetch('@Url.Action("RemoveFromCart", "Shop")', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
                             'X-CSRF-TOKEN': token
                         },
-                        body: 'productId=' + cb.getAttribute('data-product-id') + '&variantId=' + cb.getAttribute('data-variant-id')
+                        body: body
                     }));
                 });
                 Promise.all(promises).then(function () { window.location.reload(); });

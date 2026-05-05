@@ -288,7 +288,7 @@ BEGIN
     CREATE UNIQUE INDEX [IX_Roles_RoleName] ON [dbo].[Roles]([role_name]);
 END";
 
-                        // 3. Ensure ProductImages table exists (with display_order column)
+                        // 3. Ensure ProductImages table exists (with all columns: display_order, is_thumbnail, alt_text)
                         var hardeningProductImages = @"
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ProductImages]') AND type in (N'U'))
 BEGIN
@@ -298,13 +298,19 @@ BEGIN
         [variant_id] [int] NULL,
         [image_url] [nvarchar](500) NOT NULL,
         [is_primary] [bit] NOT NULL DEFAULT 0,
-        [display_order] [int] NOT NULL DEFAULT 0
+        [is_thumbnail] [bit] NOT NULL DEFAULT 0,
+        [display_order] [int] NOT NULL DEFAULT 0,
+        [alt_text] [nvarchar](255) NULL
     );
 END
 ELSE
 BEGIN
     IF COL_LENGTH('dbo.ProductImages', 'display_order') IS NULL
         ALTER TABLE [dbo].[ProductImages] ADD [display_order] [int] NOT NULL DEFAULT 0;
+    IF COL_LENGTH('dbo.ProductImages', 'is_thumbnail') IS NULL
+        ALTER TABLE [dbo].[ProductImages] ADD [is_thumbnail] [bit] NOT NULL DEFAULT 0;
+    IF COL_LENGTH('dbo.ProductImages', 'alt_text') IS NULL
+        ALTER TABLE [dbo].[ProductImages] ADD [alt_text] [nvarchar](255) NULL;
 END";
 
                         try
@@ -342,6 +348,128 @@ BEGIN
         ALTER TABLE [dbo].[Cart_Items] ADD [variant_id] [int] NULL;
 END";
                         await db.Database.ExecuteSqlRawAsync(hardeningCartItems);
+
+                        // 5b. Ensure Cart_Items unique constraint for (CartId, ProductId, VariantId)
+                        // NULLs in SQL Server unique constraints are treated as equal (SQL standard is "unknown")
+                        // so we need a filtered unique index or a nullable-comparator approach.
+                        // Best practice: use a computed column that converts NULL to a sentinel value.
+                        var addCartItemsUniqueConstraint = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Cart_Items]') AND type in (N'U'))
+BEGIN
+    -- Add a sentinel column if not exists to support unique constraint with NULL handling
+    IF COL_LENGTH('dbo.Cart_Items', 'variant_sentinel') IS NULL
+    BEGIN
+        ALTER TABLE [dbo].[Cart_Items] ADD [variant_sentinel] AS (ISNULL(VariantID, -999999)) PERSISTED;
+    END
+
+    -- Drop constraint if exists with old name, then create filtered or sentinel-based unique
+    IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'IX_Cart_Items_Cart_Product_Variant' AND parent_object_id = OBJECT_ID('Cart_Items'))
+    BEGIN
+        ALTER TABLE [dbo].[Cart_Items] DROP CONSTRAINT [IX_Cart_Items_Cart_Product_Variant];
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'IX_Cart_Items_Cart_Product_Variant_Sentinel' AND parent_object_id = OBJECT_ID('Cart_Items'))
+    BEGIN
+        BEGIN TRY
+            ALTER TABLE [dbo].[Cart_Items] ADD CONSTRAINT [IX_Cart_Items_Cart_Product_Variant_Sentinel]
+                UNIQUE NONCLUSTERED ([cart_id], [product_id], [variant_sentinel]);
+        END TRY BEGIN CATCH END CATCH
+    END
+END";
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(addCartItemsUniqueConstraint);
+                            Console.WriteLine("✅ Database: Cart_Items unique constraint OK.");
+                        }
+                        catch (Exception exCartUnique)
+                        {
+                            Console.WriteLine($"⚠️ Cart_Items unique constraint: {exCartUnique.Message}");
+                        }
+
+                        // 5c. Ensure Cart_Items foreign key constraints are nullable (important for Guest cart)
+                        var fixCartItemsFk = @"
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Cart_Items]') AND type in (N'U'))
+BEGIN
+    -- Drop FK constraints that may block nullable changes
+    DECLARE @fkToDrop NVARCHAR(128);
+    DECLARE fk_cursor CURSOR FOR
+        SELECT fk.name
+        FROM sys.foreign_keys fk
+        INNER JOIN sys.tables t ON fk.parent_object_id = t.object_id
+        WHERE t.name = 'Cart_Items';
+    OPEN fk_cursor;
+    FETCH NEXT FROM fk_cursor INTO @fkToDrop;
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        BEGIN TRY
+            EXEC('ALTER TABLE [dbo].[Cart_Items] DROP CONSTRAINT [' + @fkToDrop + ']');
+        END TRY BEGIN CATCH END CATCH
+        FETCH NEXT FROM fk_cursor INTO @fkToDrop;
+    END
+    CLOSE fk_cursor;
+    DEALLOCATE fk_cursor;
+
+    -- Make CartId nullable if not already (needed for Guest checkout flow)
+    IF EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID('Cart_Items')
+        AND name = 'cart_id'
+        AND is_nullable = 0
+    )
+    BEGIN
+        ALTER TABLE [dbo].[Cart_Items] ALTER COLUMN [cart_id] INT NULL;
+    END
+
+    -- Make VariantId nullable if not already
+    IF EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE object_id = OBJECT_ID('Cart_Items')
+        AND name = 'variant_id'
+        AND is_nullable = 1
+    )
+    BEGIN
+        -- Already nullable, no change needed
+    END
+
+    -- Recreate FK to Carts (nullable cart_id is OK - it's a reference, not a required FK)
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Cart_Items_Carts' AND parent_object_id = OBJECT_ID('Cart_Items'))
+    BEGIN
+        BEGIN TRY
+            ALTER TABLE [dbo].[Cart_Items] WITH NOCHECK
+            ADD CONSTRAINT [FK_Cart_Items_Carts] FOREIGN KEY ([cart_id]) REFERENCES [Carts]([cart_id]);
+            ALTER TABLE [dbo].[Cart_Items] NOCHECK CONSTRAINT [FK_Cart_Items_Carts];
+        END TRY BEGIN CATCH END CATCH
+    END
+
+    -- Recreate FK to Products
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Cart_Items_Products' AND parent_object_id = OBJECT_ID('Cart_Items'))
+    BEGIN
+        BEGIN TRY
+            ALTER TABLE [dbo].[Cart_Items] WITH NOCHECK
+            ADD CONSTRAINT [FK_Cart_Items_Products] FOREIGN KEY ([product_id]) REFERENCES [Products]([product_id]);
+            ALTER TABLE [dbo].[Cart_Items] NOCHECK CONSTRAINT [FK_Cart_Items_Products];
+        END TRY BEGIN CATCH END CATCH
+    END
+
+    -- Recreate FK to ProductVariants (nullable - a cart item may not have a variant)
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Cart_Items_ProductVariants' AND parent_object_id = OBJECT_ID('Cart_Items'))
+    BEGIN
+        BEGIN TRY
+            ALTER TABLE [dbo].[Cart_Items] WITH NOCHECK
+            ADD CONSTRAINT [FK_Cart_Items_ProductVariants] FOREIGN KEY ([variant_id]) REFERENCES [ProductVariants]([variant_id]);
+            ALTER TABLE [dbo].[Cart_Items] NOCHECK CONSTRAINT [FK_Cart_Items_ProductVariants];
+        END TRY BEGIN CATCH END CATCH
+    END
+END";
+                        try
+                        {
+                            await db.Database.ExecuteSqlRawAsync(fixCartItemsFk);
+                            Console.WriteLine("✅ Database: Cart_Items FK constraints fixed (nullable).");
+                        }
+                        catch (Exception exCartFk)
+                        {
+                            Console.WriteLine($"⚠️ Cart_Items FK fix: {exCartFk.Message}");
+                        }
 
                         // 6. Upgrade OrderDetails with order_detail_id and VariantID
                         var hardeningOrderDetails = @"

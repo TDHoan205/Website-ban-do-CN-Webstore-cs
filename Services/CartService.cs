@@ -20,6 +20,38 @@ namespace Webstore.Services
 
         private HttpContext? HttpContext => _httpContextAccessor.HttpContext;
 
+        /// <summary>Trả về inner-most exception message cho dễ đọc</summary>
+        private static string GetInnermostMessage(Exception ex)
+        {
+            var current = ex;
+            while (current.InnerException != null) current = current.InnerException;
+            return current.Message;
+        }
+
+        /// <summary>Log chi tiết lỗi EF</summary>
+        private static string FormatEfError(Exception ex, string context)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"[CartService] {context}");
+            sb.AppendLine($"  Outer: {ex.Message}");
+            if (ex is DbUpdateException dbEx)
+            {
+                sb.AppendLine($"  DbUpdate: {dbEx.Message}");
+                if (dbEx.InnerException != null)
+                {
+                    sb.AppendLine($"  Inner: {dbEx.InnerException.Message}");
+                    if (dbEx.InnerException.InnerException != null)
+                        sb.AppendLine($"  Inner2: {dbEx.InnerException.InnerException.Message}");
+                }
+                sb.AppendLine($"  Entries: {string.Join(", ", dbEx.Entries.Select(e => $"{e.Entity.GetType().Name} (State:{e.State})"))}");
+            }
+            else if (ex.InnerException != null)
+            {
+                sb.AppendLine($"  Inner: {ex.InnerException.Message}");
+            }
+            return sb.ToString();
+        }
+
         private int? GetAccountId()
         {
             var claim = HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -115,8 +147,12 @@ namespace Webstore.Services
 
             foreach (var item in cartItems)
             {
-                var existing = await _context.CartItems
-                    .FirstOrDefaultAsync(ci => ci.CartId == item.CartId && ci.ProductId == item.ProductId && ci.VariantId == item.VariantId);
+                // Same NULL=NULL fix
+                var existing = item.VariantId.HasValue
+                    ? await _context.CartItems.FirstOrDefaultAsync(
+                        ci => ci.CartId == item.CartId && ci.ProductId == item.ProductId && ci.VariantId == item.VariantId.Value)
+                    : await _context.CartItems.FirstOrDefaultAsync(
+                        ci => ci.CartId == item.CartId && ci.ProductId == item.ProductId && ci.VariantId == null);
 
                 if (existing == null)
                 {
@@ -129,30 +165,48 @@ namespace Webstore.Services
                 }
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(FormatEfError(ex, "SaveCartItemsAsync failed"));
+                throw;
+            }
         }
 
         public async Task AddToCartAsync(int productId, int? variantId, int quantity)
         {
-            if (quantity <= 0) throw new InvalidOperationException("Số lượng không hợp lệ.");
+            if (quantity <= 0)
+                throw new InvalidOperationException("Số lượng không hợp lệ.");
 
             var accountId = GetAccountId();
             var sessionId = accountId.HasValue ? null : GetGuestSessionId(true);
-            var cart = await GetOrCreateCartAsync(accountId, sessionId);
 
+            // Validate variant exists if provided
             if (variantId.HasValue)
             {
-                var variantOk = await _context.ProductVariants.AnyAsync(v => v.VariantId == variantId && v.ProductId == productId);
-                if (!variantOk) throw new InvalidOperationException("Biến thể không hợp lệ.");
+                var variantOk = await _context.ProductVariants
+                    .AnyAsync(v => v.VariantId == variantId && v.ProductId == productId);
+                if (!variantOk)
+                    throw new InvalidOperationException("Biến thể không hợp lệ hoặc không thuộc sản phẩm này.");
             }
 
-            // Query phải xử lý đúng trường hợp VariantId = null
-            // SQL: NULL = NULL trả về UNKNOWN (không phải TRUE), nên dùng explicit null check
-            var item = variantId.HasValue
-                ? await _context.CartItems.FirstOrDefaultAsync(
-                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value)
-                : await _context.CartItems.FirstOrDefaultAsync(
+            var cart = await GetOrCreateCartAsync(accountId, sessionId);
+
+            // NULL=NULL fix: separate queries for null vs non-null VariantId
+            CartItem? item;
+            if (variantId.HasValue)
+            {
+                item = await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value);
+            }
+            else
+            {
+                item = await _context.CartItems.FirstOrDefaultAsync(
                     ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == null);
+            }
 
             if (item != null)
             {
@@ -170,7 +224,49 @@ namespace Webstore.Services
                 });
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log chi tiết để debug
+                Console.WriteLine(FormatEfError(ex, $"AddToCartAsync(productId={productId}, variantId={variantId}, qty={quantity})"));
+                Console.WriteLine($"  CartId={cart.CartId}, AccountId={accountId}, SessionId={sessionId}");
+
+                // Determine user-friendly message
+                var innerMsg = GetInnermostMessage(ex);
+
+                if (innerMsg.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+                    || innerMsg.Contains("unique", StringComparison.OrdinalIgnoreCase)
+                    || innerMsg.Contains("trùng", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        "Sản phẩm này đã có trong giỏ hàng rồi. Vui lòng kiểm tra giỏ hàng.");
+                }
+
+                if (innerMsg.Contains("foreign key", StringComparison.OrdinalIgnoreCase)
+                    || innerMsg.Contains("reference", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (innerMsg.Contains("ProductId", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Sản phẩm không tồn tại. Vui lòng tải lại trang.");
+                    if (innerMsg.Contains("VariantId", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Biến thể không tồn tại. Vui lòng chọn biến thể khác.");
+                    if (innerMsg.Contains("CartId", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Lỗi giỏ hàng. Vui lòng tải lại trang.");
+                }
+
+                if (innerMsg.Contains("null", StringComparison.OrdinalIgnoreCase)
+                    && (innerMsg.Contains("cannot", StringComparison.OrdinalIgnoreCase)
+                        || innerMsg.Contains("not null", StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidOperationException("Dữ liệu không hợp lệ. Vui lòng thử lại.");
+                }
+
+                // Generic: re-throw with context but don't expose internals to client
+                throw new InvalidOperationException(
+                    "Không thể thêm vào giỏ hàng. Lỗi: " + innerMsg, ex);
+            }
         }
 
         public async Task UpdateQuantityAsync(int productId, int? variantId, int quantity)
@@ -180,13 +276,18 @@ namespace Webstore.Services
             var cart = await GetCartAsync(accountId, sessionId);
             if (cart == null) return;
 
-            // Query phải xử lý đúng trường hợp VariantId = null
-            // SQL: NULL = NULL trả về UNKNOWN (không phải TRUE), nên dùng explicit null check
-            var item = variantId.HasValue
-                ? await _context.CartItems.FirstOrDefaultAsync(
-                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value)
-                : await _context.CartItems.FirstOrDefaultAsync(
+            // NULL=NULL fix
+            CartItem? item;
+            if (variantId.HasValue)
+            {
+                item = await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value);
+            }
+            else
+            {
+                item = await _context.CartItems.FirstOrDefaultAsync(
                     ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == null);
+            }
 
             if (item == null) return;
 
@@ -199,7 +300,15 @@ namespace Webstore.Services
                 _context.CartItems.Remove(item);
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(FormatEfError(ex, $"UpdateQuantityAsync(p={productId}, v={variantId}, qty={quantity})"));
+                throw;
+            }
         }
 
         public async Task RemoveFromCartAsync(int productId, int? variantId)
@@ -209,18 +318,31 @@ namespace Webstore.Services
             var cart = await GetCartAsync(accountId, sessionId);
             if (cart == null) return;
 
-            // Query phải xử lý đúng trường hợp VariantId = null
-            // SQL: NULL = NULL trả về UNKNOWN (không phải TRUE), nên dùng explicit null check
-            var item = variantId.HasValue
-                ? await _context.CartItems.FirstOrDefaultAsync(
-                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value)
-                : await _context.CartItems.FirstOrDefaultAsync(
+            // NULL=NULL fix
+            CartItem? item;
+            if (variantId.HasValue)
+            {
+                item = await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value);
+            }
+            else
+            {
+                item = await _context.CartItems.FirstOrDefaultAsync(
                     ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == null);
+            }
 
             if (item != null)
             {
                 _context.CartItems.Remove(item);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(FormatEfError(ex, $"RemoveFromCartAsync(p={productId}, v={variantId})"));
+                    throw;
+                }
             }
         }
 
@@ -260,8 +382,18 @@ namespace Webstore.Services
 
             foreach (var item in guestItems)
             {
-                var existing = await _context.CartItems
-                    .FirstOrDefaultAsync(ci => ci.CartId == userCart.CartId && ci.ProductId == item.ProductId && ci.VariantId == item.VariantId);
+                // NULL=NULL fix
+                CartItem? existing;
+                if (item.VariantId.HasValue)
+                {
+                    existing = await _context.CartItems.FirstOrDefaultAsync(
+                        ci => ci.CartId == userCart.CartId && ci.ProductId == item.ProductId && ci.VariantId == item.VariantId.Value);
+                }
+                else
+                {
+                    existing = await _context.CartItems.FirstOrDefaultAsync(
+                        ci => ci.CartId == userCart.CartId && ci.ProductId == item.ProductId && ci.VariantId == null);
+                }
 
                 if (existing == null)
                 {
@@ -276,7 +408,15 @@ namespace Webstore.Services
             }
 
             _context.Carts.Remove(guestCart);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(FormatEfError(ex, "MergeGuestCartAsync failed"));
+                throw;
+            }
 
             if (HttpContext != null)
             {

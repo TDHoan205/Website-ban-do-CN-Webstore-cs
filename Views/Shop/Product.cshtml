@@ -687,15 +687,21 @@
     }
 
     // ==================== CART ====================
+    // Fix: Chỉ gửi variantId khi có giá trị, KHÔNG gửi variantId=null
     function addToCartWithQty() {
         var productId = PRODUCT.productId;
         var qty = parseInt(document.getElementById('quantity').value);
         var variantId = currentVariant ? currentVariant.variantId : null;
 
+        var ajaxData = { productId: productId, quantity: qty };
+        if (variantId !== null && variantId !== undefined) {
+            ajaxData.variantId = variantId;
+        }
+
         $.ajax({
             url: '@Url.Action("AddToCart", "Shop")',
             type: 'POST',
-            data: { productId: productId, quantity: qty, variantId: variantId },
+            data: ajaxData,
             success: function(res) {
                 if (res.success) {
                     showToast("Đã thêm vào giỏ hàng!");
@@ -705,6 +711,11 @@
                 } else {
                     showToast(res.message || "Có lỗi xảy ra", "error");
                 }
+            },
+            error: function(xhr, status, errorThrown) {
+                // Xử lý lỗi HTTP (500, network, etc.) - KHÔNG redirect to login
+                console.error('[AddToCart AJAX Error]', status, errorThrown, xhr.responseText);
+                showToast("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.", "error");
             }
         });
     }
@@ -713,12 +724,16 @@
         $.ajax({
             url: '@Url.Action("AddToCart", "Shop")',
             type: 'POST',
-            data: { productId: productId, quantity: 1, variantId: null },
+            data: { productId: productId, quantity: 1 },
             success: function(res) {
                 if (res.success) {
                     showToast("Đã thêm vào giỏ hàng!");
                     updateCartBadge(res.cartCount);
                 }
+            },
+            error: function(xhr, status, errorThrown) {
+                console.error('[AddToCart AJAX Error]', status, errorThrown);
+                showToast("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.", "error");
             }
         });
     }
