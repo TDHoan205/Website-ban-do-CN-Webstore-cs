@@ -97,7 +97,7 @@ namespace Webstore.Services
             if (cart == null) return new List<CartItem>();
 
             return await _context.CartItems
-                .Include(ci => ci.Product).ThenInclude(p => p.Category)
+                .Include(ci => ci.Product).ThenInclude(p => p!.Category)
                 .Include(ci => ci.Variant)
                 .Where(ci => ci.CartId == cart.CartId)
                 .OrderByDescending(ci => ci.AddedDate)

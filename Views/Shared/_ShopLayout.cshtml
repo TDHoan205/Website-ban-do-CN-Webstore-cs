@@ -1157,11 +1157,11 @@
                                     </li>
                                 </ul>
                                 <div class="d-flex align-items-center gap-3">
-                                    <a href="@Url.Action("Index", "Shop")#sanpham-moi" class="nav-category-btn btn-new">
+                                    <a asp-controller="Shop" asp-action="Products" asp-route-filter="new" class="nav-category-btn btn-new">
                                         <i class="fas fa-bolt"></i>
                                         <span>Sản phẩm mới</span>
                                     </a>
-                                    <a href="@Url.Action("Index", "Shop")#sanpham-hot" class="nav-category-btn btn-hot">
+                                    <a asp-controller="Shop" asp-action="Products" asp-route-filter="hot" class="nav-category-btn btn-hot">
                                         <i class="fas fa-fire"></i>
                                         <span>Hot</span>
                                     </a>

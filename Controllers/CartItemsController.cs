@@ -20,7 +20,7 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Index(string? search, string? sortOrder, int pageNumber = 1, int pageSize = 10)
         {
             var query = _context.CartItems
-                .Include(ci => ci.Cart).ThenInclude(c => c.Account)
+                .Include(ci => ci.Cart).ThenInclude(c => c!.Account)
                 .Include(ci => ci.Product)
                 .Include(ci => ci.Variant)
                 .AsQueryable();
@@ -135,7 +135,7 @@ namespace Webstore.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-            var cartItem = await _context.CartItems.Include(ci => ci.Cart).ThenInclude(c => c.Account).Include(ci => ci.Product)
+            var cartItem = await _context.CartItems.Include(ci => ci.Cart).ThenInclude(c => c!.Account).Include(ci => ci.Product)
                 .FirstOrDefaultAsync(m => m.CartItemId == id);
             if (cartItem == null) return NotFound();
             return View(cartItem);

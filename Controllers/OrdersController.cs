@@ -42,7 +42,7 @@ namespace Webstore.Controllers
                     o.OrderId.ToString().Contains(search) ||
                     (o.Account != null && o.Account.Username.Contains(search)) ||
                     (o.CustomerName != null && o.CustomerName.Contains(search)) ||
-                    o.CustomerPhone.Contains(search));
+                    (o.CustomerPhone != null && o.CustomerPhone.Contains(search)));
             }
 
             // Sorting
@@ -84,7 +84,7 @@ namespace Webstore.Controllers
         }
 
         // GET: /Orders/PendingPayments - Đơn chờ xác nhận thanh toán
-        public async Task<IActionResult> PendingPayments(string? sortOrder, int pageNumber = 1)
+        public IActionResult PendingPayments(string? sortOrder, int pageNumber = 1)
         {
             return RedirectToAction("Index", new { statusFilter = "AwaitingConfirmation", sortOrder, pageNumber });
         }
