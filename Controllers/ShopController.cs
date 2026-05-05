@@ -97,66 +97,17 @@ namespace Webstore.Controllers
         // GET: /Shop/Product/{id} - Chi tiết sản phẩm
         public async Task<IActionResult> Product(int id)
         {
-            var product = await _productService.GetProductByIdAsync(id);
+            var detail = await _productService.GetProductDetailAsync(id);
 
-            if (product == null)
+            if (detail == null)
             {
                 return NotFound();
             }
 
-            ViewBag.RelatedProducts = await _productService.GetRelatedProductsAsync(id, product.CategoryId ?? 0, 4);
-            ViewBag.ProductImages = BuildProductImages(product);
+            ViewBag.RelatedProducts = await _productService.GetRelatedProductsAsync(id, detail.Product.CategoryId ?? 0, 4);
+            ViewBag.ProductDetail = detail;
 
-            return View(product);
-        }
-
-        private static List<ProductImage> BuildProductImages(Product product)
-        {
-            var results = new List<ProductImage>();
-
-            if (product.ProductImages != null && product.ProductImages.Any())
-            {
-                results.AddRange(product.ProductImages
-                    .Where(pi => !string.IsNullOrWhiteSpace(pi.ImageUrl))
-                    .OrderByDescending(pi => pi.IsPrimary)
-                    .ThenBy(pi => pi.ImageId)
-                    .Select(pi => new ProductImage
-                    {
-                        ImageUrl = NormalizeUrl(pi.ImageUrl),
-                        VariantId = pi.VariantId,
-                        IsPrimary = pi.IsPrimary
-                    }));
-            }
-
-            if (!string.IsNullOrWhiteSpace(product.ImageUrl) && !results.Any())
-            {
-                results.Add(new ProductImage
-                {
-                    ImageUrl = NormalizeUrl(product.ImageUrl),
-                    VariantId = null,
-                    IsPrimary = true
-                });
-            }
-
-            if (!results.Any())
-            {
-                results.Add(new ProductImage
-                {
-                    ImageUrl = "/images/products/placeholder.svg",
-                    VariantId = null,
-                    IsPrimary = true
-                });
-            }
-
-            return results;
-        }
-
-        private static string NormalizeUrl(string url)
-        {
-            var u = url.Trim();
-            if (u.StartsWith("~")) u = u.TrimStart('~');
-            if (!u.StartsWith('/')) u = "/" + u;
-            return u;
+            return View(detail.Product);
         }
 
         // GET: /Shop/Cart - Giỏ hàng

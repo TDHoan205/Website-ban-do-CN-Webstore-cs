@@ -288,7 +288,7 @@ BEGIN
     CREATE UNIQUE INDEX [IX_Roles_RoleName] ON [dbo].[Roles]([role_name]);
 END";
 
-                        // 3. Ensure ProductImages table exists
+                        // 3. Ensure ProductImages table exists (with display_order column)
                         var hardeningProductImages = @"
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ProductImages]') AND type in (N'U'))
 BEGIN
@@ -297,8 +297,14 @@ BEGIN
         [product_id] [int] NOT NULL,
         [variant_id] [int] NULL,
         [image_url] [nvarchar](500) NOT NULL,
-        [is_primary] [bit] NOT NULL DEFAULT 0
+        [is_primary] [bit] NOT NULL DEFAULT 0,
+        [display_order] [int] NOT NULL DEFAULT 0
     );
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('dbo.ProductImages', 'display_order') IS NULL
+        ALTER TABLE [dbo].[ProductImages] ADD [display_order] [int] NOT NULL DEFAULT 0;
 END";
 
                         try

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Webstore.Data;
 using Webstore.Models;
+using Webstore.Models.DTOs;
 
 namespace Webstore.Services
 {
@@ -287,6 +288,166 @@ namespace Webstore.Services
         public void InvalidateCache()
         {
             InvalidateProductCache();
+        }
+
+        public async Task<ProductDetailDto?> GetProductDetailAsync(int id)
+        {
+            var cacheKey = $"product_detail_{id}";
+
+            if (_cache.TryGetValue(cacheKey, out ProductDetailDto? cached) && cached != null)
+            {
+                return cached;
+            }
+
+            var product = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Supplier)
+                .Include(p => p.Inventory)
+                .Include(p => p.Variants)
+                .Include(p => p.ProductImages)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
+            if (product == null) return null;
+
+            var dto = new ProductDetailDto
+            {
+                Product = product,
+                Variants = product.Variants.OrderBy(v => v.DisplayOrder).ToList()
+            };
+
+            // Group images by VariantId (case-insensitive deduplication)
+            var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 1) Variant-level images
+            foreach (var variant in dto.Variants)
+            {
+                var variantImages = product.ProductImages
+                    .Where(pi => pi.VariantId == variant.VariantId)
+                    .OrderBy(pi => pi.DisplayOrder)
+                    .Where(pi => seenUrls.Add(pi.ImageUrl.ToLowerInvariant()))
+                    .Select(pi => new ProductImage
+                    {
+                        ImageId = pi.ImageId,
+                        ProductId = pi.ProductId,
+                        VariantId = pi.VariantId,
+                        ImageUrl = pi.ImageUrl,
+                        IsPrimary = pi.IsPrimary,
+                        IsThumbnail = pi.IsThumbnail,
+                        DisplayOrder = pi.DisplayOrder,
+                        AltText = pi.AltText
+                    })
+                    .ToList();
+
+                var key = $"variant_{variant.VariantId}";
+                if (variantImages.Any())
+                    dto.ImagesByVariant[key] = variantImages;
+            }
+
+            // 2) Product-level images (VariantId = null)
+            var productImages = product.ProductImages
+                .Where(pi => pi.VariantId == null)
+                .OrderBy(pi => pi.IsPrimary ? 0 : 1)
+                .ThenBy(pi => pi.DisplayOrder)
+                .Where(pi => seenUrls.Add(pi.ImageUrl.ToLowerInvariant()))
+                .Select(pi => new ProductImage
+                {
+                    ImageId = pi.ImageId,
+                    ProductId = pi.ProductId,
+                    VariantId = pi.VariantId,
+                    ImageUrl = pi.ImageUrl,
+                    IsPrimary = pi.IsPrimary,
+                    IsThumbnail = pi.IsThumbnail,
+                    DisplayOrder = pi.DisplayOrder,
+                    AltText = pi.AltText
+                })
+                .ToList();
+
+            if (productImages.Any())
+                dto.ImagesByVariant["default"] = productImages;
+
+            // 3) Fallback: dùng product.ImageUrl nếu không có ảnh nào
+            var allImages = dto.ImagesByVariant.Values.SelectMany(x => x).ToList();
+            if (!allImages.Any() && !string.IsNullOrWhiteSpace(product.ImageUrl))
+            {
+                var fallback = new ProductImage
+                {
+                    ImageUrl = product.ImageUrl,
+                    IsPrimary = true,
+                    IsThumbnail = true,
+                    DisplayOrder = 0
+                };
+                dto.ImagesByVariant["default"] = new List<ProductImage> { fallback };
+                dto.AllImages = new List<ProductImage> { fallback };
+            }
+            else
+            {
+                dto.AllImages = allImages;
+            }
+
+            _cache.Set(cacheKey, dto, DefaultCacheDuration);
+            return dto;
+        }
+
+        public async Task SaveProductImagesAsync(int productId, List<UpsertProductImageDto> images)
+        {
+            if (images == null || !images.Any()) return;
+
+            foreach (var img in images)
+            {
+                if (img.ImageId > 0)
+                {
+                    // Update existing
+                    var existing = await _context.ProductImages.FindAsync(img.ImageId);
+                    if (existing != null)
+                    {
+                        existing.VariantId = img.VariantId;
+                        existing.ImageUrl = img.ImageUrl;
+                        existing.IsPrimary = img.IsPrimary;
+                        existing.IsThumbnail = img.IsThumbnail;
+                        existing.DisplayOrder = img.DisplayOrder;
+                        existing.AltText = img.AltText;
+                        _context.Entry(existing).State = EntityState.Modified;
+                    }
+                }
+                else
+                {
+                    // Insert new
+                    _context.ProductImages.Add(new ProductImage
+                    {
+                        ProductId = productId,
+                        VariantId = img.VariantId,
+                        ImageUrl = img.ImageUrl,
+                        IsPrimary = img.IsPrimary,
+                        IsThumbnail = img.IsThumbnail,
+                        DisplayOrder = img.DisplayOrder,
+                        AltText = img.AltText
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            InvalidateProductCache();
+        }
+
+        public async Task DeleteProductImageAsync(int imageId)
+        {
+            var img = await _context.ProductImages.FindAsync(imageId);
+            if (img != null)
+            {
+                _context.ProductImages.Remove(img);
+                await _context.SaveChangesAsync();
+                InvalidateProductCache();
+            }
+        }
+
+        public async Task<List<ProductImage>> GetProductImagesAsync(int productId)
+        {
+            return await _context.ProductImages
+                .Where(pi => pi.ProductId == productId)
+                .OrderBy(pi => pi.VariantId)
+                .ThenBy(pi => pi.IsPrimary ? 0 : 1)
+                .ThenBy(pi => pi.DisplayOrder)
+                .ToListAsync();
         }
 
         private void InvalidateProductCache()

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Webstore.Models
 {
-    [Table("Product_Images")]
+    [Table("ProductImages")]
     public class ProductImage
     {
         [Key]
@@ -24,8 +24,15 @@ namespace Webstore.Models
         [Column("is_primary")]
         public bool IsPrimary { get; set; }
 
+        [Column("is_thumbnail")]
+        public bool IsThumbnail { get; set; }
+
         [Column("display_order")]
         public int DisplayOrder { get; set; }
+
+        [Column("alt_text")]
+        [StringLength(255)]
+        public string? AltText { get; set; }
 
         [ForeignKey("ProductId")]
         public virtual Product? Product { get; set; }

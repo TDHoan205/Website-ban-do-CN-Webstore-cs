@@ -1,15 +1,22 @@
 @model List<Webstore.Models.ProductVariant>
 
+@{
+    // Nhận danh sách ảnh để hiển thị preview
+    var productImages = ViewBag.ProductImages as List<Webstore.Models.ProductImage> ?? new List<Webstore.Models.ProductImage>();
+}
+
+<!-- ===================== VARIANT MANAGEMENT CARD ===================== -->
 <div class="card mt-4 border-0 shadow-sm">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold">
-            <i class="fas fa-list-ul me-2 text-primary"></i>Cấu hình chi tiết (Phiên bản)
+            <i class="fas fa-list-ul me-2 text-primary"></i>Phiên bản sản phẩm & Hình ảnh
         </h5>
         <button type="button" class="btn btn-primary btn-sm" onclick="addVariantRow()">
             <i class="fas fa-plus me-1"></i>Thêm phiên bản
         </button>
     </div>
     <div class="card-body p-0">
+
         @if (Model == null || !Model.Any())
         {
             <div class="text-center py-5 text-muted" id="noVariantsMessage">
@@ -19,17 +26,23 @@
             </div>
         }
 
+        <!-- Variant + Images Table -->
         <div class="table-responsive">
             <table class="table table-bordered table-hover mb-0" id="variantsTable">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 18%">Màu sắc</th>
-                        <th style="width: 18%">Dung lượng (ROM)</th>
-                        <th style="width: 14%">RAM</th>
-                        <th style="width: 20%">Giá bán (VNĐ)</th>
-                        <th style="width: 12%">SL tồn</th>
-                        <th style="width: 10%">Thứ tự</th>
-                        <th style="width: 8%"></th>
+                        <th style="width: 16%">Màu sắc</th>
+                        <th style="width: 16%">Dung lượng (ROM)</th>
+                        <th style="width: 12%">RAM</th>
+                        <th style="width: 16%">Giá bán (VNĐ)</th>
+                        <th style="width: 10%">SL tồn</th>
+                        <th style="width: 30%" colspan="2">Hình ảnh</th>
+                        <th style="width: 6%"></th>
+                    </tr>
+                    <tr>
+                        <th colspan="3" class="text-center text-muted small">Thông tin phiên bản</th>
+                        <th colspan="3" class="text-center text-muted small">Quản lý ảnh (chọn variant để thêm ảnh)</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody id="variantsBody">
@@ -37,28 +50,133 @@
                     {
                         @foreach (var (variant, index) in Model.Select((v, i) => (v, i)))
                         {
-                            <tr data-variant-index="@index" class="variant-row">
+                            var variantImages = productImages.Where(pi => pi.VariantId == variant.VariantId).OrderBy(pi => pi.DisplayOrder).ToList();
+                            var variantImagesJson = System.Text.Json.JsonSerializer.Serialize(
+                                variantImages.Select(pi => new {
+                                    imageId = pi.ImageId,
+                                    imageUrl = pi.ImageUrl,
+                                    isPrimary = pi.IsPrimary,
+                                    isThumbnail = pi.IsThumbnail,
+                                    displayOrder = pi.DisplayOrder,
+                                    altText = pi.AltText ?? ""
+                                }).ToList()
+                            );
+
+                            <tr data-variant-id="@variant.VariantId" data-variant-index="@index" class="variant-row @(variant.VariantId > 0 ? "existing-variant" : "new-variant")">
+                                <!-- Variant Fields -->
                                 <td>
-                                    <input type="text" name="Variants[@index].VariantId" value="@variant.VariantId" hidden />
-                                    <input type="text" name="Variants[@index].Color" value="@variant.Color" class="form-control form-control-sm" placeholder="VD: Đen, Trắng" />
+                                    <input type="text" name="Variants[@index].VariantId" value="@variant.VariantId" class="d-none" />
+                                    <input type="text" name="Variants[@index].Color"
+                                           value="@variant.Color"
+                                           class="form-control form-control-sm"
+                                           placeholder="VD: Đen, Trắng"
+                                           list="colorSuggestions"
+                                           oninput="onVariantFieldChange(this)" />
                                 </td>
                                 <td>
-                                    <input type="text" name="Variants[@index].Storage" value="@variant.Storage" class="form-control form-control-sm" placeholder="VD: 128GB, 256GB" />
+                                    <input type="text" name="Variants[@index].Storage"
+                                           value="@variant.Storage"
+                                           class="form-control form-control-sm"
+                                           placeholder="VD: 128GB, 256GB"
+                                           list="storageSuggestions"
+                                           oninput="onVariantFieldChange(this)" />
                                 </td>
                                 <td>
-                                    <input type="text" name="Variants[@index].RAM" value="@variant.RAM" class="form-control form-control-sm" placeholder="VD: 8GB, 16GB" />
+                                    <input type="text" name="Variants[@index].RAM"
+                                           value="@variant.RAM"
+                                           class="form-control form-control-sm"
+                                           placeholder="VD: 8GB, 16GB"
+                                           list="ramSuggestions"
+                                           oninput="onVariantFieldChange(this)" />
                                 </td>
                                 <td>
-                                    <input type="number" name="Variants[@index].Price" value="@variant.Price.ToString("0.##")" class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0" />
+                                    <input type="number" name="Variants[@index].Price"
+                                           value="@variant.Price.ToString("0.##")"
+                                           class="form-control form-control-sm"
+                                           placeholder="Giá bán"
+                                           step="1000" min="0"
+                                           oninput="onVariantFieldChange(this)" />
                                 </td>
                                 <td>
-                                    <input type="number" name="Variants[@index].StockQuantity" value="@variant.StockQuantity" class="form-control form-control-sm" placeholder="Số lượng" min="0" />
+                                    <input type="number" name="Variants[@index].StockQuantity"
+                                           value="@variant.StockQuantity"
+                                           class="form-control form-control-sm"
+                                           placeholder="Số lượng"
+                                           min="0"
+                                           oninput="onVariantFieldChange(this)" />
                                 </td>
-                                <td>
-                                    <input type="number" name="Variants[@index].DisplayOrder" value="@variant.DisplayOrder" class="form-control form-control-sm" placeholder="0" min="0" />
+
+                                <!-- Images for this variant -->
+                                <td colspan="2">
+                                    <!-- Thumbnail preview -->
+                                    <div class="variant-image-preview mb-2" id="imgPreview_@(variant.VariantId > 0 ? variant.VariantId : index)">
+                                        @if (variantImages.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach (var img in variantImages)
+                                                {
+                                                    <div class="img-thumb-admin position-relative"
+                                                         data-image-id="@img.ImageId"
+                                                         data-variant-id="@variant.VariantId">
+                                                        <img src="@img.ImageUrl"
+                                                             alt="ảnh"
+                                                             style="width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid #ddd;"
+                                                             onerror="this.src='/images/products/placeholder.svg'" />
+                                                        @if (img.IsPrimary)
+                                                        {
+                                                            <span class="badge bg-primary position-absolute"
+                                                                  style="font-size:8px;top:0;left:0;padding:1px 3px;">Main</span>
+                                                        }
+                                                        <button type="button" class="btn btn-sm btn-danger rounded-circle img-remove-btn"
+                                                                onclick="removeVariantImage(@img.ImageId, '@img.ImageUrl')"
+                                                                style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;padding:0;font-size:9px;line-height:1;">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small"><i class="fas fa-image me-1"></i>Chưa có ảnh</span>
+                                        }
+                                    </div>
+
+                                    <!-- Hidden images JSON for JS -->
+                                    <input type="hidden"
+                                           id="variantImagesJson_@(variant.VariantId > 0 ? variant.VariantId : index)"
+                                           value='@Html.Raw(variantImagesJson)' />
+
+                                    <!-- Upload button (opens file dialog) -->
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <input type="file"
+                                               id="fileUpload_@(variant.VariantId > 0 ? variant.VariantId : index)"
+                                               class="d-none"
+                                               accept="image/*"
+                                               multiple
+                                               onchange="handleVariantImageUpload(this, @(variant.VariantId > 0 ? variant.VariantId : 0), @(index))" />
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                onclick="document.getElementById('fileUpload_@(variant.VariantId > 0 ? variant.VariantId : index)').click()">
+                                            <i class="fas fa-upload me-1"></i>Thêm ảnh
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                onclick="openExistingImagesModal(@(variant.VariantId > 0 ? variant.VariantId : index), @index)"
+                                                title="Chọn ảnh có sẵn">
+                                            <i class="fas fa-photo-video"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Hidden inputs for new images (populated by JS) -->
+                                    <div id="newImageInputs_@(variant.VariantId > 0 ? variant.VariantId : index)"></div>
                                 </td>
+
+                                <!-- Actions -->
                                 <td class="text-center align-middle">
-                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariantRow(this)" title="Xóa phiên bản">
+                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                            onclick="removeVariantRow(this)"
+                                            title="Xóa phiên bản">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </td>
@@ -68,75 +186,156 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Product-level Images Section -->
+        <div class="px-3 pb-3 pt-2 border-top">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="mb-0 text-muted">
+                    <i class="fas fa-images me-1"></i> Ảnh sản phẩm (chung — không thuộc variant nào)
+                </h6>
+                <div class="d-flex gap-1">
+                    <input type="file" id="productLevelFileUpload" class="d-none" accept="image/*" multiple
+                           onchange="handleProductLevelImageUpload(this)" />
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            onclick="document.getElementById('productLevelFileUpload').click()">
+                        <i class="fas fa-upload me-1"></i>Thêm ảnh chung
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product-level images preview -->
+            @{
+                var productLevelImages = productImages.Where(pi => pi.VariantId == null || pi.VariantId == 0).OrderBy(pi => pi.DisplayOrder).ToList();
+            }
+            <div class="d-flex flex-wrap gap-2" id="productLevelImagePreview">
+                @foreach (var img in productLevelImages)
+                {
+                    <div class="img-thumb-admin position-relative" data-image-id="@img.ImageId">
+                        <img src="@img.ImageUrl"
+                             alt="ảnh"
+                             style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #dee2e6;"
+                             onerror="this.src='/images/products/placeholder.svg'" />
+                        @if (img.IsPrimary)
+                        {
+                            <span class="badge bg-primary position-absolute"
+                                  style="font-size:8px;top:0;left:0;padding:1px 4px;">Chính</span>
+                        }
+                        <button type="button" class="btn btn-sm btn-danger rounded-circle img-remove-btn"
+                                onclick="removeVariantImage(@img.ImageId, '@img.ImageUrl')"
+                                style="position:absolute;top:-8px;right:-8px;width:20px;height:20px;padding:0;font-size:10px;line-height:1;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+                @if (!productLevelImages.Any())
+                {
+                    <span class="text-muted small py-2"><i class="fas fa-info-circle me-1"></i>Chưa có ảnh chung. Upload ảnh hoặc ảnh variant sẽ tự động làm ảnh chung nếu cần.</span>
+                }
+            </div>
+            <div id="productLevelNewImageInputs"></div>
+        </div>
     </div>
 </div>
 
+<!-- Product level image hidden inputs (for form submission) -->
+<div id="productLevelHiddenInputs"></div>
+
+<!-- ===================== DATALIST (autocomplete suggestions) ===================== -->
+<datalist id="colorSuggestions">
+    <option value="Đen" />
+    <option value="Trắng" />
+    <option value="Xám" />
+    <option value="Bạc" />
+    <option value="Xanh Dương" />
+    <option value="Xanh Lá" />
+    <option value="Đỏ" />
+    <option value="Vàng" />
+    <option value="Tím" />
+    <option value="Hồng" />
+    <option value="Cam" />
+    <option value="Gold" />
+    <option value="Titan" />
+</datalist>
+<datalist id="storageSuggestions">
+    <option value="32GB" />
+    <option value="64GB" />
+    <option value="128GB" />
+    <option value="256GB" />
+    <option value="512GB" />
+    <option value="1TB" />
+</datalist>
+<datalist id="ramSuggestions">
+    <option value="2GB" />
+    <option value="4GB" />
+    <option value="6GB" />
+    <option value="8GB" />
+    <option value="12GB" />
+    <option value="16GB" />
+    <option value="24GB" />
+    <option value="32GB" />
+</datalist>
+
 <script>
     var variantIndex = @(Model?.Count ?? 0);
+    var productId = @((int?)ViewBag.ProductId ?? 0);
+    var uploadedVariantImages = {};   // key: variantId_or_index, value: array of imageUrl strings
+    var productLevelImages = [];     // array of imageUrl strings for product-level images
+
+    // ==================== ADD / REMOVE VARIANT ROW ====================
 
     function addVariantRow() {
         var tbody = document.getElementById('variantsBody');
         var noMsg = document.getElementById('noVariantsMessage');
         if (noMsg) noMsg.style.display = 'none';
 
-        var row = document.createElement('tr');
-        row.className = 'variant-row';
-        row.dataset.variantIndex = variantIndex;
-        row.innerHTML = `
-            <tr data-variant-index="${variantIndex}" class="variant-row">
-                <td>
-                    <input type="text" name="Variants[${variantIndex}].VariantId" value="0" hidden />
-                    <input type="text" name="Variants[${variantIndex}].Color" class="form-control form-control-sm" placeholder="VD: Đen, Trắng" />
-                </td>
-                <td>
-                    <input type="text" name="Variants[${variantIndex}].Storage" class="form-control form-control-sm" placeholder="VD: 128GB, 256GB" />
-                </td>
-                <td>
-                    <input type="text" name="Variants[${variantIndex}].RAM" class="form-control form-control-sm" placeholder="VD: 8GB, 16GB" />
-                </td>
-                <td>
-                    <input type="number" name="Variants[${variantIndex}].Price" class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0" />
-                </td>
-                <td>
-                    <input type="number" name="Variants[${variantIndex}].StockQuantity" class="form-control form-control-sm" placeholder="Số lượng" value="0" min="0" />
-                </td>
-                <td>
-                    <input type="number" name="Variants[${variantIndex}].DisplayOrder" class="form-control form-control-sm" placeholder="0" value="${variantIndex}" min="0" />
-                </td>
-                <td class="text-center align-middle">
-                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariantRow(this)" title="Xóa phiên bản">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-
-        // Fix: the outer <tr> wrapper is wrong, replace it
         var tr = document.createElement('tr');
-        tr.className = 'variant-row';
+        tr.className = 'variant-row new-variant';
         tr.dataset.variantIndex = variantIndex;
         tr.innerHTML = `
             <td>
-                <input type="text" name="Variants[${variantIndex}].VariantId" value="0" hidden />
-                <input type="text" name="Variants[${variantIndex}].Color" class="form-control form-control-sm" placeholder="VD: Đen, Trắng" />
+                <input type="text" name="Variants[${variantIndex}].VariantId" value="0" class="d-none" />
+                <input type="text" name="Variants[${variantIndex}].Color"
+                       class="form-control form-control-sm" placeholder="VD: Đen, Trắng"
+                       list="colorSuggestions" oninput="onVariantFieldChange(this)" />
             </td>
             <td>
-                <input type="text" name="Variants[${variantIndex}].Storage" class="form-control form-control-sm" placeholder="VD: 128GB, 256GB" />
+                <input type="text" name="Variants[${variantIndex}].Storage"
+                       class="form-control form-control-sm" placeholder="VD: 128GB, 256GB"
+                       list="storageSuggestions" oninput="onVariantFieldChange(this)" />
             </td>
             <td>
-                <input type="text" name="Variants[${variantIndex}].RAM" class="form-control form-control-sm" placeholder="VD: 8GB, 16GB" />
+                <input type="text" name="Variants[${variantIndex}].RAM"
+                       class="form-control form-control-sm" placeholder="VD: 8GB, 16GB"
+                       list="ramSuggestions" oninput="onVariantFieldChange(this)" />
             </td>
             <td>
-                <input type="number" name="Variants[${variantIndex}].Price" class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0" />
+                <input type="number" name="Variants[${variantIndex}].Price"
+                       class="form-control form-control-sm" placeholder="Giá bán" step="1000" min="0"
+                       oninput="onVariantFieldChange(this)" />
             </td>
             <td>
-                <input type="number" name="Variants[${variantIndex}].StockQuantity" class="form-control form-control-sm" placeholder="Số lượng" value="0" min="0" />
+                <input type="number" name="Variants[${variantIndex}].StockQuantity"
+                       class="form-control form-control-sm" placeholder="Số lượng" value="0" min="0"
+                       oninput="onVariantFieldChange(this)" />
             </td>
-            <td>
-                <input type="number" name="Variants[${variantIndex}].DisplayOrder" class="form-control form-control-sm" placeholder="0" value="${variantIndex}" min="0" />
+            <td colspan="2">
+                <div class="variant-image-preview mb-2" id="imgPreview_new_${variantIndex}">
+                    <span class="text-muted small"><i class="fas fa-image me-1"></i>Chưa có ảnh</span>
+                </div>
+                <input type="hidden" id="variantImagesJson_new_${variantIndex}" value="[]" />
+                <input type="file" id="fileUpload_new_${variantIndex}" class="d-none" accept="image/*" multiple
+                       onchange="handleVariantImageUpload(this, 0, ${variantIndex})" />
+                <div class="d-flex gap-1 align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            onclick="document.getElementById('fileUpload_new_${variantIndex}').click()">
+                        <i class="fas fa-upload me-1"></i>Thêm ảnh
+                    </button>
+                </div>
+                <div id="newImageInputs_new_${variantIndex}"></div>
             </td>
             <td class="text-center align-middle">
-                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariantRow(this)" title="Xóa phiên bản">
+                <button type="button" class="btn btn-outline-danger btn-sm"
+                        onclick="removeVariantRow(this)" title="Xóa phiên bản">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </td>
@@ -158,7 +357,7 @@
             deleteInput.type = 'hidden';
             deleteInput.name = 'VariantsToDelete';
             deleteInput.value = variantId;
-            row.closest('form')?.appendChild(deleteInput);
+            row.closest('form').appendChild(deleteInput);
         }
 
         row.remove();
@@ -179,7 +378,7 @@
         rows.forEach(function(row, idx) {
             row.querySelectorAll('input[name]').forEach(function(input) {
                 var name = input.getAttribute('name');
-                if (name) {
+                if (name && name.includes('Variants[')) {
                     input.setAttribute('name', name.replace(/Variants\[\d+\]/, 'Variants[' + idx + ']'));
                 }
             });
@@ -187,4 +386,211 @@
         });
         variantIndex = rows.length;
     }
+
+    function onVariantFieldChange(input) {
+        // Optional: auto-update image preview label when color changes
+    }
+
+    // ==================== IMAGE UPLOAD ====================
+
+    /**
+     * Handle file upload cho 1 variant (hoặc variant mới có index).
+     * @@param {HTMLInputElement} fileInput
+     * @@param {number} variantId  - real variantId (0 = new variant, use index)
+     * @@param {number} rowIndex  - row index in table
+     */
+    function handleVariantImageUpload(fileInput, variantId, rowIndex) {
+        var files = fileInput.files;
+        if (!files || files.length === 0) return;
+
+        var key = variantId > 0 ? variantId : 'new_' + rowIndex;
+        if (!uploadedVariantImages[key]) uploadedVariantImages[key] = [];
+
+        var previewContainer = document.getElementById('imgPreview_' + key);
+        var newImageInputsContainer = document.getElementById('newImageInputs_' + key) || document.getElementById('newImageInputs_new_' + rowIndex);
+
+        // Hide "chưa có ảnh" text
+        var noImgMsg = previewContainer && previewContainer.querySelector('.text-muted');
+        if (noImgMsg) noImgMsg.style.display = 'none';
+
+        Array.from(files).forEach(function(file, idx) {
+            if (!file.type.startsWith('image/')) return;
+
+            // Preview
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var imgData = e.target.result;
+                var imgId = 'new_' + Date.now() + '_' + idx;
+
+                var wrapper = document.createElement('div');
+                wrapper.className = 'img-thumb-admin position-relative';
+                wrapper.dataset.tempId = imgId;
+                wrapper.dataset.variantKey = key;
+
+                wrapper.innerHTML = `
+                    <img src="${imgData}" alt="preview"
+                         style="width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" />
+                    <button type="button" class="btn btn-sm btn-danger rounded-circle img-remove-btn"
+                            onclick="removeNewVariantImage(this, '${key}', '${imgId}')"
+                            style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;padding:0;font-size:9px;line-height:1;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+
+                if (previewContainer) {
+                    // Remove "no img" message
+                    var noMsg = previewContainer.querySelector('.text-muted');
+                    if (noMsg) noMsg.remove();
+                    previewContainer.appendChild(wrapper);
+                }
+
+                // Store for form submission
+                uploadedVariantImages[key].push({ tempId: imgId, dataUrl: imgData });
+
+                // Create hidden input for form POST
+                var hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'NewVariantImages[' + key + '][]';
+                hiddenInput.value = imgData;
+                if (newImageInputsContainer) {
+                    newImageInputsContainer.appendChild(hiddenInput);
+                } else {
+                    document.getElementById('productForm').appendChild(hiddenInput);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset file input so same file can be re-selected
+        fileInput.value = '';
+    }
+
+    function removeNewVariantImage(btn, key, tempId) {
+        // Remove from array
+        if (uploadedVariantImages[key]) {
+            uploadedVariantImages[key] = uploadedVariantImages[key].filter(function(img) {
+                return img.tempId !== tempId;
+            });
+        }
+
+        // Remove DOM element
+        var wrapper = btn.closest('.img-thumb-admin');
+        if (wrapper) wrapper.remove();
+
+        // Remove hidden input
+        var form = document.getElementById('productForm');
+        var hiddenInputs = form.querySelectorAll('input[name="NewVariantImages[' + key + '][]"]');
+        hiddenInputs.forEach(function(inp) {
+            // Can't match dataUrl easily, just remove all for this key on last image removal
+        });
+    }
+
+    /**
+     * Xóa ảnh đã lưu trong DB (gọi API để xóa file + record).
+     */
+    function removeVariantImage(imageId, imageUrl) {
+        if (!confirm('Xóa ảnh này?')) return;
+
+        // Remove from UI immediately
+        var wrapper = event.target.closest('.img-thumb-admin');
+        if (wrapper) wrapper.remove();
+
+        // If it's a saved image (imageId > 0), call API to delete
+        if (imageId > 0) {
+            fetch('@Url.Action("DeleteProductImage", "Products")/' + imageId, {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+            }).then(function(res) {
+                if (!res.ok) console.error('Failed to delete image from DB');
+            }).catch(function(err) {
+                console.error('Error deleting image:', err);
+            });
+        }
+    }
+
+    // ==================== PRODUCT-LEVEL IMAGE UPLOAD ====================
+
+    function handleProductLevelImageUpload(fileInput) {
+        var files = fileInput.files;
+        if (!files || files.length === 0) return;
+
+        var previewContainer = document.getElementById('productLevelImagePreview');
+        var noImgMsg = previewContainer && previewContainer.querySelector('.text-muted');
+        if (noImgMsg) noImgMsg.style.display = 'none';
+
+        Array.from(files).forEach(function(file, idx) {
+            if (!file.type.startsWith('image/')) return;
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var imgData = e.target.result;
+                var imgId = 'prod_' + Date.now() + '_' + idx;
+                productLevelImages.push({ tempId: imgId, dataUrl: imgData });
+
+                var wrapper = document.createElement('div');
+                wrapper.className = 'img-thumb-admin position-relative';
+                wrapper.dataset.tempId = imgId;
+                wrapper.innerHTML = `
+                    <img src="${imgData}" alt="preview"
+                         style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #dee2e6;" />
+                    <button type="button" class="btn btn-sm btn-danger rounded-circle img-remove-btn"
+                            onclick="removeProductLevelImage(this, '${imgId}')"
+                            style="position:absolute;top:-8px;right:-8px;width:20px;height:20px;padding:0;font-size:10px;line-height:1;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                previewContainer.appendChild(wrapper);
+
+                // Hidden input for form
+                var hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'NewProductLevelImages[]';
+                hidden.value = imgData;
+                document.getElementById('productLevelHiddenInputs').appendChild(hidden);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        fileInput.value = '';
+    }
+
+    function removeProductLevelImage(btn, tempId) {
+        productLevelImages = productLevelImages.filter(function(img) { return img.tempId !== tempId; });
+        var wrapper = btn.closest('.img-thumb-admin');
+        if (wrapper) wrapper.remove();
+
+        // Remove hidden input
+        var hiddenInputs = document.getElementById('productLevelHiddenInputs').querySelectorAll('input');
+        hiddenInputs.forEach(function(inp) { inp.remove(); });
+        productLevelImages.forEach(function(img) {
+            var h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = 'NewProductLevelImages[]';
+            h.value = img.dataUrl;
+            document.getElementById('productLevelHiddenInputs').appendChild(h);
+        });
+    }
 </script>
+
+<style>
+    .img-thumb-admin {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .img-thumb-admin img {
+        transition: transform 0.2s;
+    }
+    .img-thumb-admin:hover img {
+        transform: scale(1.05);
+    }
+    .img-remove-btn {
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 2;
+    }
+    .img-thumb-admin:hover .img-remove-btn {
+        opacity: 1;
+    }
+</style>

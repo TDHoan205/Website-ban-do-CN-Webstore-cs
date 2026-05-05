@@ -4,6 +4,7 @@
     var categories = ViewBag.Categories as List<Webstore.Models.Category> ?? new List<Webstore.Models.Category>();
     var suppliers = ViewBag.Suppliers as List<Webstore.Models.Supplier> ?? new List<Webstore.Models.Supplier>();
     var variants = ViewBag.Variants as List<Webstore.Models.ProductVariant> ?? new List<Webstore.Models.ProductVariant>();
+    var productImages = ViewBag.ProductImages as List<Webstore.Models.ProductImage> ?? new List<Webstore.Models.ProductImage>();
 }
 
 <div class="container-fluid">
@@ -140,16 +141,17 @@
                     </div>
                 </div>
 
-                <!-- Product Variants -->
+                <!-- Product Variants & Images -->
                 @await Html.PartialAsync("Partials/_ProductVariants", variants)
             </div>
 
-            <!-- RIGHT COLUMN: Image -->
+            <!-- RIGHT COLUMN: Images -->
             <div class="col-lg-4">
+                <!-- Main Product Image -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white py-3">
                         <h5 class="mb-0 fw-bold">
-                            <i class="fas fa-image me-2 text-primary"></i>Hình ảnh
+                            <i class="fas fa-image me-2 text-primary"></i>Ảnh đại diện
                         </h5>
                     </div>
                     <div class="card-body text-center">
@@ -157,14 +159,14 @@
                         {
                             <div class="mb-3">
                                 <img src="@Model.ImageUrl" alt="@Model.Name" class="img-thumbnail" style="max-height: 200px; object-fit: contain;" />
-                                <p class="text-muted small mt-1 mb-0">Ảnh hiện tại</p>
+                                <p class="text-muted small mt-1 mb-0">Ảnh đại diện hiện tại</p>
                             </div>
                         }
                         else
                         {
                             <div class="bg-light rounded p-4 mb-3">
                                 <i class="fas fa-image fa-4x text-secondary opacity-25"></i>
-                                <p class="text-muted mt-2 mb-0 small">Chưa có ảnh</p>
+                                <p class="text-muted mt-2 mb-0 small">Chưa có ảnh đại diện</p>
                             </div>
                         }
                         <input type="file" name="imageFile" class="form-control" accept="image/*" />
@@ -177,6 +179,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Gallery Images -->
+                @if (productImages.Any())
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="fas fa-images me-2 text-primary"></i>Thư viện ảnh (@productImages.Count)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var img in productImages)
+                                {
+                                    <div class="position-relative">
+                                        <img src="@img.ImageUrl" alt="ảnh"
+                                             style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid @(img.IsPrimary ? "var(--bs-primary)" : "#dee2e6");"
+                                             onerror="this.src='/images/products/placeholder.svg'" />
+                                        @if (img.IsPrimary)
+                                        {
+                                            <span class="badge bg-primary position-absolute"
+                                                  style="font-size:8px;top:-4px;left:-4px;padding:2px 4px;">Chính</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Quản lý ảnh chi tiết bên dưới trong phần "Phiên bản sản phẩm & Hình ảnh"
+                            </small>
+                        </div>
+                    </div>
+                }
 
                 <!-- Submit -->
                 <div class="d-grid gap-2">

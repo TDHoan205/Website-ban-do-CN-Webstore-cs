@@ -5,7 +5,7 @@ using Webstore.Services;
 
 namespace Webstore.Controllers
 {
-    [Authorize(Roles = "Admin,Employee")]
+    [Authorize(Roles = "Admin")]
     public class SuppliersController : Controller
     {
         private readonly ISupplierService _supplierService;

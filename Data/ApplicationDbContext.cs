@@ -82,7 +82,16 @@ namespace Webstore.Data
                 .IsUnique();
 
             modelBuilder.Entity<ProductImage>()
-                .HasIndex(pi => new { pi.ProductId, pi.VariantId, pi.IsPrimary });
+                .HasIndex(pi => new { pi.ProductId, pi.VariantId, pi.DisplayOrder });
+
+            modelBuilder.Entity<ProductImage>()
+                .HasIndex(pi => new { pi.ProductId, pi.IsPrimary });
+
+            modelBuilder.Entity<ProductImage>()
+                .HasIndex(pi => new { pi.VariantId, pi.DisplayOrder });
+
+            modelBuilder.Entity<ProductVariant>()
+                .HasIndex(pv => new { pv.ProductId, pv.Color, pv.Storage, pv.RAM });
 
             // Enum-like constraints (Role, Status, MovementType) can be validated at service/controller level.
             // Configure decimal precision where necessary

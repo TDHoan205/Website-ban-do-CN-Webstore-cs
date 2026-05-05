@@ -3,32 +3,81 @@
 @{
     ViewData["Title"] = Model.Name;
     Layout = "_ShopLayout";
-    var fallbackDescriptionHtml = ProductDescriptionText.SanitizeDescriptionHtml("Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp.");
+
+    var fallbackDescriptionHtml = Webstore.Utilities.ProductDescriptionText.SanitizeDescriptionHtml(
+        "Sản phẩm chất lượng cao với thiết kế hiện đại, phù hợp cho mọi nhu cầu sử dụng. Được sản xuất với công nghệ tiên tiến và vật liệu cao cấp.");
     var descriptionHtml = string.IsNullOrWhiteSpace(Model.Description) ? fallbackDescriptionHtml : Model.Description;
 
-    var productImages = (ViewBag.ProductImages as List<Webstore.Models.ProductImage>) ?? new List<Webstore.Models.ProductImage>();
+    // Lấy ProductDetailDto từ ViewBag
+    var detail = ViewBag.ProductDetail as Webstore.Models.DTOs.ProductDetailDto;
+    var imagesByVariant = detail?.ImagesByVariant ?? new Dictionary<string, List<Webstore.Models.ProductImage>>();
+    var allImages = detail?.AllImages ?? new List<Webstore.Models.ProductImage>();
 
-    if (productImages.Count == 0 && !string.IsNullOrWhiteSpace(Model.ImageUrl))
+    // Chuyển đổi thành dictionary cho JS: key = "variantId" | "default"
+    // Mỗi image cần: imageId, imageUrl, isPrimary, isThumbnail, displayOrder
+    var jsImagesByVariant = imagesByVariant.ToDictionary(
+        kvp => kvp.Key,
+        kvp => (object)kvp.Value.Select(pi => new {
+            imageId = pi.ImageId,
+            imageUrl = pi.ImageUrl,
+            variantId = pi.VariantId,
+            isPrimary = pi.IsPrimary,
+            isThumbnail = pi.IsThumbnail,
+            displayOrder = pi.DisplayOrder,
+            altText = pi.AltText ?? ""
+        }).ToList()
+    );
+
+    // Fallback: nếu không có ảnh nào, dùng placeholder
+    if (jsImagesByVariant.Count == 0)
     {
-        productImages.Add(new Webstore.Models.ProductImage
-        {
-            ImageUrl = Model.ImageUrl!,
-            VariantId = null,
-            IsPrimary = true
-        });
+        var placeholderImg = new { imageId = 0, imageUrl = "/images/products/placeholder.svg", variantId = (int?)null, isPrimary = true, isThumbnail = true, displayOrder = 0, altText = "Hình ảnh sản phẩm" };
+        var placeholderList = new List<object>();
+        placeholderList.Add(placeholderImg);
+        jsImagesByVariant["default"] = (object)placeholderList;
     }
 
-    if (productImages.Count == 0)
-    {
-        productImages.Add(new Webstore.Models.ProductImage
-        {
-            ImageUrl = "/images/products/placeholder.svg",
-            VariantId = null,
-            IsPrimary = true
-        });
-    }
+    var jsImagesJson = System.Text.Json.JsonSerializer.Serialize(jsImagesByVariant);
+    var defaultImagesList = jsImagesByVariant.ContainsKey("default") ? jsImagesByVariant["default"] : (object)new List<object>();
+    var defaultImagesJson = System.Text.Json.JsonSerializer.Serialize(defaultImagesList);
+    var productJson = new {
+        productId = Model.ProductId,
+        name = Model.Name,
+        price = Model.Price,
+        originalPrice = Model.OriginalPrice,
+        discountPercent = Model.DiscountPercent,
+        stockQuantity = Model.StockQuantity,
+        categoryName = Model.Category?.Name ?? "",
+        supplierName = Model.Supplier?.Name ?? "",
+        imageUrl = Model.ImageUrl ?? ""
+    };
+    var productJsonStr = System.Text.Json.JsonSerializer.Serialize(productJson);
 
-    var productImagesJson = JsonSerializer.Serialize(productImages.Select(pi => new { pi.ImageUrl, pi.VariantId, pi.IsPrimary }));
+    // Variant JSON
+    var variantList = (Model.Variants ?? new List<Webstore.Models.ProductVariant>()).Select(v => new {
+        variantId = v.VariantId,
+        color = v.Color ?? "",
+        storage = v.Storage ?? "",
+        ram = v.RAM ?? "",
+        config = (v.Storage ?? "") + (string.IsNullOrEmpty(v.RAM) ? "" : " / " + v.RAM),
+        price = v.Price,
+        originalPrice = v.OriginalPrice,
+        stockQuantity = v.StockQuantity
+    }).ToList();
+    var variantJson = System.Text.Json.JsonSerializer.Serialize(variantList);
+
+    // Unique colors & configs for UI
+    var uniqueColors = (Model.Variants ?? new List<Webstore.Models.ProductVariant>())
+        .Where(v => !string.IsNullOrEmpty(v.Color))
+        .Select(v => v.Color!)
+        .Distinct()
+        .ToList();
+    var uniqueConfigs = (Model.Variants ?? new List<Webstore.Models.ProductVariant>())
+        .Where(v => !string.IsNullOrEmpty(v.Storage) || !string.IsNullOrEmpty(v.RAM))
+        .Select(v => new { key = (v.Storage ?? "") + (string.IsNullOrEmpty(v.RAM) ? "" : " / " + v.RAM), storage = v.Storage ?? "", ram = v.RAM ?? "" })
+        .Where(x => !string.IsNullOrEmpty(x.key))
+        .DistinctBy(x => x.key)
+        .ToList();
 }
 
 <!-- Page Header -->
@@ -47,38 +96,50 @@
 
 <div class="container py-5">
     <div class="row">
-        <!-- Product Image Gallery (Full Implementation) -->
+        <!-- ===================== PRODUCT IMAGE GALLERY (SHOPEE-STYLE) ===================== -->
         <div class="col-lg-6 mb-4">
             <div class="product-gallery-container">
-                <!-- 1. Ảnh chính lớn -->
+
+                <!-- Main Image Display -->
                 <div class="gallery-main" id="galleryMain">
-                    <div class="zoom-lens" id="zoomLens"></div>
-                    
-                    <!-- 4. Nút Next/Prev -->
-                    <button class="nav-btn prev" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
-                    <button class="nav-btn next" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
-                    
-                    <div class="main-image-wrapper">
-                        <img id="currentMainImg" src="@(productImages.FirstOrDefault()?.ImageUrl ?? Model.ImageUrl ?? "/images/products/placeholder.svg")" alt="@Model.Name" />
+                    <!-- Prev/Next Buttons -->
+                    <button class="nav-btn prev" id="btnPrev" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+                    <button class="nav-btn next" id="btnNext" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+
+                    <!-- The main image -->
+                    <div class="main-image-wrapper" id="mainImageWrapper">
+                        <img id="mainImg" src="/images/products/placeholder.svg" alt="@Model.Name" />
                     </div>
 
-                    <!-- 8. Zoom Result (Sẽ hiện khi hover) -->
+                    <!-- Image counter -->
+                    <div class="img-counter" id="imgCounter">
+                        <span id="currentImgIdx">1</span> / <span id="totalImgCount">1</span>
+                    </div>
+
+                    <!-- Zoom lens -->
+                    <div class="zoom-lens" id="zoomLens"></div>
+                    <!-- Zoom result -->
                     <div id="zoomResult" class="zoom-result"></div>
                 </div>
 
-                <!-- 2. Danh sách Thumbnails -->
+                <!-- Thumbnails -->
                 <div class="gallery-thumbs" id="thumbContainer">
-                    <!-- Sẽ được render bởi JavaScript từ mảng dữ liệu -->
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- Gallery label -->
+                <div class="gallery-label">
+                    <i class="fas fa-images me-1"></i> Nhấn giữ ảnh để phóng to
                 </div>
             </div>
         </div>
 
-        <!-- Product Info -->
+        <!-- ===================== PRODUCT INFO ===================== -->
         <div class="col-lg-6">
             <div class="product-detail-card">
                 <div class="detail-header">
                     <div class="detail-category">@Model.Category?.Name</div>
-                    <h1 class="detail-title">@(Model.Name)</h1>
+                    <h1 class="detail-title">@Model.Name</h1>
                     <div class="detail-rating">
                         <span class="stars">
                             <i class="fas fa-star"></i>
@@ -91,69 +152,71 @@
                     </div>
                 </div>
 
-                <div class="detail-price-section">
+                <div class="detail-price-section" id="priceSection">
                     <div class="detail-price" id="displayPrice">@Model.Price.ToString("N0") ₫</div>
-                    <div class="detail-price-note" id="displayOriginalPrice">
-                        @if (Model.OriginalPrice.HasValue && Model.OriginalPrice > Model.Price)
-                        {
-                            <del>@Model.OriginalPrice.Value.ToString("N0") ₫</del>
-                            <span class="badge bg-danger ms-2">-@Model.DiscountPercent%</span>
-                        }
-                    </div>
+                    <div id="displayOriginalPrice"></div>
                 </div>
 
-                <!-- Variant Selection -->
-                @if (Model.Variants != null && Model.Variants.Any())
+                <!-- ====== CONFIG (RAM/ROM) ====== -->
+                @if (uniqueConfigs.Any())
                 {
-                    <div class="variant-selection-container mt-4">
-                        @if (Model.Variants.Any(v => !string.IsNullOrEmpty(v.Storage) || !string.IsNullOrEmpty(v.RAM)))
-                        {
-                            <div class="variant-group mb-3">
-                                <label class="variant-label fw-bold mb-2">Chọn phiên bản cấu hình:</label>
-                                <div class="variant-options d-flex flex-wrap gap-2">
-                                    @foreach (var vGroup in Model.Variants.GroupBy(v => v.Storage + (string.IsNullOrEmpty(v.RAM) ? "" : " / " + v.RAM)).OrderBy(g => g.First().Price))
-                                    {
-                                        <button type="button" class="btn btn-outline-primary variant-option-btn config-btn" 
-                                                data-config="@vGroup.Key" 
-                                                onclick="selectConfig('@vGroup.Key')">
-                                            @vGroup.Key
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        @if (Model.Variants.Any(v => !string.IsNullOrEmpty(v.Color)))
-                        {
-                            <div class="variant-group mb-3">
-                                <label class="variant-label fw-bold mb-2">Chọn màu sắc:</label>
-                                <div class="variant-options d-flex flex-wrap gap-2">
-                                    @foreach (var color in Model.Variants.Select(v => v.Color).Distinct())
-                                    {
-                                        <button type="button" class="btn btn-outline-secondary variant-option-btn color-btn" 
-                                                data-color="@color"
-                                                onclick="selectColor('@color')">
-                                            @color
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        }
+                    <div class="variant-group mb-3">
+                        <label class="variant-label">
+                            <i class="fas fa-microchip me-1"></i> Phiên bản:
+                        </label>
+                        <div class="variant-options d-flex flex-wrap gap-2" id="configOptions">
+                            @foreach (var cfg in uniqueConfigs)
+                            {
+                                <button type="button" class="btn variant-option-btn config-btn"
+                                        data-config="@cfg.key"
+                                        data-storage="@cfg.storage"
+                                        data-ram="@cfg.ram"
+                                        onclick="selectConfig('@cfg.key')">
+                                    @cfg.key
+                                </button>
+                            }
+                        </div>
                     </div>
-                    <input type="hidden" id="selectedVariantId" value="" />
                 }
 
+                <!-- ====== COLOR ====== -->
+                @if (uniqueColors.Any())
+                {
+                    <div class="variant-group mb-3">
+                        <label class="variant-label">
+                            <i class="fas fa-palette me-1"></i> Màu sắc:
+                        </label>
+                        <div class="variant-options d-flex flex-wrap gap-2" id="colorOptions">
+                            @foreach (var color in uniqueColors)
+                            {
+                                <button type="button" class="btn variant-option-btn color-btn"
+                                        data-color="@color"
+                                        onclick="selectColor('@color')">
+                                    @color
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Selected variant summary -->
+                <div class="selected-variant-summary" id="selectedVariantSummary" style="display:none;">
+                    <i class="fas fa-check-circle text-success me-1"></i>
+                    <span id="selectedVariantText"></span>
+                </div>
+
+                <!-- Description -->
                 <div class="detail-desc">
                     <h6><i class="fas fa-info-circle me-2"></i>Mô tả sản phẩm</h6>
                     <div class="product-description-content">@Html.Raw(descriptionHtml)</div>
                 </div>
 
+                <!-- Stock status -->
                 <div class="detail-meta">
                     <div class="meta-item">
                         <i class="fas fa-check-circle text-success" id="stockStatusIcon"></i>
                         <span id="stockStatusText">@(Model.StockQuantity > 0 ? "Còn hàng" : "Hết hàng")</span>
                     </div>
-                    <!-- ... other meta items ... -->
                 </div>
 
                 <!-- Quantity -->
@@ -164,6 +227,7 @@
                         <input type="number" id="quantity" class="qty-input" value="1" min="1" max="10" readonly>
                         <button type="button" class="qty-btn" onclick="increaseQty()"><i class="fas fa-plus"></i></button>
                     </div>
+                    <span class="stock-note" id="stockNote">@(Model.StockQuantity > 0 ? $"{Model.StockQuantity} sản phẩm có sẵn" : "")</span>
                 </div>
 
                 <!-- Actions -->
@@ -204,7 +268,7 @@
         </div>
     </div>
 
-    <!-- Product Info Tabs -->
+    <!-- ===================== TABS ===================== -->
     <div class="row mt-5">
         <div class="col-12">
             <div class="product-tabs">
@@ -228,7 +292,6 @@
                                 <li>Chất liệu cao cấp, bền đẹp theo thời gian</li>
                                 <li>Thiết kế hiện đại, sang trọng</li>
                                 <li>Dễ dàng sử dụng và bảo quản</li>
-                                <li>Phù hợp cho mọi lứa tuổi</li>
                                 <li>Bảo hành chính hãng 12 tháng</li>
                             </ul>
                         </div>
@@ -249,10 +312,8 @@
                                 <div class="review-score">
                                     <div class="score-number">4.5</div>
                                     <div class="score-stars">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i><i class="fas fa-star"></i>
                                         <i class="fas fa-star-half-alt"></i>
                                     </div>
                                     <div class="score-count">128 đánh giá</div>
@@ -267,19 +328,8 @@
                                         <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
                                     </div>
                                 </div>
-                                <p class="review-text">Sản phẩm rất tốt, chất lượng cao. Giao hàng nhanh, đóng gói cẩn thận. Sẽ ủng hộ tiếp!</p>
+                                <p class="review-text">Sản phẩm rất tốt, chất lượng cao. Giao hàng nhanh, đóng gói cẩn thận.</p>
                                 <small class="text-muted">2 ngày trước</small>
-                            </div>
-                            <div class="review-item">
-                                <div class="reviewer-info">
-                                    <div class="reviewer-avatar">T</div>
-                                    <div>
-                                        <strong>Trần Thị B</strong>
-                                        <div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></div>
-                                    </div>
-                                </div>
-                                <p class="review-text">Tốt, đúng như mô tả. Sẽ mua lại lần sau.</p>
-                                <small class="text-muted">1 tuần trước</small>
                             </div>
                         </div>
                     </div>
@@ -304,7 +354,7 @@
                                 <a asp-controller="Shop" asp-action="Product" asp-route-id="@product.ProductId" class="product-card-img">
                                     @if (!string.IsNullOrEmpty(product.ImageUrl))
                                     {
-                                        <img src="@product.ImageUrl" alt="@product.Name" />
+                                        <img src="@product.ImageUrl" alt="@product.Name" loading="lazy" />
                                     }
                                     else
                                     {
@@ -313,7 +363,6 @@
                                             <span class="placeholder-name">@(product.Name)</span>
                                         </div>
                                     }
-                                    <div class="product-overlay"><i class="fas fa-eye"></i></div>
                                 </a>
                                 <div class="product-card-body">
                                     <div class="product-card-cat">@product.Category?.Name</div>
@@ -334,305 +383,580 @@
     }
 </div>
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/homepage.css" />
+}
+
+@section Scripts {
+    <script>
+    // ==================== DATA ====================
+    const PRODUCT = @Html.Raw(productJsonStr);
+    const VARIANTS = @Html.Raw(variantJson);
+    const IMAGES_BY_VARIANT = @Html.Raw(jsImagesJson);
+
+    // State
+    let selectedConfig = null;
+    let selectedColor = null;
+    let currentVariant = null;
+    let currentSlideIndex = 0;
+    let currentImages = [];  // Array of image objects for current variant
+
+    // ==================== IMAGE SYSTEM ====================
+
+    /**
+     * Lấy danh sách ảnh cho variant đang chọn.
+     * Priority: variant images > default images > product.ImageUrl > placeholder
+     */
+    function getImagesForVariant(variantId) {
+        var variantKey = variantId ? "variant_" + variantId : null;
+
+        // 1. Try variant-specific images
+        if (variantKey && IMAGES_BY_VARIANT[variantKey] && IMAGES_BY_VARIANT[variantKey].length > 0) {
+            return IMAGES_BY_VARIANT[variantKey];
+        }
+
+        // 2. Fallback: default (product-level) images
+        if (IMAGES_BY_VARIANT["default"] && IMAGES_BY_VARIANT["default"].length > 0) {
+            return IMAGES_BY_VARIANT["default"];
+        }
+
+        // 3. Fallback: product.ImageUrl
+        if (PRODUCT.imageUrl) {
+            return [{ imageId: 0, imageUrl: PRODUCT.imageUrl, isPrimary: true, isThumbnail: true }];
+        }
+
+        // 4. Ultimate fallback
+        return [{ imageId: 0, imageUrl: "/images/products/placeholder.svg", isPrimary: true, isThumbnail: true }];
+    }
+
+    /**
+     * Update toàn bộ gallery khi variant thay đổi.
+     * Gọi khi user click color hoặc config.
+     */
+    function updateImages(variantId) {
+        currentImages = getImagesForVariant(variantId);
+        currentSlideIndex = 0;
+
+        renderMainImage();
+        renderThumbnails();
+        updateSlideCounter();
+        updateNavButtons();
+        preloaderNextImages();
+    }
+
+    function renderMainImage() {
+        var mainImg = document.getElementById('mainImg');
+        if (!mainImg || currentImages.length === 0) return;
+
+        var imgData = currentImages[currentSlideIndex];
+        var newSrc = imgData.imageUrl;
+
+        // Fade-out transition
+        mainImg.style.opacity = '0';
+        mainImg.style.transition = 'opacity 0.2s ease';
+
+        setTimeout(function() {
+            mainImg.src = newSrc;
+            mainImg.alt = imgData.altText || PRODUCT.name;
+            mainImg.style.opacity = '1';
+
+            // Update zoom background
+            updateZoomBackground(newSrc);
+        }, 200);
+    }
+
+    function renderThumbnails() {
+        var container = document.getElementById('thumbContainer');
+        if (!container) return;
+
+        container.innerHTML = currentImages.map(function(img, idx) {
+            var isActive = idx === currentSlideIndex ? 'active' : '';
+            var thumbSrc = img.imageUrl;
+            return '<div class="thumb-item ' + isActive + '" data-index="' + idx + '" onclick="changeSlide(' + idx + ')">' +
+                   '<img src="' + thumbSrc + '" alt="' + (img.altText || '') + '" onerror="this.src=\'/images/products/placeholder.svg\'" loading="lazy" />' +
+                   '</div>';
+        }).join('');
+
+        // Scroll active thumb into view
+        var activeThumb = container.querySelector('.thumb-item.active');
+        if (activeThumb) {
+            activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+    }
+
+    function changeSlide(index) {
+        if (index < 0) index = currentImages.length - 1;
+        if (index >= currentImages.length) index = 0;
+
+        currentSlideIndex = index;
+
+        renderMainImage();
+        updateThumbHighlight();
+        updateSlideCounter();
+        updateNavButtons();
+    }
+
+    function nextSlide() { changeSlide(currentSlideIndex + 1); }
+    function prevSlide() { changeSlide(currentSlideIndex - 1); }
+
+    function updateThumbHighlight() {
+        var container = document.getElementById('thumbContainer');
+        if (!container) return;
+        container.querySelectorAll('.thumb-item').forEach(function(thumb, idx) {
+            thumb.classList.toggle('active', idx === currentSlideIndex);
+        });
+    }
+
+    function updateSlideCounter() {
+        var counter = document.getElementById('imgCounter');
+        if (counter) {
+            document.getElementById('currentImgIdx').textContent = currentSlideIndex + 1;
+            document.getElementById('totalImgCount').textContent = currentImages.length;
+        }
+    }
+
+    function updateNavButtons() {
+        var prevBtn = document.getElementById('btnPrev');
+        var nextBtn = document.getElementById('btnNext');
+        // Hide nav if only 1 image
+        var hidden = currentImages.length <= 1;
+        if (prevBtn) prevBtn.style.visibility = hidden ? 'hidden' : 'visible';
+        if (nextBtn) nextBtn.style.visibility = hidden ? 'hidden' : 'visible';
+    }
+
+    // ==================== ZOOM ====================
+    function updateZoomBackground(src) {
+        var result = document.getElementById('zoomResult');
+        if (result) result.style.backgroundImage = "url('" + src + "')";
+    }
+
+    function initZoomLogic() {
+        var mainImg = document.getElementById('mainImg');
+        var lens = document.getElementById('zoomLens');
+        var result = document.getElementById('zoomResult');
+        var container = document.getElementById('galleryMain');
+        if (!mainImg || !container || window.innerWidth < 992) return;
+
+        container.onmouseenter = function() {
+            if (lens) lens.style.display = "block";
+            if (result) { result.style.display = "block"; updateZoomBackground(mainImg.src); }
+        };
+        container.onmouseleave = function() {
+            if (lens) lens.style.display = "none";
+            if (result) result.style.display = "none";
+        };
+        container.onmousemove = function(e) {
+            var rect = mainImg.getBoundingClientRect();
+            var x = e.clientX - rect.left - lens.offsetWidth / 2;
+            var y = e.clientY - rect.top - lens.offsetHeight / 2;
+            x = Math.max(0, Math.min(x, mainImg.offsetWidth - lens.offsetWidth));
+            y = Math.max(0, Math.min(y, mainImg.offsetHeight - lens.offsetHeight));
+            lens.style.left = x + "px";
+            lens.style.top = y + "px";
+            var cx = result.offsetWidth / lens.offsetWidth;
+            var cy = result.offsetHeight / lens.offsetHeight;
+            result.style.backgroundPosition = "-" + (x * cx) + "px -" + (y * cy) + "px";
+        };
+    }
+
+    // ==================== PRELOAD ====================
+    function preloaderNextImages() {
+        if (currentImages.length < 2) return;
+        var nextIdx = (currentSlideIndex + 1) % currentImages.length;
+        var img = new Image();
+        img.src = currentImages[nextIdx].imageUrl;
+    }
+
+    // ==================== VARIANT SELECTION ====================
+
+    /**
+     * Tìm variant khớp với config + color đang chọn.
+     */
+    function findMatchingVariant() {
+        return VARIANTS.find(function(v) {
+            var configMatch = !selectedConfig || v.config === selectedConfig;
+            var colorMatch = !selectedColor || v.color === selectedColor;
+            return configMatch && colorMatch;
+        }) || null;
+    }
+
+    function selectConfig(config) {
+        selectedConfig = config;
+        document.querySelectorAll('.config-btn').forEach(function(btn) {
+            var isActive = btn.getAttribute('data-config') === config;
+            btn.classList.toggle('active', isActive);
+            btn.classList.toggle('btn-primary', isActive);
+            btn.classList.toggle('btn-outline-primary', !isActive);
+        });
+
+        onVariantChange();
+    }
+
+    function selectColor(color) {
+        selectedColor = color;
+        document.querySelectorAll('.color-btn').forEach(function(btn) {
+            var isActive = btn.getAttribute('data-color') === color;
+            btn.classList.toggle('active', isActive);
+            btn.classList.toggle('btn-secondary', isActive);
+            btn.classList.toggle('btn-outline-secondary', !isActive);
+        });
+
+        onVariantChange();
+    }
+
+    function onVariantChange() {
+        currentVariant = findMatchingVariant();
+        var variantId = currentVariant ? currentVariant.variantId : null;
+
+        // Update images
+        updateImages(variantId);
+
+        // Update price
+        updatePrice();
+
+        // Update stock
+        updateStock();
+
+        // Update selected summary
+        updateSelectedSummary();
+    }
+
+    function updatePrice() {
+        var displayPrice = document.getElementById('displayPrice');
+        var displayOriginal = document.getElementById('displayOriginalPrice');
+        if (!displayPrice) return;
+
+        var price = currentVariant ? currentVariant.price : PRODUCT.price;
+        var originalPrice = currentVariant ? currentVariant.originalPrice : PRODUCT.originalPrice;
+        var discount = PRODUCT.discountPercent;
+
+        displayPrice.textContent = price.toLocaleString('vi-VN') + ' ₫';
+
+        if (originalPrice && originalPrice > price) {
+            discount = Math.round((1 - price / originalPrice) * 100);
+            displayOriginal.innerHTML = '<del class="text-muted">' + originalPrice.toLocaleString('vi-VN') + ' ₫</del>' +
+                                      '<span class="badge bg-danger ms-2">-' + discount + '%</span>';
+        } else {
+            displayOriginal.innerHTML = '';
+        }
+    }
+
+    function updateStock() {
+        var stockIcon = document.getElementById('stockStatusIcon');
+        var stockText = document.getElementById('stockStatusText');
+        var stockNote = document.getElementById('stockNote');
+        var cartBtn = document.getElementById('btnAddToCart');
+
+        var stock = currentVariant ? currentVariant.stockQuantity : PRODUCT.stockQuantity;
+        var inStock = stock > 0;
+
+        if (stockIcon) stockIcon.className = inStock ? 'fas fa-check-circle text-success' : 'fas fa-times-circle text-danger';
+        if (stockText) stockText.textContent = inStock ? 'Còn hàng (' + stock + ')' : 'Hết hàng';
+        if (stockNote) stockNote.textContent = inStock ? stock + ' sản phẩm có sẵn' : '';
+        if (cartBtn) cartBtn.disabled = !inStock;
+    }
+
+    function updateSelectedSummary() {
+        var summary = document.getElementById('selectedVariantSummary');
+        var text = document.getElementById('selectedVariantText');
+        if (!summary || !text) return;
+
+        var parts = [];
+        if (selectedColor) parts.push('Màu: ' + selectedColor);
+        if (selectedConfig) parts.push('Phiên bản: ' + selectedConfig);
+
+        if (parts.length > 0) {
+            text.textContent = parts.join(' · ');
+            summary.style.display = '';
+        } else {
+            summary.style.display = 'none';
+        }
+    }
+
+    // ==================== QUANTITY ====================
+    function increaseQty() {
+        var input = document.getElementById('quantity');
+        var max = currentVariant ? currentVariant.stockQuantity : PRODUCT.stockQuantity;
+        var val = parseInt(input.value);
+        if (val < Math.min(max, 10)) input.value = val + 1;
+    }
+    function decreaseQty() {
+        var input = document.getElementById('quantity');
+        var val = parseInt(input.value);
+        if (val > 1) input.value = val - 1;
+    }
+
+    // ==================== CART ====================
+    function addToCartWithQty() {
+        var productId = PRODUCT.productId;
+        var qty = parseInt(document.getElementById('quantity').value);
+        var variantId = currentVariant ? currentVariant.variantId : null;
+
+        $.ajax({
+            url: '@Url.Action("AddToCart", "Shop")',
+            type: 'POST',
+            data: { productId: productId, quantity: qty, variantId: variantId },
+            success: function(res) {
+                if (res.success) {
+                    showToast("Đã thêm vào giỏ hàng!");
+                    updateCartBadge(res.cartCount);
+                } else if (res.requireLogin) {
+                    window.location.href = '@Url.Action("Login", "Auth")?returnUrl=' + encodeURIComponent(window.location.href);
+                } else {
+                    showToast(res.message || "Có lỗi xảy ra", "error");
+                }
+            }
+        });
+    }
+
+    function addToCart(productId) {
+        $.ajax({
+            url: '@Url.Action("AddToCart", "Shop")',
+            type: 'POST',
+            data: { productId: productId, quantity: 1, variantId: null },
+            success: function(res) {
+                if (res.success) {
+                    showToast("Đã thêm vào giỏ hàng!");
+                    updateCartBadge(res.cartCount);
+                }
+            }
+        });
+    }
+
+    function buyNow() {
+        addToCartWithQty();
+        setTimeout(function() { window.location.href = '@Url.Action("Cart", "Shop")'; }, 600);
+    }
+
+    function showToast(msg, type) {
+        var toast = document.createElement('div');
+        toast.className = 'toast-notification ' + (type || 'success');
+        toast.innerHTML = '<i class="fas ' + (type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle') + ' me-2"></i>' + msg;
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.classList.add('show'); }, 10);
+        setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, 3000);
+    }
+
+    function updateCartBadge(count) {
+        var badge = document.querySelector('.cart-badge');
+        if (badge) {
+            badge.textContent = count;
+            badge.style.display = count > 0 ? '' : 'none';
+        }
+    }
+
+    // ==================== TABS ====================
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            var tabId = btn.getAttribute('data-tab');
+            var pane = document.getElementById(tabId);
+            if (pane) pane.classList.add('active');
+        });
+    });
+
+    // ==================== INIT ====================
+    window.addEventListener('DOMContentLoaded', function() {
+        // Auto-select first variant if exists
+        var firstColor = document.querySelector('.color-btn');
+        var firstConfig = document.querySelector('.config-btn');
+
+        if (firstColor && VARIANTS.length > 0) {
+            var defaultColor = VARIANTS[0].color;
+            if (defaultColor) selectColor(defaultColor);
+            else selectedColor = null;
+        }
+        if (firstConfig && VARIANTS.length > 0) {
+            var defaultConfig = VARIANTS[0].config;
+            if (defaultConfig) selectConfig(defaultConfig);
+            else selectedConfig = null;
+        }
+
+        // If no variants, just load default images
+        if (VARIANTS.length === 0) {
+            updateImages(null);
+            updatePrice();
+            updateStock();
+        }
+
+        initZoomLogic();
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key === 'ArrowRight') nextSlide();
+        });
+    });
+
+    // Toast styles (inline, no external CSS needed)
+    var style = document.createElement('style');
+    style.textContent = `
+        .toast-notification {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            background: #333; color: #fff; padding: 14px 20px; border-radius: 10px;
+            font-size: 0.9rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            display: flex; align-items: center; opacity: 0; transform: translateY(20px);
+            transition: all 0.3s ease; pointer-events: none;
+        }
+        .toast-notification.show { opacity: 1; transform: translateY(0); }
+        .toast-notification.success { background: linear-gradient(135deg, #2a9d8f, #21867a); }
+        .toast-notification.error { background: linear-gradient(135deg, #e63946, #c92a35); }
+    `;
+    document.head.appendChild(style);
+    </script>
+}
+
 <style>
-    /* Page Header */
+    /* ==================== PAGE HEADER ==================== */
     .page-header-sm {
         background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
         padding: 16px 0;
     }
+    .breadcrumb-light { background: transparent; padding: 0; margin: 0; font-size: 0.85rem; }
+    .breadcrumb-light .breadcrumb-item a { color: rgba(255,255,255,0.7); }
+    .breadcrumb-light .breadcrumb-item a:hover { color: white; }
+    .breadcrumb-light .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,0.5); }
+    .breadcrumb-light .breadcrumb-item.active { color: white; }
 
-    /* --- PRODUCT GALLERY STYLES --- */
-    .product-gallery-container {
-        position: sticky;
-        top: 100px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
+    /* ==================== GALLERY ==================== */
+    .product-gallery-container { position: sticky; top: 100px; display: flex; flex-direction: column; gap: 12px; }
 
-    /* 1. Main Display */
     .gallery-main {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 1;
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        box-shadow: var(--shadow-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: relative; width: 100%; aspect-ratio: 1;
+        background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg);
+        overflow: hidden; box-shadow: var(--shadow-md);
+        display: flex; align-items: center; justify-content: center;
     }
 
-    .main-image-wrapper {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
+    .main-image-wrapper { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
     .main-image-wrapper img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        transition: opacity 0.4s ease; /* 6. Hiệu ứng mượt */
+        max-width: 100%; max-height: 100%; object-fit: contain;
+        transition: opacity 0.2s ease;
     }
 
-    /* 4. Navigation Buttons - Đẩy ra 2 bên sát mép */
     .nav-btn {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 45px;
-        height: 45px;
-        background: rgba(255,255,255,0.8);
-        border: 1px solid var(--border);
-        border-radius: 50%;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        z-index: 10;
-        cursor: pointer;
-        transition: 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-primary);
-        backdrop-filter: blur(4px);
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 44px; height: 44px;
+        background: rgba(255,255,255,0.85); border: 1px solid var(--border);
+        border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        z-index: 10; cursor: pointer; transition: 0.3s;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-primary); backdrop-filter: blur(4px);
     }
-    .nav-btn:hover { 
-        background: var(--primary); 
-        color: white; 
-        border-color: var(--primary);
-        box-shadow: 0 6px 20px rgba(0, 119, 182, 0.3);
-    }
+    .nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 6px 20px rgba(0,119,182,0.3); }
     .nav-btn.prev { left: 10px; }
     .nav-btn.next { right: 10px; }
 
-    @@media (max-width: 991px) {
-        #zoom-result { display: none !important; }
-        .gallery-main-viewport { cursor: default; }
+    .img-counter {
+        position: absolute; bottom: 12px; right: 12px;
+        background: rgba(0,0,0,0.5); color: white;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: 0.75rem; font-weight: 600;
+        backdrop-filter: blur(4px);
     }
 
-    /* Detail Card */
-    .product-detail-card {
-        background: white;
-        border-radius: var(--radius-lg);
-        padding: 28px;
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--border);
+    .gallery-thumbs {
+        display: flex; gap: 8px; overflow-x: auto; padding: 4px;
+        scrollbar-width: thin; scrollbar-color: #ddd transparent;
     }
-    .detail-category {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--primary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 6px;
+    .gallery-thumbs::-webkit-scrollbar { height: 4px; }
+    .gallery-thumbs::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+    .thumb-item {
+        flex-shrink: 0; width: 72px; height: 72px;
+        border-radius: 8px; overflow: hidden; cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color 0.2s, transform 0.2s;
+        background: #f8f9fa; display: flex; align-items: center; justify-content: center;
     }
-    .detail-title {
-        font-size: 1.7rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        margin-bottom: 10px;
-        line-height: 1.3;
+    .thumb-item:hover { border-color: #ccc; transform: scale(1.05); }
+    .thumb-item.active { border-color: var(--primary); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    .gallery-label { font-size: 0.75rem; color: var(--text-muted); text-align: center; }
+
+    .zoom-lens {
+        position: absolute; border: 2px solid rgba(0,119,182,0.4);
+        background: rgba(255,255,255,0.3); width: 80px; height: 80px;
+        display: none; pointer-events: none; z-index: 5;
     }
-    .detail-rating {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
+    .zoom-result {
+        position: absolute; top: 0; right: -220px; width: 210px; height: 210px;
+        border: 1px solid #ddd; border-radius: 8px; background: white;
+        background-repeat: no-repeat; display: none; z-index: 10;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     }
+
+    @@media (max-width: 991px) {
+        #zoom-result, #zoomLens { display: none !important; }
+        .product-gallery-container { position: static; }
+    }
+
+    /* ==================== DETAIL CARD ==================== */
+    .product-detail-card { background: white; border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-md); border: 1px solid var(--border); }
+    .detail-category { font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .detail-title { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; line-height: 1.3; }
+    .detail-rating { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
     .stars { color: #F59E0B; font-size: 0.9rem; }
     .rating-text { font-size: 0.85rem; color: var(--text-muted); }
-    .detail-price-section {
-        background: linear-gradient(135deg, var(--primary-lightest) 0%, white 100%);
-        border-radius: var(--radius-md);
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        border-left: 4px solid var(--primary);
+
+    .detail-price-section { background: linear-gradient(135deg, var(--primary-lightest) 0%, white 100%); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px; border-left: 4px solid var(--primary); }
+    .detail-price { font-size: 2rem; font-weight: 800; color: var(--primary); }
+    .detail-price-note { font-size: 0.78rem; color: var(--text-muted); }
+
+    .variant-group { }
+    .variant-label { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 10px; display: block; }
+    .variant-options { }
+    .variant-option-btn {
+        border-radius: 8px !important; font-weight: 600; font-size: 0.85rem;
+        transition: all 0.2s; min-width: 80px;
     }
-    .detail-price {
-        font-size: 2rem;
-        font-weight: 800;
-        color: var(--primary);
-    }
-    .detail-price-note {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-    }
-    .detail-desc {
-        margin-bottom: 20px;
-    }
-    .detail-desc h6 {
-        font-weight: 700;
-        margin-bottom: 8px;
-        color: var(--text-primary);
-    }
-    .detail-desc p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; }
-    .product-description-content p,
-    .product-description-content ul,
-    .product-description-content ol {
-        margin-bottom: 0.75rem;
-        color: var(--text-secondary);
-        line-height: 1.7;
-    }
-    .product-description-content ul,
-    .product-description-content ol {
-        padding-left: 1.2rem;
-    }
-    .detail-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    .meta-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--text-secondary);
-    }
-    .detail-quantity {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 20px;
-    }
-    .qty-label {
-        font-weight: 700;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-        white-space: nowrap;
-        margin: 0;
-    }
-    .qty-controls {
-        display: flex;
-        align-items: center;
-        border: 2px solid var(--border);
-        border-radius: var(--radius-md);
-        overflow: hidden;
-    }
-    .qty-btn {
-        width: 40px; height: 40px;
-        border: none;
-        background: var(--surface-alt);
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: var(--transition);
-    }
+    .variant-option-btn.active { font-weight: 700; }
+    .config-btn.active { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; }
+    .color-btn.active { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; }
+
+    .selected-variant-summary { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; color: #166534; margin-bottom: 16px; }
+
+    .detail-desc { margin-bottom: 20px; }
+    .detail-desc h6 { font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    .product-description-content p, .product-description-content ul, .product-description-content ol { margin-bottom: 0.75rem; color: var(--text-secondary); line-height: 1.7; }
+    .product-description-content ul { padding-left: 1.2rem; }
+
+    .detail-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .meta-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); }
+
+    .detail-quantity { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .qty-label { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; margin: 0; }
+    .qty-controls { display: flex; align-items: center; border: 2px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+    .qty-btn { width: 40px; height: 40px; border: none; background: var(--surface-alt); color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; transition: var(--transition); }
     .qty-btn:hover { background: var(--primary-lightest); color: var(--primary); }
-    .qty-input {
-        width: 50px; height: 40px;
-        border: none;
-        text-align: center;
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: var(--text-primary);
-        background: white;
-    }
+    .qty-input { width: 50px; height: 40px; border: none; text-align: center; font-weight: 700; font-size: 0.95rem; color: var(--text-primary); background: white; }
     .qty-input:focus { outline: none; }
-    .detail-actions {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-    .btn-add-to-cart {
-        flex: 1;
-        padding: 14px 20px;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        color: white;
-        border: none;
-        border-radius: var(--radius-md);
-        font-weight: 700;
-        font-size: 0.95rem;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-    .btn-add-to-cart:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 119, 182, 0.35);
-    }
-    .btn-buy-now {
-        flex: 1;
-        padding: 14px 20px;
-        background: white;
-        color: var(--primary);
-        border: 2px solid var(--primary);
-        border-radius: var(--radius-md);
-        font-weight: 700;
-        font-size: 0.95rem;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-    .btn-buy-now:hover {
-        background: var(--primary);
-        color: white;
-        transform: translateY(-2px);
-    }
-    .detail-features {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding-top: 20px;
-        border-top: 1px solid var(--border);
-    }
-    .feature-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .feature-icon-sm {
-        width: 36px; height: 36px;
-        background: var(--primary-lightest);
-        border-radius: var(--radius-sm);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.9rem;
-        color: var(--primary);
-        flex-shrink: 0;
-    }
+    .stock-note { font-size: 0.78rem; color: var(--text-muted); }
+
+    .detail-actions { display: flex; gap: 12px; margin-bottom: 24px; }
+    .btn-add-to-cart { flex: 1; padding: 14px 20px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; border: none; border-radius: var(--radius-md); font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: var(--transition); }
+    .btn-add-to-cart:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,119,182,0.35); }
+    .btn-buy-now { flex: 1; padding: 14px 20px; background: white; color: var(--primary); border: 2px solid var(--primary); border-radius: var(--radius-md); font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: var(--transition); }
+    .btn-buy-now:hover { background: var(--primary); color: white; transform: translateY(-2px); }
+
+    .detail-features { display: flex; flex-direction: column; gap: 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .feature-row { display: flex; align-items: center; gap: 12px; }
+    .feature-icon-sm { width: 36px; height: 36px; background: var(--primary-lightest); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: var(--primary); flex-shrink: 0; }
     .feature-row strong { display: block; font-size: 0.88rem; font-weight: 700; }
     .feature-row small { font-size: 0.75rem; color: var(--text-muted); }
 
-    /* Tabs */
-    .product-tabs {
-        background: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border);
-        overflow: hidden;
-    }
-    .tabs-header {
-        display: flex;
-        border-bottom: 2px solid var(--border);
-        background: var(--surface-alt);
-    }
-    .tab-btn {
-        flex: 1;
-        padding: 14px 16px;
-        border: none;
-        background: transparent;
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        cursor: pointer;
-        transition: var(--transition);
-        border-bottom: 3px solid transparent;
-        margin-bottom: -2px;
-    }
+    /* ==================== TABS ==================== */
+    .product-tabs { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border); overflow: hidden; }
+    .tabs-header { display: flex; border-bottom: 2px solid var(--border); background: var(--surface-alt); }
+    .tab-btn { flex: 1; padding: 14px 16px; border: none; background: transparent; font-size: 0.9rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: var(--transition); border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .tab-btn:hover { color: var(--primary); background: var(--primary-lightest); }
-    .tab-btn.active {
-        color: var(--primary);
-        border-bottom-color: var(--primary);
-        background: white;
-    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
     .tabs-content { padding: 0; }
     .tab-pane { display: none; padding: 24px; }
     .tab-pane.active { display: block; }
-    .tab-content-card { }
     .tab-content-card h5 { font-weight: 800; margin-bottom: 14px; }
     .tab-content-card ul { padding-left: 20px; }
     .tab-content-card li { margin-bottom: 8px; color: var(--text-secondary); }
@@ -641,298 +965,16 @@
     .specs-table td:first-child { width: 40%; color: var(--text-muted); font-size: 0.88rem; }
     .specs-table td:last-child { font-weight: 600; }
 
-    /* Reviews */
-    .review-summary {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
+    .review-summary { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
     .review-score { text-align: center; }
     .score-number { font-size: 3rem; font-weight: 800; color: var(--primary); line-height: 1; }
     .score-stars { color: #F59E0B; margin: 4px 0; }
     .score-count { font-size: 0.82rem; color: var(--text-muted); }
-    .review-item {
-        border-bottom: 1px solid var(--border);
-        padding: 16px 0;
-    }
+    .review-item { border-bottom: 1px solid var(--border); padding: 16px 0; }
     .review-item:last-child { border-bottom: none; }
     .reviewer-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .reviewer-avatar {
-        width: 36px; height: 36px;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        color: white; font-weight: 700; font-size: 0.85rem;
-    }
+    .reviewer-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; }
     .reviewer-info strong { font-size: 0.9rem; }
     .review-stars { color: #F59E0B; font-size: 0.78rem; }
     .review-text { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 4px; }
-
-    /* Breadcrumb light variant for product page */
-    .breadcrumb-light {
-        background: transparent;
-        padding: 0;
-        margin: 0;
-        font-size: 0.85rem;
-    }
-    .breadcrumb-light .breadcrumb-item a {
-        color: rgba(255,255,255,0.7);
-        transition: color 0.2s;
-    }
-    .breadcrumb-light .breadcrumb-item a:hover {
-        color: white;
-    }
-    .breadcrumb-light .breadcrumb-item + .breadcrumb-item::before {
-        color: rgba(255,255,255,0.5);
-    }
-    .breadcrumb-light .breadcrumb-item.active {
-        color: white;
-    }
 </style>
-
-<script>
-    // Variants Data
-    const variants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.Variants ?? Enumerable.Empty<Webstore.Models.ProductVariant>()).Select(v => new {
-        v.VariantId,
-        v.Color,
-        v.Storage,
-        v.RAM,
-        v.Price,
-        v.OriginalPrice,
-        v.StockQuantity,
-        config = v.Storage + (string.IsNullOrEmpty(v.RAM) ? "" : " / " + v.RAM)
-    })));
-
-    let selectedConfig = null;
-    let selectedColor = null;
-
-    function selectConfig(config) {
-        selectedConfig = config;
-        document.querySelectorAll('.config-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-config') === config);
-            btn.classList.toggle('btn-primary', btn.getAttribute('data-config') === config);
-            btn.classList.toggle('btn-outline-primary', btn.getAttribute('data-config') !== config);
-        });
-        updateVariantInfo();
-    }
-
-    function selectColor(color) {
-        selectedColor = color;
-        document.querySelectorAll('.color-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-color') === color);
-            btn.classList.toggle('btn-secondary', btn.getAttribute('data-color') === color);
-            btn.classList.toggle('btn-outline-secondary', btn.getAttribute('data-color') !== color);
-        });
-        updateVariantInfo();
-    }
-
-    function updateVariantInfo() {
-        const match = variants.find(v => 
-            (!selectedConfig || v.config === selectedConfig) && 
-            (!selectedColor || v.Color === selectedColor)
-        );
-
-        if (match) {
-            document.getElementById('selectedVariantId').value = match.VariantId;
-            document.getElementById('displayPrice').innerText = match.Price.toLocaleString('vi-VN') + ' ₫';
-            
-            const originalPriceEl = document.getElementById('displayOriginalPrice');
-            if (match.OriginalPrice && match.OriginalPrice > match.Price) {
-                const discount = Math.round((1 - match.Price / match.OriginalPrice) * 100);
-                originalPriceEl.innerHTML = `<del>${match.OriginalPrice.toLocaleString('vi-VN')} ₫</del><span class="badge bg-danger ms-2">-${discount}%</span>`;
-            } else {
-                originalPriceEl.innerHTML = '';
-            }
-
-            // Update stock status
-            const stockIcon = document.getElementById('stockStatusIcon');
-            const stockText = document.getElementById('stockStatusText');
-            const cartBtn = document.getElementById('btnAddToCart');
-
-            if (match.StockQuantity > 0) {
-                stockIcon.className = 'fas fa-check-circle text-success';
-                stockText.innerText = 'Còn hàng (' + match.StockQuantity + ')';
-                cartBtn.disabled = false;
-            } else {
-                stockIcon.className = 'fas fa-times-circle text-danger';
-                stockText.innerText = 'Hết hàng';
-                cartBtn.disabled = true;
-            }
-
-            applyVariantImages(match.VariantId);
-        }
-    }
-
-    // Auto-select first variant on load
-    window.addEventListener('DOMContentLoaded', () => {
-        if (variants.length > 0) {
-            selectConfig(variants[0].config);
-            selectColor(variants[0].Color);
-        } else {
-            renderThumbs();
-            initZoomLogic();
-        }
-    });
-
-    function increaseQty() {
-        const input = document.getElementById('quantity');
-        let val = parseInt(input.value);
-        if (val < 10) input.value = val + 1;
-    }
-    function decreaseQty() {
-        const input = document.getElementById('quantity');
-        let val = parseInt(input.value);
-        if (val > 1) input.value = val - 1;
-    }
-    function addToCartWithQty() {
-        const productId = @Model.ProductId;
-        const qty = parseInt(document.getElementById('quantity').value);
-        const variantId = document.getElementById('selectedVariantId').value;
-        
-        // Use a more detailed addToCart that handles variantId
-        $.ajax({
-            url: '@Url.Action("AddToCart", "Shop")',
-            type: 'POST',
-            data: { productId, quantity: qty, variantId },
-            success: function(res) {
-                if(res.success) {
-                    showToast("Đã thêm vào giỏ hàng!");
-                    updateCartBadge(res.cartCount);
-                } else if(res.requiresLogin) {
-                    window.location.href = '@Url.Action("Login", "Auth")?returnUrl=' + encodeURIComponent(window.location.href);
-                } else {
-                    showToast(res.message, "error");
-                }
-            }
-        });
-    }
-    function buyNow() {
-        addToCartWithQty();
-        setTimeout(function() { window.location.href = '@Url.Action("Cart", "Shop")'; }, 800);
-    }
-
-    // 9. Dữ liệu ảnh sản phẩm - LOẠI BỎ ẢNH TRÙNG
-    const imageItems = @Html.Raw(productImagesJson);
-    const allImages = [...new Set(imageItems.map(i => i.ImageUrl))];
-    let currentImages = allImages.length ? allImages : ['/images/products/placeholder.svg'];
-    let currentIndex = 0;
-
-    function getImagesForVariant(variantId) {
-        const variantImages = imageItems.filter(i => i.VariantId === variantId).map(i => i.ImageUrl);
-        if (variantImages.length) {
-            return [...new Set(variantImages)];
-        }
-        const baseImages = imageItems.filter(i => i.VariantId == null).map(i => i.ImageUrl);
-        if (baseImages.length) {
-            return [...new Set(baseImages)];
-        }
-        return allImages.length ? allImages : ['/images/products/placeholder.svg'];
-    }
-
-    function applyVariantImages(variantId) {
-        currentImages = getImagesForVariant(variantId);
-        currentIndex = 0;
-        const mainImg = document.getElementById('currentMainImg');
-        mainImg.src = currentImages[0];
-        renderThumbs();
-        updateThumbHighlight();
-        initZoomLogic();
-    }
-
-    // Render Thumbnails ban đầu
-    function renderThumbs() {
-        const container = document.getElementById('thumbContainer');
-        container.innerHTML = currentImages.map((img, idx) => `
-            <div class="thumb-item ${idx === 0 ? 'active' : ''}" onclick="changeSlide(${idx})">
-                <img src="${img}" onerror="this.src='/images/products/placeholder.svg'" />
-            </div>
-        `).join('');
-    }
-
-    // 3. Xử lý đổi ảnh khi click thumbnail
-    function changeSlide(index) {
-        if (index < 0) index = currentImages.length - 1;
-        if (index >= currentImages.length) index = 0;
-        
-        currentIndex = index;
-        const mainImg = document.getElementById('currentMainImg');
-        
-        // 6. Hiệu ứng mượt (Fade out -> change src -> Fade in)
-        mainImg.style.opacity = '0';
-        setTimeout(() => {
-            mainImg.src = currentImages[currentIndex];
-            mainImg.style.opacity = '1';
-            updateThumbHighlight();
-            initZoomLogic(); // Re-init zoom for new image
-        }, 200);
-    }
-
-    // 4. Slider Nav
-    function nextSlide() { changeSlide(currentIndex + 1); }
-    function prevSlide() { changeSlide(currentIndex - 1); }
-
-    // 5. Cập nhật viền Highlight
-    function updateThumbHighlight() {
-        document.querySelectorAll('.thumb-item').forEach((thumb, idx) => {
-            thumb.classList.toggle('active', idx === currentIndex);
-        });
-    }
-
-    // 8. Zoom Lens Logic
-    function initZoomLogic() {
-        const mainImg = document.getElementById('currentMainImg');
-        const lens = document.getElementById('zoomLens');
-        const result = document.getElementById('zoomResult');
-        const container = document.getElementById('galleryMain');
-
-        if (window.innerWidth < 992) return;
-
-        container.onmouseenter = () => {
-            lens.style.display = "block";
-            result.style.display = "block";
-        };
-        container.onmouseleave = () => {
-            lens.style.display = "none";
-            result.style.display = "none";
-        };
-
-        result.style.backgroundImage = `url('${mainImg.src}')`;
-        const zoomLevel = 2.5;
-        result.style.backgroundSize = (mainImg.offsetWidth * zoomLevel) + "px " + (mainImg.offsetHeight * zoomLevel) + "px";
-
-        container.onmousemove = (e) => {
-            const rect = mainImg.getBoundingClientRect();
-            let x = e.pageX - rect.left - window.pageXOffset - (lens.offsetWidth / 2);
-            let y = e.pageY - rect.top - window.pageYOffset - (lens.offsetHeight / 2);
-
-            // Giới hạn trong ảnh
-            if (x > mainImg.offsetWidth - lens.offsetWidth) x = mainImg.offsetWidth - lens.offsetWidth;
-            if (x < 0) x = 0;
-            if (y > mainImg.offsetHeight - lens.offsetHeight) y = mainImg.offsetHeight - lens.offsetHeight;
-            if (y < 0) y = 0;
-
-            lens.style.left = x + "px";
-            lens.style.top = y + "px";
-
-            // Di chuyển background của result
-            const cx = result.offsetWidth / lens.offsetWidth;
-            const cy = result.offsetHeight / lens.offsetHeight;
-            result.style.backgroundPosition = "-" + (x * cx) + "px -" + (y * cy) + "px";
-        };
-    }
-
-    // Khởi tạo khi load trang
-    window.addEventListener('DOMContentLoaded', () => {
-        renderThumbs();
-        initZoomLogic();
-    });
-</script>
-
-@section Styles {
-    <link rel="stylesheet" href="~/css/homepage.css" />
-}
-
-@section Scripts {
-    <!-- Không cần thư viện ngoài, code chạy native mượt mà -->
-}

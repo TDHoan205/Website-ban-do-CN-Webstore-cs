@@ -8,7 +8,7 @@ using Webstore.Data;
 
 namespace Webstore.Controllers
 {
-    [Authorize(Roles = "Admin,Employee")]
+    [Authorize(Roles = "Admin")]
     public class ProductsController : Controller
     {
         private readonly IProductService _productService;
@@ -62,7 +62,11 @@ namespace Webstore.Controllers
         // POST: /Products/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,Description,Price,StockQuantity,IsAvailable,IsNew,IsHot,DiscountPercent,CategoryId,SupplierId")] Product product, IFormFile? imageFile, List<ProductVariant>? Variants)
+        public async Task<IActionResult> Create([Bind("Name,Description,Price,StockQuantity,IsAvailable,IsNew,IsHot,DiscountPercent,CategoryId,SupplierId")] Product product,
+            IFormFile? imageFile,
+            List<ProductVariant>? Variants,
+            List<IFormFile>? NewProductLevelImages,
+            int[]? ImagesToDelete)
         {
             if (!ModelState.IsValid)
             {
@@ -99,6 +103,32 @@ namespace Webstore.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            // Save product-level images
+            if (NewProductLevelImages != null && NewProductLevelImages.Count > 0)
+            {
+                int displayOrder = 0;
+                foreach (var imgFile in NewProductLevelImages.Where(f => f != null && f.Length > 0))
+                {
+                    var url = await SaveImage(imgFile);
+                    _context.ProductImages.Add(new ProductImage
+                    {
+                        ProductId = product.ProductId,
+                        VariantId = null,
+                        ImageUrl = url,
+                        IsPrimary = displayOrder == 0,
+                        IsThumbnail = displayOrder == 0,
+                        DisplayOrder = displayOrder++
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            // Delete marked images
+            if (ImagesToDelete != null && ImagesToDelete.Length > 0)
+            {
+                await DeleteImagesAsync(ImagesToDelete);
+            }
+
             TempData["Success"] = "Tạo sản phẩm thành công";
             return RedirectToAction(nameof(Index));
         }
@@ -116,6 +146,8 @@ namespace Webstore.Controllers
                 .OrderBy(v => v.DisplayOrder)
                 .ToListAsync();
             ViewBag.Variants = variants;
+            ViewBag.ProductId = product.ProductId;
+            ViewBag.ProductImages = product.ProductImages?.ToList() ?? new List<ProductImage>();
 
             return View(product);
         }
@@ -123,7 +155,12 @@ namespace Webstore.Controllers
         // POST: /Products/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ProductId,Name,Description,Price,StockQuantity,IsAvailable,IsNew,IsHot,DiscountPercent,CategoryId,SupplierId,ImageUrl")] Product product, IFormFile? imageFile, List<ProductVariant>? Variants, int[]? VariantsToDelete)
+        public async Task<IActionResult> Edit(int id, [Bind("ProductId,Name,Description,Price,StockQuantity,IsAvailable,IsNew,IsHot,DiscountPercent,CategoryId,SupplierId,ImageUrl")] Product product,
+            IFormFile? imageFile,
+            List<ProductVariant>? Variants,
+            int[]? VariantsToDelete,
+            List<IFormFile>? NewProductLevelImages,
+            int[]? ImagesToDelete)
         {
             if (id != product.ProductId) return NotFound();
 
@@ -170,14 +207,12 @@ namespace Webstore.Controllers
 
                         if (variant.VariantId == 0)
                         {
-                            // New variant
                             if (variant.Price == 0 && product.Price > 0)
                                 variant.Price = product.Price;
                             _context.ProductVariants.Add(variant);
                         }
                         else
                         {
-                            // Existing variant - update
                             var existing = await _context.ProductVariants.FindAsync(variant.VariantId);
                             if (existing != null)
                             {
@@ -191,6 +226,33 @@ namespace Webstore.Controllers
                             }
                         }
                     }
+                }
+
+                // Save new product-level images (from base64 data URLs)
+                if (NewProductLevelImages != null && NewProductLevelImages.Count > 0)
+                {
+                    var existingCount = await _context.ProductImages
+                        .CountAsync(pi => pi.ProductId == product.ProductId && pi.VariantId == null);
+                    int displayOrder = existingCount;
+                    foreach (var imgFile in NewProductLevelImages.Where(f => f != null && f.Length > 0))
+                    {
+                        var url = await SaveImage(imgFile);
+                        _context.ProductImages.Add(new ProductImage
+                        {
+                            ProductId = product.ProductId,
+                            VariantId = null,
+                            ImageUrl = url,
+                            IsPrimary = displayOrder == 0,
+                            IsThumbnail = displayOrder == 0,
+                            DisplayOrder = displayOrder++
+                        });
+                    }
+                }
+
+                // Delete marked images
+                if (ImagesToDelete != null && ImagesToDelete.Length > 0)
+                {
+                    await DeleteImagesAsync(ImagesToDelete);
                 }
 
                 await _context.SaveChangesAsync();
@@ -231,6 +293,37 @@ namespace Webstore.Controllers
                 TempData["Success"] = "Xóa sản phẩm thành công";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        // POST: /Products/DeleteProductImage/{imageId} — Xóa 1 ảnh (gọi từ JS trong admin)
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> DeleteProductImage(int imageId)
+        {
+            var img = await _context.ProductImages.FindAsync(imageId);
+            if (img == null) return Json(new { success = false, message = "Ảnh không tồn tại." });
+
+            // Xóa file vật lý
+            DeleteImage(img.ImageUrl);
+
+            _context.ProductImages.Remove(img);
+            await _context.SaveChangesAsync();
+            _productService.InvalidateCache();
+
+            return Json(new { success = true, message = "Đã xóa ảnh." });
+        }
+
+        private async Task DeleteImagesAsync(IEnumerable<int> imageIds)
+        {
+            var images = await _context.ProductImages
+                .Where(pi => imageIds.Contains(pi.ImageId))
+                .ToListAsync();
+
+            foreach (var img in images)
+            {
+                DeleteImage(img.ImageUrl);
+                _context.ProductImages.Remove(img);
+            }
         }
 
         private async Task<string> SaveImage(IFormFile imageFile)

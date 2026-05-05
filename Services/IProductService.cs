@@ -1,4 +1,5 @@
 using Webstore.Models;
+using Webstore.Models.DTOs;
 
 namespace Webstore.Services
 {
@@ -6,6 +7,7 @@ namespace Webstore.Services
     {
         Task<PagedList<Product>> GetProductsAsync(string? search, int? categoryId, string? sortBy, int page, int pageSize, decimal? minPrice = null, decimal? maxPrice = null, string? filter = null);
         Task<Product?> GetProductByIdAsync(int id);
+        Task<ProductDetailDto?> GetProductDetailAsync(int id);
         Task<IEnumerable<Product>> GetRelatedProductsAsync(int productId, int categoryId, int count);
         Task<IEnumerable<Product>> GetFeaturedProductsAsync(string type, int count);
         Task<IEnumerable<Category>> GetAllCategoriesAsync();
@@ -15,6 +17,9 @@ namespace Webstore.Services
         Task UpdateProductAsync(Product product);
         Task DeleteProductAsync(int id);
         void InvalidateCache();
+        Task SaveProductImagesAsync(int productId, List<UpsertProductImageDto> images);
+        Task DeleteProductImageAsync(int imageId);
+        Task<List<ProductImage>> GetProductImagesAsync(int productId);
     }
 
 

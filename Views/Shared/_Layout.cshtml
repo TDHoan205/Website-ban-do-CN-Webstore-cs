@@ -509,7 +509,7 @@
                         <span>Trang chủ</span>
                     </a>
                 </li>
-                @if (User.IsInRole("Admin") || User.IsInRole("Employee"))
+                @if (User.IsInRole("Admin"))
                 {
                     <li class="sidebar-nav-item">
                         <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")"
@@ -546,24 +546,6 @@
                             <span>Chi tiết đơn</span>
                         </a>
                     </li>
-                    <li class="sidebar-nav-item">
-                        <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "CartItems" ? "active" : "")"
-                           asp-controller="CartItems" asp-action="Index">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span>Giỏ hàng</span>
-                        </a>
-                    </li>
-
-                    <div class="sidebar-divider"></div>
-                    <div class="sidebar-section-title">Phân tích</div>
-
-                    <li class="sidebar-nav-item">
-                        <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Statistics" ? "active" : "")"
-                           asp-controller="Statistics" asp-action="Index">
-                            <i class="fas fa-chart-line"></i>
-                            <span>Thống kê</span>
-                        </a>
-                    </li>
                 }
                 @if (User.IsInRole("Admin"))
                 {
@@ -575,13 +557,6 @@
                            asp-controller="Accounts" asp-action="Index">
                             <i class="fas fa-user-circle"></i>
                             <span>Tài khoản</span>
-                        </a>
-                    </li>
-                    <li class="sidebar-nav-item">
-                        <a class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Employees" ? "active" : "")"
-                           asp-controller="Employees" asp-action="Index">
-                            <i class="fas fa-user-tie"></i>
-                            <span>Nhân viên</span>
                         </a>
                     </li>
                 }
@@ -619,7 +594,7 @@
                                 <div class="topbar-user-avatar">@(User.Identity.Name?.Substring(0,1).ToUpper())</div>
                                 <div class="topbar-user-info">
                                     <strong>@User.Identity.Name</strong>
-                                    <small>@(User.IsInRole("Admin") ? "Quản trị viên" : "Nhân viên")</small>
+                                    <small>@(User.IsInRole("Admin") ? "Quản trị viên" : "")</small>
                                 </div>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" role="menu">

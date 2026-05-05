@@ -6,7 +6,7 @@ using Webstore.Models;
 
 namespace Webstore.Controllers
 {
-    [Authorize(Roles = "Admin,Employee")]
+    [Authorize(Roles = "Admin")]
     public class CartItemsController : Controller
     {
         private readonly ApplicationDbContext _context;

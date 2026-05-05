@@ -146,8 +146,13 @@ namespace Webstore.Services
                 if (!variantOk) throw new InvalidOperationException("Biến thể không hợp lệ.");
             }
 
-            var item = await _context.CartItems
-                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId);
+            // Query phải xử lý đúng trường hợp VariantId = null
+            // SQL: NULL = NULL trả về UNKNOWN (không phải TRUE), nên dùng explicit null check
+            var item = variantId.HasValue
+                ? await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value)
+                : await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == null);
 
             if (item != null)
             {
@@ -175,8 +180,13 @@ namespace Webstore.Services
             var cart = await GetCartAsync(accountId, sessionId);
             if (cart == null) return;
 
-            var item = await _context.CartItems
-                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId);
+            // Query phải xử lý đúng trường hợp VariantId = null
+            // SQL: NULL = NULL trả về UNKNOWN (không phải TRUE), nên dùng explicit null check
+            var item = variantId.HasValue
+                ? await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value)
+                : await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == null);
 
             if (item == null) return;
 
@@ -199,8 +209,13 @@ namespace Webstore.Services
             var cart = await GetCartAsync(accountId, sessionId);
             if (cart == null) return;
 
-            var item = await _context.CartItems
-                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId);
+            // Query phải xử lý đúng trường hợp VariantId = null
+            // SQL: NULL = NULL trả về UNKNOWN (không phải TRUE), nên dùng explicit null check
+            var item = variantId.HasValue
+                ? await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == variantId.Value)
+                : await _context.CartItems.FirstOrDefaultAsync(
+                    ci => ci.CartId == cart.CartId && ci.ProductId == productId && ci.VariantId == null);
 
             if (item != null)
             {

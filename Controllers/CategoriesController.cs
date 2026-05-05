@@ -5,7 +5,7 @@ using Webstore.Services;
 
 namespace Webstore.Controllers
 {
-    [Authorize(Roles = "Admin,Employee")]
+    [Authorize(Roles = "Admin")]
     public class CategoriesController : Controller
     {
         private readonly ICategoryService _categoryService;
