@@ -1,0 +1,395 @@
+@model Webstore.Models.StatisticsViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="dashboard-wrapper">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-800 text-gradient mb-1">Bảng Điều Khiển Dashboard</h1>
+            <p class="text-muted mb-0">Theo dõi hoạt động kinh doanh thời gian thực</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-glass" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-2"></i>Làm mới
+            </button>
+            <div class="date-display btn btn-glass">
+                <i class="far fa-calendar-alt me-2 text-primary"></i>@DateTime.Now.ToString("dd/MM/yyyy")
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-blue">
+                <div class="kpi-icon-wrap"><i class="fas fa-shopping-cart"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Tổng Đơn Hàng</span>
+                    <span class="kpi-value" data-count="@Model.TotalOrders">@Model.TotalOrders.ToString("N0")</span>
+                    <span class="kpi-change kpi-up"><i class="fas fa-arrow-up"></i> +@Model.TodayOrders hôm nay</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-green">
+                <div class="kpi-icon-wrap"><i class="fas fa-wallet"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Tổng Doanh Thu</span>
+                    <span class="kpi-value">@FormatCurrency(Model.TotalRevenue)</span>
+                    <span class="kpi-change kpi-up"><i class="fas fa-arrow-up"></i> +@FormatCurrency(Model.TodayRevenue) hôm nay</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-orange">
+                <div class="kpi-icon-wrap"><i class="fas fa-box-open"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Sản Phẩm Trong Kho</span>
+                    <span class="kpi-value" data-count="@Model.TotalStock">@Model.TotalStock.ToString("N0")</span>
+                    <span class="kpi-change kpi-warn"><i class="fas fa-exclamation-triangle"></i> @Model.PendingOrders đơn chờ duyệt</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-icon-wrap"><i class="fas fa-users"></i></div>
+                <div class="kpi-body">
+                    <span class="kpi-label">Khách Hàng</span>
+                    <span class="kpi-value" data-count="@Model.AccountCount">@Model.AccountCount.ToString("N0")</span>
+                    <span class="kpi-change kpi-up"><i class="fas fa-user-plus"></i> Tăng trưởng ổn định</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="glass-card h-100">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Biểu Đồ Doanh Thu 7 Ngày</h5>
+                    <div class="badge bg-primary-soft">VND</div>
+                </div>
+                <div class="card-body-custom pt-4">
+                    <canvas id="revenueChart" style="max-height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="glass-card h-100">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Trạng Thái Đơn Hàng</h5>
+                </div>
+                <div class="card-body-custom d-flex flex-column align-items-center justify-content-center pt-4">
+                    <canvas id="statusChart" style="max-height: 250px;"></canvas>
+                    <div class="status-legend mt-4 w-100">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-circle text-primary me-2"></i>Mới</span>
+                            <span class="fw-bold">@Model.NewOrders</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-circle text-warning me-2"></i>Đang xử lý</span>
+                            <span class="fw-bold">@Model.ProcessingOrders</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-circle text-success me-2"></i>Đã giao</span>
+                            <span class="fw-bold">@Model.DeliveredOrders</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-danger me-2"></i>Đã hủy</span>
+                            <span class="fw-bold">@Model.CanceledOrders</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lists Row -->
+    <div class="row g-4">
+        <!-- Top Products -->
+        <div class="col-lg-6">
+            <div class="glass-card">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Sản Phẩm Bán Chạy</h5>
+                    <a asp-controller="Products" asp-action="Index" class="text-primary text-decoration-none small">Xem tất cả</a>
+                </div>
+                <div class="card-body-custom p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Sản phẩm</th>
+                                    <th class="text-center">Đã bán</th>
+                                    <th class="text-end pe-4">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in Model.TopProducts.Take(5))
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="product-thumb me-3">
+                                                    @if (!string.IsNullOrEmpty(p.ImageUrl))
+                                                    {
+                                                        <img src="@p.ImageUrl" alt="product">
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-laptop"></i>
+                                                    }
+                                                </div>
+                                                <span class="fw-600">@p.ProductName</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center"><span class="badge badge-pill bg-light text-dark">@p.TotalSold</span></td>
+                                        <td class="text-end pe-4 text-success fw-bold">@p.TotalRevenue.ToString("N0")₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="col-lg-6">
+            <div class="glass-card">
+                <div class="card-header-custom">
+                    <h5 class="mb-0 fw-bold">Đơn Hàng Gần Đây</h5>
+                    <a asp-controller="Orders" asp-action="Index" class="text-primary text-decoration-none small">Chi tiết</a>
+                </div>
+                <div class="card-body-custom p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">ID</th>
+                                    <th>Khách hàng</th>
+                                    <th class="text-end pe-4">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in Model.RecentOrders.Take(5))
+                                {
+                                    <tr>
+                                        <td class="ps-4"><span class="fw-bold">#@o.OrderId</span></td>
+                                        <td>
+                                            <div class="fw-600">@o.CustomerName</div>
+                                            <div class="text-muted x-small">@o.OrderDate.ToString("dd/MM HH:mm")</div>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <span class="badge @GetStatusBadgeClass(o.Status)">@o.Status</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string FormatCurrency(decimal amount)
+    {
+        if (amount >= 1_000_000_000) return (amount / 1_000_000_000).ToString("0.#") + "B ₫";
+        if (amount >= 1_000_000) return (amount / 1_000_000).ToString("0.#") + "M ₫";
+        if (amount >= 1_000) return (amount / 1_000).ToString("0.#") + "K ₫";
+        return amount.ToString("N0") + "₫";
+    }
+
+    string GetStatusBadgeClass(string status) => status switch
+    {
+        "Completed" => "bg-success-soft",
+        "New" => "bg-primary-soft",
+        "Pending" => "bg-warning-soft",
+        "Canceled" => "bg-danger-soft",
+        _ => "bg-light-soft text-dark"
+    };
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Revenue Chart
+            const revCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revCtx, {
+                type: 'line',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.RevenueByDay.Select(d => $"'{d.Date:dd/MM}'")))],
+                    datasets: [{
+                        label: 'Doanh thu (₫)',
+                        data: [@string.Join(",", Model.RevenueByDay.Select(d => d.Revenue))],
+                        borderColor: '#0077b6',
+                        backgroundColor: 'rgba(0, 119, 182, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#0077b6',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5] }, ticks: { callback: v => (v / 1000000) + 'M' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mới', 'Đã duyệt', 'Đã giao', 'Hủy'],
+                    datasets: [{
+                        data: [@Model.NewOrders, @Model.ProcessingOrders, @Model.DeliveredOrders, @Model.CanceledOrders],
+                        backgroundColor: ['#0077b6', '#ffb703', '#2a9d8f', '#e63946'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+            // Animate KPI numbers
+            document.querySelectorAll('.kpi-value[data-count]').forEach(el => {
+                const target = parseInt(el.dataset.count);
+                if (isNaN(target) || target === 0) return;
+                let current = 0;
+                const step = Math.ceil(target / 40);
+                const timer = setInterval(() => {
+                    current += step;
+                    if (current >= target) { current = target; clearInterval(timer); }
+                    el.textContent = current.toLocaleString('vi-VN');
+                }, 30);
+            });
+        });
+    </script>
+}
+
+<style>
+    :root {
+        --primary: #0077b6;
+        --primary-soft: rgba(0, 119, 182, 0.1);
+        --success: #2a9d8f;
+        --success-soft: rgba(42, 157, 143, 0.1);
+        --warning: #ffb703;
+        --warning-soft: rgba(255, 183, 3, 0.1);
+        --danger: #e63946;
+        --danger-soft: rgba(230, 57, 70, 0.1);
+        --light-soft: rgba(200, 200, 200, 0.1);
+        --radius-lg: 24px;
+        --radius-md: 16px;
+        --glass: rgba(255, 255, 255, 0.8);
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    .dashboard-wrapper { padding: 2rem; background: #f8fafc; min-height: 100vh; }
+    .text-gradient { background: linear-gradient(135deg, #003049, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .fw-800 { font-weight: 800; }
+    .fw-600 { font-weight: 600; }
+    .x-small { font-size: 0.7rem; }
+
+    .btn-glass { 
+        background: var(--glass); 
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255,255,255,0.3); 
+        box-shadow: var(--shadow);
+        color: #475569;
+        font-weight: 600;
+        padding: 0.6rem 1.2rem;
+        border-radius: 12px;
+    }
+    .btn-glass:hover { background: white; color: var(--primary); }
+
+    /* ============ KPI CARDS ============ */
+    .kpi-card {
+        background: white; border-radius: 20px; padding: 22px 24px;
+        display: flex; align-items: center; gap: 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.04);
+        transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative; overflow: hidden;
+        height: 100%; /* Đảm bảo các thẻ có chiều cao bằng nhau */
+    }
+    .kpi-card::after {
+        content: ''; position: absolute; top: 0; right: 0;
+        width: 100px; height: 100px; border-radius: 50%;
+        opacity: 0.06; transform: translate(30px, -30px);
+    }
+    .kpi-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
+    .kpi-icon-wrap {
+        width: 56px; height: 56px; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem; flex-shrink: 0;
+    }
+    .kpi-blue .kpi-icon-wrap { background: rgba(0,119,182,0.1); color: #0077b6; }
+    .kpi-blue::after { background: #0077b6; }
+    .kpi-green .kpi-icon-wrap { background: rgba(16,185,129,0.1); color: #10b981; }
+    .kpi-green::after { background: #10b981; }
+    .kpi-orange .kpi-icon-wrap { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    .kpi-orange::after { background: #f59e0b; }
+    .kpi-purple .kpi-icon-wrap { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+    .kpi-purple::after { background: #8b5cf6; }
+
+    .kpi-body { display: flex; flex-direction: column; min-width: 0; }
+    .kpi-label { font-size: 0.78rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .kpi-value { font-size: 1.65rem; font-weight: 800; color: #1e293b; line-height: 1.2; }
+    .kpi-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
+    .kpi-up { color: #10b981; }
+    .kpi-warn { color: #f59e0b; }
+
+    /* Glass Card */
+    .glass-card {
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+    .card-header-custom { 
+        padding: 1.5rem; border-bottom: 1px solid rgba(0,0,0,0.05); 
+        display: flex; justify-content: space-between; align-items: center; 
+    }
+    .card-body-custom { padding: 1.5rem; }
+
+    /* Product UI */
+    .product-thumb {
+        width: 44px; height: 44px; border-radius: 10px; background: #f1f5f9;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .product-thumb img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Badges */
+    .badge { padding: 0.4em 0.8em; border-radius: 8px; font-weight: 700; font-size: 0.75rem; border: none; }
+    .bg-primary-soft { background: var(--primary-soft); color: var(--primary); }
+    .bg-success-soft { background: var(--success-soft); color: var(--success); }
+    .bg-warning-soft { background: var(--warning-soft); color: var(--warning); }
+    .bg-danger-soft  { background: var(--danger-soft); color: var(--danger); }
+
+    /* Table override */
+    .table thead th { 
+        background: rgba(0,0,0,0.02); color: #64748b; font-size: 0.75rem; 
+        text-transform: uppercase; letter-spacing: 0.05em; border: none; 
+    }
+    .table td { border-color: rgba(0,0,0,0.03); padding-top: 1rem; padding-bottom: 1rem; }
+</style>

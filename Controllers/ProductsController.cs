@@ -66,6 +66,7 @@ namespace Webstore.Controllers
             IFormFile? imageFile,
             List<ProductVariant>? Variants,
             List<IFormFile>? NewProductLevelImages,
+            Dictionary<string, List<string>>? NewVariantImages,
             int[]? ImagesToDelete)
         {
             if (!ModelState.IsValid)
@@ -84,26 +85,39 @@ namespace Webstore.Controllers
 
             await _productService.CreateProductAsync(product);
 
-            // Save variants
+            // Build index map: variant index -> variantId (after save, EF assigns IDs)
+            var newVariantIndexToId = new Dictionary<int, int>();
+
+            // Save variants first (get their IDs for image association)
             if (Variants != null && Variants.Count > 0)
             {
+                int idx = 0;
                 foreach (var variant in Variants)
                 {
                     if (string.IsNullOrWhiteSpace(variant.Color) &&
                         string.IsNullOrWhiteSpace(variant.Storage) &&
                         string.IsNullOrWhiteSpace(variant.RAM))
-                        continue;
+                        { idx++; continue; }
 
                     variant.ProductId = product.ProductId;
                     if (variant.Price == 0 && product.Price > 0)
                         variant.Price = product.Price;
 
                     _context.ProductVariants.Add(variant);
+                    idx++;
                 }
                 await _context.SaveChangesAsync();
+
+                // Re-fetch to get assigned IDs in order
+                var savedVariants = await _context.ProductVariants
+                    .Where(v => v.ProductId == product.ProductId)
+                    .OrderBy(v => v.VariantId)
+                    .ToListAsync();
+                for (int i = 0; i < savedVariants.Count; i++)
+                    newVariantIndexToId[i] = savedVariants[i].VariantId;
             }
 
-            // Save product-level images
+            // Save product-level images (IFormFile — actual file upload)
             if (NewProductLevelImages != null && NewProductLevelImages.Count > 0)
             {
                 int displayOrder = 0;
@@ -123,12 +137,56 @@ namespace Webstore.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            // Save variant images
+            // NewVariantImages keys: "variantId" (existing) or "new_X" (new variant by index)
+            if (NewVariantImages != null && NewVariantImages.Count > 0)
+            {
+                foreach (var kvp in NewVariantImages)
+                {
+                    var key = kvp.Key;
+                    var dataUrls = kvp.Value;
+
+                    int? targetVariantId = null;
+
+                    if (key.StartsWith("new_") && int.TryParse(key.Substring(4), out var idxFromKey))
+                    {
+                        // New variant — use the map built after variant save
+                        if (newVariantIndexToId.TryGetValue(idxFromKey, out var assignedId))
+                            targetVariantId = assignedId;
+                    }
+                    else if (int.TryParse(key, out var variantId))
+                    {
+                        // Existing variant
+                        targetVariantId = variantId;
+                    }
+
+                    if (targetVariantId == null) continue;
+
+                    int displayOrder = 0;
+                    foreach (var dataUrl in dataUrls.Where(u => !string.IsNullOrEmpty(u)))
+                    {
+                        var url = await SaveBase64Image(dataUrl);
+                        _context.ProductImages.Add(new ProductImage
+                        {
+                            ProductId = product.ProductId,
+                            VariantId = targetVariantId.Value,
+                            ImageUrl = url,
+                            IsPrimary = displayOrder == 0,
+                            IsThumbnail = displayOrder == 0,
+                            DisplayOrder = displayOrder++
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
             // Delete marked images
             if (ImagesToDelete != null && ImagesToDelete.Length > 0)
             {
                 await DeleteImagesAsync(ImagesToDelete);
             }
 
+            _productService.InvalidateCache();
             TempData["Success"] = "Tạo sản phẩm thành công";
             return RedirectToAction(nameof(Index));
         }
@@ -160,6 +218,7 @@ namespace Webstore.Controllers
             List<ProductVariant>? Variants,
             int[]? VariantsToDelete,
             List<IFormFile>? NewProductLevelImages,
+            Dictionary<string, List<string>>? NewVariantImages,
             int[]? ImagesToDelete)
         {
             if (id != product.ProductId) return NotFound();
@@ -186,33 +245,46 @@ namespace Webstore.Controllers
                 _context.Entry(product).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                // Delete marked variants
+                // Delete marked variants (cascade delete their images)
                 if (VariantsToDelete != null && VariantsToDelete.Length > 0)
                 {
                     var toDelete = await _context.ProductVariants.Where(v => VariantsToDelete.Contains(v.VariantId)).ToListAsync();
+                    // Delete images of deleted variants
+                    var variantImages = await _context.ProductImages
+                        .Where(pi => pi.VariantId != null && VariantsToDelete.Contains(pi.VariantId.Value))
+                        .ToListAsync();
+                    foreach (var img in variantImages) DeleteImage(img.ImageUrl);
+                    _context.ProductImages.RemoveRange(variantImages);
                     _context.ProductVariants.RemoveRange(toDelete);
                 }
+
+                // Build map: index -> assigned VariantId for new variants
+                var newVariantIndexToId = new Dictionary<int, int>();
 
                 // Upsert variants
                 if (Variants != null)
                 {
+                    int idx = 0;
                     foreach (var variant in Variants)
                     {
                         if (string.IsNullOrWhiteSpace(variant.Color) &&
                             string.IsNullOrWhiteSpace(variant.Storage) &&
                             string.IsNullOrWhiteSpace(variant.RAM))
-                            continue;
+                            { idx++; continue; }
 
                         variant.ProductId = product.ProductId;
 
                         if (variant.VariantId == 0)
                         {
+                            // NEW variant
                             if (variant.Price == 0 && product.Price > 0)
                                 variant.Price = product.Price;
                             _context.ProductVariants.Add(variant);
+                            newVariantIndexToId[idx] = -1; // placeholder
                         }
                         else
                         {
+                            // EXISTING variant
                             var existing = await _context.ProductVariants.FindAsync(variant.VariantId);
                             if (existing != null)
                             {
@@ -225,10 +297,35 @@ namespace Webstore.Controllers
                                 _context.Entry(existing).State = EntityState.Modified;
                             }
                         }
+                        idx++;
+                    }
+                    await _context.SaveChangesAsync();
+
+                    // Fill in assigned IDs for new variants
+                    var allSaved = await _context.ProductVariants
+                        .Where(v => v.ProductId == product.ProductId)
+                        .OrderBy(v => v.VariantId)
+                        .ToListAsync();
+
+                    int savedIdx = 0;
+                    idx = 0;
+                    foreach (var variant in Variants)
+                    {
+                        if (string.IsNullOrWhiteSpace(variant.Color) &&
+                            string.IsNullOrWhiteSpace(variant.Storage) &&
+                            string.IsNullOrWhiteSpace(variant.RAM))
+                            { idx++; continue; }
+
+                        if (variant.VariantId == 0 && savedIdx < allSaved.Count)
+                        {
+                            newVariantIndexToId[idx] = allSaved[savedIdx].VariantId;
+                            savedIdx++;
+                        }
+                        idx++;
                     }
                 }
 
-                // Save new product-level images (from base64 data URLs)
+                // Save new product-level images (IFormFile — actual file upload)
                 if (NewProductLevelImages != null && NewProductLevelImages.Count > 0)
                 {
                     var existingCount = await _context.ProductImages
@@ -247,6 +344,47 @@ namespace Webstore.Controllers
                             DisplayOrder = displayOrder++
                         });
                     }
+                    await _context.SaveChangesAsync();
+                }
+
+                // Save variant images
+                if (NewVariantImages != null && NewVariantImages.Count > 0)
+                {
+                    foreach (var kvp in NewVariantImages)
+                    {
+                        var key = kvp.Key;
+                        var dataUrls = kvp.Value;
+
+                        int? targetVariantId = null;
+
+                        if (key.StartsWith("new_") && int.TryParse(key.Substring(4), out var idxFromKey))
+                        {
+                            if (newVariantIndexToId.TryGetValue(idxFromKey, out var assignedId) && assignedId > 0)
+                                targetVariantId = assignedId;
+                        }
+                        else if (int.TryParse(key, out var variantId))
+                        {
+                            targetVariantId = variantId;
+                        }
+
+                        if (targetVariantId == null) continue;
+
+                        int displayOrder = 0;
+                        foreach (var dataUrl in dataUrls.Where(u => !string.IsNullOrEmpty(u)))
+                        {
+                            var url = await SaveBase64Image(dataUrl);
+                            _context.ProductImages.Add(new ProductImage
+                            {
+                                ProductId = product.ProductId,
+                                VariantId = targetVariantId.Value,
+                                ImageUrl = url,
+                                IsPrimary = displayOrder == 0,
+                                IsThumbnail = displayOrder == 0,
+                                DisplayOrder = displayOrder++
+                            });
+                        }
+                    }
+                    await _context.SaveChangesAsync();
                 }
 
                 // Delete marked images
@@ -255,13 +393,12 @@ namespace Webstore.Controllers
                     await DeleteImagesAsync(ImagesToDelete);
                 }
 
-                await _context.SaveChangesAsync();
                 _productService.InvalidateCache();
-
                 TempData["Success"] = "Cập nhật sản phẩm thành công";
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ProductsController.Edit] Error: {ex}");
                 TempData["Error"] = "Lỗi khi cập nhật: " + ex.Message;
                 await LoadLookups();
                 var existingVariants = await _context.ProductVariants.Where(v => v.ProductId == id).OrderBy(v => v.DisplayOrder).ToListAsync();
@@ -303,9 +440,7 @@ namespace Webstore.Controllers
             var img = await _context.ProductImages.FindAsync(imageId);
             if (img == null) return Json(new { success = false, message = "Ảnh không tồn tại." });
 
-            // Xóa file vật lý
             DeleteImage(img.ImageUrl);
-
             _context.ProductImages.Remove(img);
             await _context.SaveChangesAsync();
             _productService.InvalidateCache();
@@ -324,8 +459,10 @@ namespace Webstore.Controllers
                 DeleteImage(img.ImageUrl);
                 _context.ProductImages.Remove(img);
             }
+            await _context.SaveChangesAsync();
         }
 
+        /// <summary>Save a file upload (IFormFile) to disk and return URL</summary>
         private async Task<string> SaveImage(IFormFile imageFile)
         {
             string uniqueFileName = Guid.NewGuid().ToString() + "_" + imageFile.FileName;
@@ -337,6 +474,33 @@ namespace Webstore.Controllers
             {
                 await imageFile.CopyToAsync(fileStream);
             }
+            return "/images/products/" + uniqueFileName;
+        }
+
+        /// <summary>Save a base64 data URL to disk and return URL (for JS-uploaded images)</summary>
+        private async Task<string> SaveBase64Image(string dataUrl)
+        {
+            if (string.IsNullOrEmpty(dataUrl)) return string.Empty;
+
+            // dataUrl format: "data:image/png;base64,xxxxx"
+            var parts = dataUrl.Split(',');
+            if (parts.Length < 2) return string.Empty;
+
+            var header = parts[0]; // e.g. "data:image/png;base64"
+            var base64Data = parts[1];
+
+            // Determine extension from header
+            string ext = ".png";
+            if (header.Contains("jpeg") || header.Contains("jpg")) ext = ".jpg";
+            else if (header.Contains("gif")) ext = ".gif";
+            else if (header.Contains("webp")) ext = ".webp";
+
+            string uniqueFileName = Guid.NewGuid().ToString() + ext;
+            string uploadsFolder = Path.Combine(_hostEnvironment.WebRootPath, "images", "products");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+            await System.IO.File.WriteAllBytesAsync(filePath, Convert.FromBase64String(base64Data));
             return "/images/products/" + uniqueFileName;
         }
 
