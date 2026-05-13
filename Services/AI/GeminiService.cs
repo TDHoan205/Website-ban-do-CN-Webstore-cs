@@ -47,106 +47,136 @@ namespace Webstore.Services.AI
         /// </summary>
         public async Task<string> GetChatResponseAsync(string systemPrompt, string userMessage, IEnumerable<ChatHistory>? history = null)
         {
-            try
-            {
-                var messages = new List<GeminiMessage>();
+            const int maxRetries = 3;
 
-                if (!string.IsNullOrEmpty(systemPrompt))
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
                 {
+                    var messages = new List<GeminiMessage>();
+
+                    if (!string.IsNullOrEmpty(systemPrompt))
+                    {
+                        messages.Add(new GeminiMessage
+                        {
+                            Role = "user",
+                            Parts = new List<GeminiPart>
+                            {
+                                new GeminiPart { Text = $"System instruction: {systemPrompt}" }
+                            }
+                        });
+                        messages.Add(new GeminiMessage
+                        {
+                            Role = "model",
+                            Parts = new List<GeminiPart>
+                            {
+                                new GeminiPart { Text = "Tôi đã hiểu. Tôi sẽ tuân thủ các hướng dẫn trên." }
+                            }
+                        });
+                    }
+
+                    if (history != null)
+                    {
+                        foreach (var h in history)
+                        {
+                            var role = h.Role.ToLower() == "assistant" || h.Role.ToLower() == "ai" ? "model" : "user";
+                            messages.Add(new GeminiMessage
+                            {
+                                Role = role,
+                                Parts = new List<GeminiPart>
+                                {
+                                    new GeminiPart { Text = h.Content }
+                                }
+                            });
+                        }
+                    }
+
                     messages.Add(new GeminiMessage
                     {
                         Role = "user",
                         Parts = new List<GeminiPart>
                         {
-                            new GeminiPart { Text = $"System instruction: {systemPrompt}" }
+                            new GeminiPart { Text = userMessage }
                         }
                     });
-                    messages.Add(new GeminiMessage
-                    {
-                        Role = "model",
-                        Parts = new List<GeminiPart>
-                        {
-                            new GeminiPart { Text = "Tôi đã hiểu. Tôi sẽ tuân thủ các hướng dẫn trên." }
-                        }
-                    });
-                }
 
-                if (history != null)
-                {
-                    foreach (var h in history)
+                    var requestBody = new GeminiChatRequest
                     {
-                        var role = h.Role.ToLower() == "assistant" || h.Role.ToLower() == "ai" ? "model" : "user";
-                        messages.Add(new GeminiMessage
+                        Contents = messages,
+                        GenerationConfig = new GeminiGenerationConfig
                         {
-                            Role = role,
-                            Parts = new List<GeminiPart>
+                            Temperature = 0.7f,
+                            MaxOutputTokens = 2048,
+                            TopP = 0.95f,
+                            TopK = 40
+                        }
+                    };
+
+                    var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    });
+
+                    var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                    var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{_chatModel}:generateContent?key={_apiKey}";
+
+                    var response = await _httpClient.PostAsync(endpoint, content);
+                    var responseJson = await response.Content.ReadAsStringAsync();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        _logger.LogError($"Gemini API Error: {response.StatusCode} - {responseJson}");
+
+                        // Retry on 503 ServiceUnavailable or 429 TooManyRequests
+                        var statusCode = (int)response.StatusCode;
+                        if ((statusCode == 503 || statusCode == 429) && attempt < maxRetries - 1)
+                        {
+                            // For 429, try to parse the suggested retry delay
+                            var delay = (int)Math.Pow(2, attempt) * 2000; // 2s, 4s, 8s
+                            if (statusCode == 429 && responseJson.Contains("retryDelay"))
                             {
-                                new GeminiPart { Text = h.Content }
+                                // Use longer delay for rate limits
+                                delay = Math.Max(delay, 20000); // at least 20s for rate limits
                             }
-                        });
-                    }
-                }
+                            _logger.LogWarning($"Gemini API {response.StatusCode}, retrying in {delay}ms (attempt {attempt + 1}/{maxRetries})");
+                            await Task.Delay(delay);
+                            continue;
+                        }
 
-                messages.Add(new GeminiMessage
-                {
-                    Role = "user",
-                    Parts = new List<GeminiPart>
+                        throw new Exception($"Gemini API Error: {response.StatusCode}");
+                    }
+
+                    var geminiResponse = JsonSerializer.Deserialize<GeminiGenerateResponse>(responseJson, new JsonSerializerOptions
                     {
-                        new GeminiPart { Text = userMessage }
-                    }
-                });
+                        PropertyNameCaseInsensitive = true
+                    });
 
-                var requestBody = new GeminiChatRequest
-                {
-                    Contents = messages,
-                    GenerationConfig = new GeminiGenerationConfig
+                    if (geminiResponse?.Candidates != null && geminiResponse.Candidates.Count > 0)
                     {
-                        Temperature = 0.7f,
-                        MaxOutputTokens = 2048,
-                        TopP = 0.95f,
-                        TopK = 40
+                        var candidate = geminiResponse.Candidates[0];
+                        if (candidate.Content?.Parts != null)
+                        {
+                            return string.Join("", candidate.Content.Parts.Select(p => p.Text ?? ""));
+                        }
                     }
-                };
 
-                var json = JsonSerializer.Serialize(requestBody, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                });
-
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{_chatModel}:generateContent?key={_apiKey}";
-
-                var response = await _httpClient.PostAsync(endpoint, content);
-                var responseJson = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"Gemini API Error: {response.StatusCode} - {responseJson}");
-                    throw new Exception($"Gemini API Error: {response.StatusCode}");
+                    return "Xin lỗi, tôi không thể tạo phản hồi lúc này.";
                 }
-
-                var geminiResponse = JsonSerializer.Deserialize<GeminiGenerateResponse>(responseJson, new JsonSerializerOptions
+                catch (Exception ex) when (attempt < maxRetries - 1 && ex.Message.Contains("503"))
                 {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (geminiResponse?.Candidates != null && geminiResponse.Candidates.Count > 0)
-                {
-                    var candidate = geminiResponse.Candidates[0];
-                    if (candidate.Content?.Parts != null)
-                    {
-                        return string.Join("", candidate.Content.Parts.Select(p => p.Text ?? ""));
-                    }
+                    var delay = (int)Math.Pow(2, attempt) * 1000;
+                    _logger.LogWarning($"Gemini API exception, retrying in {delay}ms (attempt {attempt + 1}/{maxRetries})");
+                    await Task.Delay(delay);
                 }
-
-                return "Xin lỗi, tôi không thể tạo phản hồi lúc này.";
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error calling Gemini API");
+                    throw;
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error calling Gemini API");
-                throw;
-            }
+
+            return "Xin lỗi, hệ thống đang bận. Vui lòng thử lại sau.";
         }
 
         /// <summary>

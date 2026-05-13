@@ -1,0 +1,54 @@
+
+PHAN TICH HE THONG AI CHATBOT
+
+1) MO HINH (MODEL) DANG DUNG
+- Chat: Groq Cloud API (OpenAI-compatible), model: llama-3.3-70b-versatile.
+- Embedding: Gemini Embedding API, model: gemini-embedding-001 (768 chieu).
+ 
+2) KIEN TRUC VA THUAT TOAN CHINH
+- Pipeline: User -> IntentDetection -> RAGEngine -> AIAgent -> GroqService -> Response.
+- IntentDetection: Rule-based keyword matching (tap tu khoa) de phan loai y dinh.
+- RAG (Retrieval Augmented Generation):
+	* Build knowledge base tu Products va FAQs.
+	* Chia van ban thanh chunk (toi da ~500 ky tu) de tang ngu canh.
+	* Tao embedding vector cho tung chunk.
+	* Tim kiem tuong dong bang cosine similarity.
+	* Co them lexical boost (khop chuoi) va priority boost (uu tien theo priority).
+- AI Agent:
+	* Tao system prompt theo role (customer/admin).
+	* Goi chat model (Groq) de sinh cau tra loi.
+	* Co fallback rule-based neu AI loi hoac khong co ket qua.
+- Tool Dispatcher (function calling gia lap):
+	* Parse response theo JSON pattern va regex ngon ngu tu nhien.
+	* Co the goi cac hanh dong: add_to_cart, check_inventory, search_products.
+
+3) NHUNG PHAN DA LAM DUOC
+- Chat AI 24/7 cho khach hang va admin.
+- Nhan dien y dinh (greeting, purchase, inquiry, payment, warranty, shipping, ...).
+- RAG lay tri thuc tu DB (FAQ + san pham) de tra loi co ngu canh.
+- Goi y san pham dua tren ngu canh va bo loc gia/loai.
+- Co co che fallback khi AI that bai.
+- Co xu ly tool call co ban de tu dong them gio/kiem tra ton kho.
+
+4) NHUNG PHAN CAN PHAT TRIEN THEM
+- Embedding/RAG:
+	* Dung vector DB (vd: pgvector, Qdrant) de truy van nhanh va chinh xac hon.
+	* Them reranking (cross-encoder) de tang do chinh xac cho top-k.
+	* Tang metadata filter (hang, thuong hieu, gia, tinh trang kho, rating).
+- Chat/Prompting:
+	* Nho dai hoi thoai (session memory) va tom tat ngu canh.
+	* Personalization theo lich su xem/mua hang.
+	* Guardrails: kiem soat hallucination, an toan noi dung.
+- Tool calling:
+	* Thay regex bang schema-based tool calling, co xac nhan hanh dong quan trong.
+	* Logging va theo doi ty le thanh cong cua tool call.
+- Danh gia chat luong:
+	* Luu log QA, feedback nguoi dung.
+	* Tinh diem huu ich, phat hien cau tra loi sai, cai thien prompt.
+- Hieu nang va chi phi:
+	* Cache ket qua embedding va ket qua tim kiem.
+	* Co che batch embedding khi build knowledge base.
+
+KET LUAN
+- He thong hien tai dung Groq cho chat va Gemini cho embedding.
+- RAG dang hoat dong tot cho FAQ va san pham, co the nang cap de thong minh va on dinh hon.

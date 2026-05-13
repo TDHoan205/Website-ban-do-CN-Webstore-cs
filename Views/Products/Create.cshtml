@@ -39,7 +39,7 @@
                             <div class="col-md-6 mb-3">
                                 <label asp-for="Price" class="form-label fw-semibold"></label>
                                 <div class="input-group">
-                                    <input asp-for="Price" class="form-control" type="number" step="1000" min="0" placeholder="0" />
+                                    <input asp-for="Price" class="form-control" type="number" step="1000" min="0" placeholder="0" asp-format="{0:0}" />
                                     <span class="input-group-text">VNĐ</span>
                                 </div>
                                 <span asp-validation-for="Price" class="text-danger small"></span>

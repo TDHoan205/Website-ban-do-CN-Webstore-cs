@@ -221,12 +221,18 @@ namespace Webstore.Services.AI
 
             if (args.TryGetProperty("productId", out var productIdElement))
             {
-                productId = productIdElement.GetInt32();
+                if (productIdElement.ValueKind == JsonValueKind.Number)
+                    productId = productIdElement.GetInt32();
+                else if (productIdElement.ValueKind == JsonValueKind.String && int.TryParse(productIdElement.GetString(), out int parsedId))
+                    productId = parsedId;
             }
 
             if (args.TryGetProperty("quantity", out var qtyElement))
             {
-                quantity = qtyElement.GetInt32();
+                if (qtyElement.ValueKind == JsonValueKind.Number)
+                    quantity = qtyElement.GetInt32();
+                else if (qtyElement.ValueKind == JsonValueKind.String && int.TryParse(qtyElement.GetString(), out int parsedQty))
+                    quantity = parsedQty;
             }
 
             if (productId == 0)
@@ -250,7 +256,10 @@ namespace Webstore.Services.AI
 
             if (args.TryGetProperty("productId", out var productIdElement))
             {
-                productId = productIdElement.GetInt32();
+                if (productIdElement.ValueKind == JsonValueKind.Number)
+                    productId = productIdElement.GetInt32();
+                else if (productIdElement.ValueKind == JsonValueKind.String && int.TryParse(productIdElement.GetString(), out int parsedId))
+                    productId = parsedId;
             }
 
             if (productId == 0)

@@ -191,9 +191,6 @@
                             <td class="text-end fw-bold text-primary">@item.TotalAmount.ToString("N0") ₫</td>
                             <td class="text-center">
                                 <div class="d-flex gap-1 justify-content-center">
-                                    <a asp-action="Manage" asp-route-id="@item.OrderId" class="action-btn action-btn-primary" title="Quản lý">
-                                        <i class="fas fa-cog"></i>
-                                    </a>
                                     <button type="button" class="action-btn action-btn-secondary btn-details" data-id="@item.OrderId" title="Chi tiết">
                                         <i class="fas fa-eye"></i>
                                     </button>

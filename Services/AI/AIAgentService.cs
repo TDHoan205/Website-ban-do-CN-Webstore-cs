@@ -34,12 +34,31 @@ namespace Webstore.Services.AI
 
         public async Task<AIResponse> ProcessMessageAsync(string userMessage, string role = "customer", Guid? sessionId = null)
         {
-            // 1. Get RAG Context
-            var context = await _ragEngine.GetContextAsync(userMessage);
+            // 1. Detect Intent fast (Rule-based)
+            var lowerMsg = userMessage.ToLower();
+            var intent = "general";
+            foreach (var (keywords, detectedIntent) in IntentPatterns)
+            {
+                if (keywords.Any(k => lowerMsg.Contains(k)))
+                {
+                    intent = detectedIntent;
+                    break;
+                }
+            }
 
-            // 2. Try Gemini API first
+            // 2. Only get RAG Context if needed (purchase, inquiry, warranty, etc.)
+            // Skip RAG for simple greeting, thanks to save API calls
+            RAGContext context = new RAGContext { Intent = intent, Confidence = 0.8m };
+            bool needsRag = intent != "greeting" && intent != "thanks" && userMessage.Length > 3;
+            
+            if (needsRag)
+            {
+                context = await _ragEngine.GetContextAsync(userMessage);
+            }
+
+            // 3. Try AI API
             string? finalMessage = null;
-            bool geminiSuccess = false;
+            bool aiSuccess = false;
 
             try
             {
@@ -50,17 +69,17 @@ namespace Webstore.Services.AI
                     _ => GetCustomerSystemPrompt(context)
                 };
 
-                // Call Gemini API
+                // Call AI Service (Groq/Gemini)
                 finalMessage = await _gemini.GetChatResponseAsync(systemPrompt, userMessage);
-                geminiSuccess = true;
+                aiSuccess = !string.IsNullOrWhiteSpace(finalMessage);
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "Gemini API failed, using rule-based fallback");
+                _logger?.LogWarning(ex, "AI Service failed, using rule-based fallback");
             }
 
-            // 3. If Gemini failed or returned empty, use rule-based fallback
-            if (!geminiSuccess || string.IsNullOrWhiteSpace(finalMessage))
+            // 4. If AI failed, use rule-based fallback
+            if (!aiSuccess || string.IsNullOrWhiteSpace(finalMessage))
             {
                 return GenerateFallbackResponse(userMessage, context, role);
             }
@@ -91,8 +110,8 @@ namespace Webstore.Services.AI
         {
             (new[] { "xin chào", "chào", "hi", "hello", "hey" }, "greeting"),
             (new[] { "cảm ơn", "thanks", "thank" }, "thanks"),
-            (new[] { "mua", "cần", "tìm", "muốn", "đặt" }, "purchase"),
-            (new[] { "hỏi", "thông tin", "biết", "xem" }, "inquiry"),
+            (new[] { "mua", "cần", "tìm", "muốn", "đặt", "lấy" }, "purchase"),
+            (new[] { "hỏi", "thông tin", "biết", "xem", "giá", "bao nhiêu", "nhiêu", "nhiêu tiền", "còn hàng" }, "inquiry"),
             (new[] { "bảo hành", "hỏng", "lỗi", "sửa", "đổi", "trả" }, "warranty"),
             (new[] { "thanh toán", "chuyển khoản", "cod", "vnpay" }, "payment"),
             (new[] { "giao", "ship", "vận chuyển", "nhận hàng" }, "shipping"),
@@ -290,17 +309,21 @@ namespace Webstore.Services.AI
             var productsInfo = "";
             if (context.Products.Any())
             {
-                productsInfo = "\n\nSản phẩm có sẵn trong database:\n";
+                productsInfo = "\n\nDANH SÁCH SẢN PHẨM (CHỈ ĐƯỢC TƯ VẤN SẢN PHẨM TỪ DANH SÁCH NÀY):\n";
                 foreach (var p in context.Products.Take(5))
                 {
                     productsInfo += $"- {p.Name} (ID: {p.ProductId}) - Giá: {p.Price:N0}đ\n";
                 }
             }
+            else
+            {
+                productsInfo = "\n\nDANH SÁCH SẢN PHẨM: [HIỆN TẠI KHÔNG TÌM THẤY SẢN PHẨM NÀO TRONG HỆ THỐNG]";
+            }
 
             var faqInfo = "";
             if (context.FAQs.Any())
             {
-                faqInfo = "\n\nFAQ có sẵn:\n";
+                faqInfo = "\n\nTHÔNG TIN HỖ TRỢ (FAQ):\n";
                 foreach (var f in context.FAQs.Take(3))
                 {
                     faqInfo += $"- Q: {f.Question}\n  A: {f.Answer}\n";
@@ -313,11 +336,13 @@ Nhiệm vụ của bạn:
 2. Trả lời câu hỏi về bảo hành, thanh toán, giao hàng
 3. Hỗ trợ khách hàng một cách chuyên nghiệp và thân thiện
 
-Nguyên tắc:
-- Trả lời bằng tiếng Việt
-- Nếu khách muốn mua hàng, hãy đề cập đến sản phẩm phù hợp và hướng dẫn họ thêm vào giỏ
-- Nếu không biết câu trả lời, hãy khuyên khách liên hệ hotline hoặc gặp admin
-- Đưa ra lời khuyên hữu ích dựa trên nhu cầu và ngân sách của khách{productsInfo}{faqInfo}";
+NGUYÊN TẮC QUAN TRỌNG (BẮT BUỘC TUÂN THỦ):
+- Trả lời bằng tiếng Việt.
+- NẾU DANH SÁCH SẢN PHẨM TRỐNG: Bạn PHẢI trả lời rằng cửa hàng hiện không có hoặc không tìm thấy sản phẩm khách yêu cầu. KHÔNG ĐƯỢC tự ý kể tên, bịa đặt giá cả hay giới thiệu bất kỳ sản phẩm nào ngoài đời thực nếu nó không xuất hiện trong danh sách.
+- NẾU CÓ DANH SÁCH SẢN PHẨM: CHỈ TƯ VẤN các sản phẩm xuất hiện trong danh sách. Tuyệt đối không giới thiệu sản phẩm của cửa hàng khác.
+- Nếu khách đồng ý mua hàng hoặc yêu cầu thêm vào giỏ hàng, hãy CHẮC CHẮN trả về định dạng JSON sau (nằm trong câu trả lời của bạn) để hệ thống tự động thêm: {{""function"": ""add_to_cart"", ""args"": {{""productId"": ID_CỦA_SẢN_PHẨM, ""quantity"": 1}}}}
+- TUYỆT ĐỐI KHÔNG TỰ BỊA ID SẢN PHẨM. Nếu không có ID chính xác từ danh sách, BẮT BUỘC phải hỏi lại khách hàng (vd: 'Bạn muốn mua sản phẩm cụ thể nào?'), không được tự ý gọi JSON add_to_cart.
+- Nếu không biết câu trả lời, hãy khuyên khách liên hệ hotline 1900.xxxx hoặc gặp admin.{productsInfo}{faqInfo}";
         }
 
         private string GetAdminSystemPrompt(RAGContext context)

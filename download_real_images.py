@@ -1,6 +1,7 @@
 import os
 import re
 import urllib.request
+# pyrefly: ignore [missing-import]
 from duckduckgo_search import DDGS
 import time
 

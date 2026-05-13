@@ -4,7 +4,9 @@ using Webstore.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Webstore.Services;
 using Webstore.Services.AI;
+using Webstore.Services.AI;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Webstore
 {
@@ -51,6 +53,14 @@ namespace Webstore
                 // Pass payment info to all views via ViewData
             });
 
+            // Configure FormOptions to allow large base64 strings
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.ValueLengthLimit = int.MaxValue; // Avoid 4MB limit for base64 variant images
+                options.MultipartBodyLengthLimit = 512L * 1024 * 1024; // 512MB
+                options.MemoryBufferThreshold = int.MaxValue;
+            });
+
             // Add session support
             builder.Services.AddDistributedMemoryCache();
             builder.Services.AddHttpContextAccessor();
@@ -79,8 +89,9 @@ namespace Webstore
                     options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 });
 
-            // Register AI Services - Gemini
-            builder.Services.AddSingleton<IGeminiService, GeminiService>();
+            // Register AI Services - Switch to Groq for Chat, keep Gemini for Embedding
+            builder.Services.AddSingleton<GeminiService>();
+            builder.Services.AddSingleton<IGeminiService, GroqService>();
             builder.Services.AddScoped<Webstore.Services.AI.EmbeddingService>();
             builder.Services.AddScoped<Webstore.Services.AI.KnowledgeBaseService>();
             builder.Services.AddScoped<Webstore.Services.AI.IntentDetectionService>();
@@ -575,8 +586,9 @@ END";
                         try
                         {
                             var knowledgeBase = scope.ServiceProvider.GetRequiredService<KnowledgeBaseService>();
-                            await knowledgeBase.BuildOrRefreshAsync();
-                            Console.WriteLine("✅ Đã xây dựng Knowledge Base vector cho AI Chat.");
+                            // Ép buộc xây dựng lại để tương thích với model embedding mới
+                            await knowledgeBase.BuildOrRefreshAsync(forceRebuild: true);
+                            Console.WriteLine("✅ Đã xây dựng lại Knowledge Base vector cho AI Chat.");
                         }
                         catch (Exception exKbBuild)
                         {
@@ -608,12 +620,16 @@ END";
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                app.Use(async (context, next) =>
+                {
+                    context.Response.Headers["Content-Security-Policy"] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: https: http: blob:; connect-src 'self' https: http: ws: wss:;";
+                    await next();
+                });
             }
             else
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
-                app.UseHttpsRedirection();
             }
 
             app.UseStaticFiles();

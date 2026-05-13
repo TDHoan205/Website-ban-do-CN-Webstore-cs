@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Webstore.Services.AI
 {
@@ -9,12 +10,14 @@ namespace Webstore.Services.AI
     /// </summary>
     public class EmbeddingService
     {
-        private readonly IGeminiService _gemini;
+        private readonly GeminiService _gemini;
+        private readonly IMemoryCache _cache;
         public const int VectorSize = 768; // Gemini embedding-001 dimension
 
-        public EmbeddingService(IGeminiService gemini)
+        public EmbeddingService(GeminiService gemini, IMemoryCache cache)
         {
             _gemini = gemini;
+            _cache = cache;
         }
 
         public string Normalize(string input)
@@ -22,7 +25,7 @@ namespace Webstore.Services.AI
             if (string.IsNullOrWhiteSpace(input))
                 return string.Empty;
 
-            return input.Trim();
+            return input.Trim().ToLowerInvariant();
         }
 
         public async Task<float[]> BuildEmbeddingAsync(string input)
@@ -31,7 +34,23 @@ namespace Webstore.Services.AI
             if (string.IsNullOrEmpty(normalized))
                 return new float[VectorSize];
 
-            return await _gemini.GetEmbeddingAsync(normalized);
+            // Cache key for embedding
+            string cacheKey = $"emb_{normalized}";
+
+            if (_cache.TryGetValue(cacheKey, out float[]? cachedVector) && cachedVector != null)
+            {
+                return cachedVector;
+            }
+
+            var vector = await _gemini.GetEmbeddingAsync(normalized);
+
+            // Cache the vector for 1 hour
+            if (vector.Any(v => v != 0))
+            {
+                _cache.Set(cacheKey, vector, TimeSpan.FromHours(1));
+            }
+
+            return vector;
         }
 
         public string Serialize(float[] vector)

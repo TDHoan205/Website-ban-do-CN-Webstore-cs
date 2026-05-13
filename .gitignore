@@ -2,23 +2,22 @@
 # Website-ban-do-CN-Webstore-cs - .gitignore
 # =========================================================
 
-## Build outputs (LUÔN ignore - không push lên git)
+## Build outputs - IGNORE ALL
 bin/
 obj/
-[Oo]bj/
 [Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.suo
 
 ## IDE / Editor
 .vs/
 .vscode/
-*.rsuser
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
 .idea/
 *.swp
 *~
+.DS_Store
 
 ## NuGet
 *.nupkg
@@ -34,46 +33,64 @@ artifacts/
 logs/
 
 ## OS
-.DS_Store
-.DS_Store?
-._*
-.Trashes
-ehthumbs.db
 Thumbs.db
+ehthumbs.db
+.DS_Store
+._*
 
-## Database
+## Database - IGNORE LOCAL DB FILES
 *.mdf
 *.ldf
 *.sqlite
 *.db-shm
 *.db-wal
 
-## Secrets - KHÔNG BAO GIỜ push các file này
+## =========================================================
+## SECRETS - CRITICAL: Never commit these files!
+## =========================================================
+
+# appsettings.json chua secrets - ignore hoan toan
+appsettings.json
+
+# Viết đè lên với example (không bao giờ push thật)
+appsettings.Development.json
+appsettings.Production.json
 appsettings.*.json
-!appsettings.json
-!appsettings.Development.json
-ConnectionStrings.config
+
+# SSL Certificates
 *.pem
 *.key
+*.crt
 
-## Scaffolding
-ScaffoldingReadMe.txt
+# Connection strings
+ConnectionStrings.config
+secrets.json
 
-## =========================================================
-# HƯỚNG DẪN CHO TEAM
 # =========================================================
-## Khi clone repo mới hoặc sau khi pull code bị lỗi CSS:
-## 1. Xóa folder obj/ (chứa cache build bị lỗi):
-##    rmdir /s /q obj
-##
-## 2. Build lại từ đầu:
-##    dotnet build --no-incremental
-##
-## Hoặc chạy script setup:
-##    dotnet run
-##
-## Nếu CSS vẫn lỗi, xóa cả bin/ trước:
-##    rmdir /s /q bin
-##    rmdir /s /q obj
-##    dotnet build
+## TEMPLATE FILES - SHOULD COMMIT
+## =========================================================
+
+# Giữ phiên bản example để người khác copy
+# appsettings.json.example  ← NÊN commit file này
+
+# =========================================================
+## HƯỚNG DẪN CHO TEAM
+## =========================================================
+#
+# SAU KHI CLONE REPO:
+# ====================
+# 1. Copy appsettings.json.example thanh appsettings.json
+# 2. Thay YOUR_SERVER_NAME bang server cua ban
+# 3. Chay script SQL de tao database
+#
+# KHI CO LOI BUILD:
+# =================
+# 1. Xoa folder obj/ va bin/
+# 2. Chay: dotnet build --no-incremental
+#
+# PUSH CODE:
+# ==========
+# - KHONG push: appsettings.json, bin/, obj/
+# - CHI push: code, views, controllers, models, SQL scripts
+#
 ## =========================================================

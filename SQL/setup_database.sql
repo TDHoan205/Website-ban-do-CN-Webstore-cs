@@ -1,10 +1,22 @@
 -- =====================================================
 -- TechShopWebsite1 - Full Database Setup Script
--- Merged: init_database + Update_IsAvailable + Fix_Duplicate_Emails
+-- Fixed: ProductImages, Carts, OrderDetails PK, Cart_Items sentinel
 -- =====================================================
 
 -- =====================================================
--- MIGRATION FIX: Make Orders.account_id nullable (guest checkout)
+-- CREATE DATABASE
+-- =====================================================
+IF DB_ID(N'TechShopWebsite1') IS NULL
+BEGIN
+    CREATE DATABASE TechShopWebsite1;
+END
+GO
+
+USE TechShopWebsite1;
+GO
+
+-- =====================================================
+-- MIGRATION: Make Orders.account_id nullable (guest checkout)
 -- Safe to re-run on existing databases
 -- =====================================================
 BEGIN TRY
@@ -33,22 +45,8 @@ END CATCH
 GO
 
 -- =====================================================
--- CREATE DATABASE
--- =====================================================
-IF DB_ID(N'TechShopWebsite1') IS NULL
-BEGIN
-    CREATE DATABASE TechShopWebsite1;
-END
-GO
-
-USE TechShopWebsite1;
-GO
-
--- =====================================================
--- CREATE TABLES
--- =====================================================
-
 -- Categories Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Categories')
 BEGIN
     CREATE TABLE Categories (
@@ -57,11 +55,11 @@ BEGIN
     );
     PRINT 'Created Categories table';
 END
-ELSE
-    PRINT 'Categories table already exists';
 GO
 
+-- =====================================================
 -- Suppliers Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Suppliers')
 BEGIN
     CREATE TABLE Suppliers (
@@ -74,11 +72,11 @@ BEGIN
     );
     PRINT 'Created Suppliers table';
 END
-ELSE
-    PRINT 'Suppliers table already exists';
 GO
 
+-- =====================================================
 -- Accounts Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Accounts')
 BEGIN
     CREATE TABLE Accounts (
@@ -90,34 +88,44 @@ BEGIN
         phone NVARCHAR(20),
         address NVARCHAR(255),
         is_active BIT NOT NULL DEFAULT 1,
-        role NVARCHAR(20) NOT NULL DEFAULT 'Customer'
+        role NVARCHAR(20) NOT NULL DEFAULT 'Customer',
+        role_id INT NULL,
+        reset_token NVARCHAR(64) NULL,
+        reset_token_expiry DATETIME NULL
     );
     PRINT 'Created Accounts table';
 END
 ELSE
-    PRINT 'Accounts table already exists';
-GO
-
--- Add password reset columns to Accounts table
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'reset_token')
 BEGIN
-    ALTER TABLE Accounts ADD reset_token NVARCHAR(64) NULL;
-    PRINT 'Added reset_token column';
+    -- Add missing columns for migration
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'role_id')
+        ALTER TABLE Accounts ADD role_id INT NULL;
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'reset_token')
+        ALTER TABLE Accounts ADD reset_token NVARCHAR(64) NULL;
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'reset_token_expiry')
+        ALTER TABLE Accounts ADD reset_token_expiry DATETIME NULL;
+    PRINT 'Updated Accounts table with missing columns';
 END
-ELSE
-    PRINT 'reset_token column already exists';
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Accounts') AND name = 'reset_token_expiry')
+-- =====================================================
+-- Roles Table (NEW - for role management)
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Roles')
 BEGIN
-    ALTER TABLE Accounts ADD reset_token_expiry DATETIME NULL;
-    PRINT 'Added reset_token_expiry column';
+    CREATE TABLE Roles (
+        role_id INT PRIMARY KEY IDENTITY(1,1),
+        role_name NVARCHAR(30) NOT NULL
+    );
+    CREATE UNIQUE INDEX IX_Roles_RoleName ON Roles(role_name);
+    INSERT INTO Roles (role_name) VALUES (N'Admin'), (N'Customer'), (N'Employee');
+    PRINT 'Created Roles table';
 END
-ELSE
-    PRINT 'reset_token_expiry column already exists';
 GO
 
+-- =====================================================
 -- Employees Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Employees')
 BEGIN
     CREATE TABLE Employees (
@@ -125,16 +133,15 @@ BEGIN
         account_id INT UNIQUE,
         employee_code NVARCHAR(10) NOT NULL UNIQUE,
         position NVARCHAR(50),
-        department NVARCHAR(50),
-        FOREIGN KEY (account_id) REFERENCES Accounts(account_id)
+        department NVARCHAR(50)
     );
     PRINT 'Created Employees table';
 END
-ELSE
-    PRINT 'Employees table already exists';
 GO
 
+-- =====================================================
 -- Products Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Products')
 BEGIN
     CREATE TABLE Products (
@@ -152,26 +159,23 @@ BEGIN
         specifications NVARCHAR(MAX),
         category_id INT,
         supplier_id INT,
+        is_available BIT NOT NULL DEFAULT 1,
         FOREIGN KEY (category_id) REFERENCES Categories(category_id),
         FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
     );
     PRINT 'Created Products table';
 END
 ELSE
-    PRINT 'Products table already exists';
-GO
-
--- Add is_available column (if not exists - from Update_IsAvailable.sql)
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Products') AND name = 'is_available')
 BEGIN
-    ALTER TABLE Products ADD is_available BIT NOT NULL DEFAULT 1;
-    PRINT 'Added is_available column to Products';
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('Products') AND name = 'is_available')
+        ALTER TABLE Products ADD is_available BIT NOT NULL DEFAULT 1;
+    PRINT 'Updated Products table with is_available column';
 END
-ELSE
-    PRINT 'is_available column already exists';
 GO
 
+-- =====================================================
 -- ProductVariants Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductVariants')
 BEGIN
     CREATE TABLE ProductVariants (
@@ -185,15 +189,54 @@ BEGIN
         original_price DECIMAL(10, 2),
         stock_quantity INT NOT NULL DEFAULT 0,
         display_order INT NOT NULL DEFAULT 0,
+        sku NVARCHAR(50) NULL,
         FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE
     );
     PRINT 'Created ProductVariants table';
 END
 ELSE
-    PRINT 'ProductVariants table already exists';
+BEGIN
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('ProductVariants') AND name = 'sku')
+        ALTER TABLE ProductVariants ADD sku NVARCHAR(50) NULL;
+    PRINT 'Updated ProductVariants table with sku column';
+END
 GO
 
+-- =====================================================
+-- ProductImages Table (NEW - for product/variant images)
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductImages')
+BEGIN
+    CREATE TABLE ProductImages (
+        image_id INT PRIMARY KEY IDENTITY(1,1),
+        product_id INT NOT NULL,
+        variant_id INT NULL,
+        image_url NVARCHAR(500) NOT NULL,
+        is_primary BIT NOT NULL DEFAULT 0,
+        is_thumbnail BIT NOT NULL DEFAULT 0,
+        display_order INT NOT NULL DEFAULT 0,
+        alt_text NVARCHAR(255) NULL,
+        FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE,
+        FOREIGN KEY (variant_id) REFERENCES ProductVariants(variant_id) ON DELETE SET NULL
+    );
+    PRINT 'Created ProductImages table';
+END
+ELSE
+BEGIN
+    -- Add missing columns for migration
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('ProductImages') AND name = 'display_order')
+        ALTER TABLE ProductImages ADD display_order INT NOT NULL DEFAULT 0;
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('ProductImages') AND name = 'is_thumbnail')
+        ALTER TABLE ProductImages ADD is_thumbnail BIT NOT NULL DEFAULT 0;
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE Object_ID = Object_ID('ProductImages') AND name = 'alt_text')
+        ALTER TABLE ProductImages ADD alt_text NVARCHAR(255) NULL;
+    PRINT 'Updated ProductImages table with missing columns';
+END
+GO
+
+-- =====================================================
 -- Inventory Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Inventory')
 BEGIN
     CREATE TABLE Inventory (
@@ -205,40 +248,42 @@ BEGIN
     );
     PRINT 'Created Inventory table';
 END
-ELSE
-    PRINT 'Inventory table already exists';
 GO
 
+-- =====================================================
 -- Orders Table
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orders')
 BEGIN
     CREATE TABLE Orders (
         order_id INT PRIMARY KEY IDENTITY(1,1),
-        account_id INT NULL,
+        account_id INT NULL,  -- NULL for guest checkout
         order_date DATETIME NOT NULL DEFAULT GETDATE(),
         total_amount DECIMAL(10, 2) NOT NULL,
         status NVARCHAR(20) NOT NULL DEFAULT 'Pending',
         customer_name NVARCHAR(100),
         customer_phone NVARCHAR(20),
         customer_address NVARCHAR(255),
-        notes NVARCHAR(500)
+        notes NVARCHAR(500),
+        shipping_address NVARCHAR(500) NULL,
+        payment_method NVARCHAR(50) NULL
     );
     PRINT 'Created Orders table';
 END
-ELSE
-    PRINT 'Orders table already exists';
 GO
 
--- OrderDetails Table
+-- =====================================================
+-- OrderDetails Table (FIXED - has order_detail_id as PK)
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'OrderDetails')
 BEGIN
     CREATE TABLE OrderDetails (
+        order_detail_id INT PRIMARY KEY IDENTITY(1,1),
         OrderID INT NOT NULL,
         ProductID INT NOT NULL,
         VariantID INT NULL,
         Quantity INT NOT NULL,
         Price DECIMAL(18, 2) NOT NULL,
-        PRIMARY KEY (OrderID, ProductID),
         FOREIGN KEY (OrderID) REFERENCES Orders(order_id),
         FOREIGN KEY (ProductID) REFERENCES Products(product_id),
         FOREIGN KEY (VariantID) REFERENCES ProductVariants(variant_id)
@@ -246,208 +291,298 @@ BEGIN
     PRINT 'Created OrderDetails table';
 END
 ELSE
-    PRINT 'OrderDetails table already exists';
+BEGIN
+    -- Ensure order_detail_id exists for migration
+    IF COL_LENGTH('dbo.OrderDetails', 'order_detail_id') IS NULL
+    BEGIN
+        -- Need to drop and recreate since we can't add IDENTITY to existing column
+        BEGIN TRY
+            -- Try to add as new column if PK is composite
+            ALTER TABLE OrderDetails ADD order_detail_id INT IDENTITY(1,1) NOT NULL;
+        END TRY BEGIN CATCH END CATCH
+    END
+
+    IF COL_LENGTH('dbo.OrderDetails', 'VariantID') IS NULL
+    BEGIN
+        ALTER TABLE OrderDetails ADD VariantID INT NULL;
+    END
+    PRINT 'Updated OrderDetails table with missing columns';
+END
 GO
 
--- Cart_Items Table
+-- =====================================================
+-- OrderItems Table (alias for OrderDetails compatibility)
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'OrderItems')
+BEGIN
+    CREATE TABLE OrderItems (
+        order_item_id INT PRIMARY KEY IDENTITY(1,1),
+        order_id INT NOT NULL,
+        product_id INT NOT NULL,
+        variant_id INT NULL,
+        quantity INT NOT NULL,
+        price DECIMAL(18, 2) NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+        FOREIGN KEY (product_id) REFERENCES Products(product_id),
+        FOREIGN KEY (variant_id) REFERENCES ProductVariants(variant_id)
+    );
+    PRINT 'Created OrderItems table';
+END
+GO
+
+-- =====================================================
+-- Carts Table (NEW - for cart management)
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Carts')
+BEGIN
+    CREATE TABLE Carts (
+        cart_id INT PRIMARY KEY IDENTITY(1,1),
+        account_id INT NULL,
+        session_id NVARCHAR(64) NULL,
+        role_name NVARCHAR(30) NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+    PRINT 'Created Carts table';
+END
+ELSE
+BEGIN
+    IF COL_LENGTH('dbo.Carts', 'session_id') IS NULL
+        ALTER TABLE Carts ADD session_id NVARCHAR(64) NULL;
+    IF COL_LENGTH('dbo.Carts', 'role_name') IS NULL
+        ALTER TABLE Carts ADD role_name NVARCHAR(30) NULL;
+    PRINT 'Updated Carts table with missing columns';
+END
+GO
+
+-- =====================================================
+-- Cart_Items Table (FIXED - nullable FKs, sentinel column)
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Cart_Items')
 BEGIN
     CREATE TABLE Cart_Items (
         cart_item_id INT PRIMARY KEY IDENTITY(1,1),
-        account_id INT,
+        cart_id INT NULL,
+        account_id INT NULL,
         product_id INT NOT NULL,
-        variant_id INT,
+        variant_id INT NULL,
         quantity INT NOT NULL,
         added_date DATETIME NOT NULL DEFAULT GETDATE(),
-        UNIQUE (account_id, product_id, variant_id),
-        FOREIGN KEY (account_id) REFERENCES Accounts(account_id),
+        variant_sentinel AS (ISNULL(VariantID, -999999)) PERSISTED,
         FOREIGN KEY (product_id) REFERENCES Products(product_id),
         FOREIGN KEY (variant_id) REFERENCES ProductVariants(variant_id)
     );
     PRINT 'Created Cart_Items table';
 END
 ELSE
-    PRINT 'Cart_Items table already exists';
+BEGIN
+    -- Ensure all columns exist for migration
+    IF COL_LENGTH('dbo.Cart_Items', 'cart_item_id') IS NULL
+        ALTER TABLE Cart_Items ADD cart_item_id INT IDENTITY(1,1) NOT NULL;
+    IF COL_LENGTH('dbo.Cart_Items', 'cart_id') IS NULL
+        ALTER TABLE Cart_Items ADD cart_id INT NULL;
+    IF COL_LENGTH('dbo.Cart_Items', 'variant_id') IS NULL
+        ALTER TABLE Cart_Items ADD variant_id INT NULL;
+    IF COL_LENGTH('dbo.Cart_Items', 'variant_sentinel') IS NULL
+        ALTER TABLE Cart_Items ADD variant_sentinel AS (ISNULL(VariantID, -999999)) PERSISTED;
+    PRINT 'Updated Cart_Items table with missing columns';
+END
 GO
 
--- AIConversationLogs Table
+-- Add unique constraint with sentinel (safe for NULLs)
+BEGIN TRY
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'IX_Cart_Items_Cart_Product_Variant_Sentinel'
+                   AND parent_object_id = OBJECT_ID('Cart_Items'))
+    BEGIN
+        ALTER TABLE Cart_Items ADD CONSTRAINT IX_Cart_Items_Cart_Product_Variant_Sentinel
+            UNIQUE NONCLUSTERED (cart_id, product_id, variant_sentinel);
+        PRINT 'Added unique constraint on Cart_Items';
+    END
+END TRY BEGIN CATCH
+    PRINT 'Note: ' + ERROR_MESSAGE();
+END CATCH
+GO
+
+-- =====================================================
+-- Receipts_Shipments Table (NEW - for inventory tracking)
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Receipts_Shipments')
+BEGIN
+    CREATE TABLE Receipts_Shipments (
+        movement_id INT PRIMARY KEY IDENTITY(1,1),
+        product_id INT NOT NULL,
+        movement_type NVARCHAR(10) NOT NULL,  -- 'receipt' or 'shipment'
+        quantity INT NOT NULL,
+        movement_date DATETIME2 NOT NULL DEFAULT GETDATE(),
+        related_order_id INT NULL,
+        FOREIGN KEY (product_id) REFERENCES Products(product_id)
+    );
+    PRINT 'Created Receipts_Shipments table';
+END
+GO
+
+-- =====================================================
+-- AI Conversation Tables
+-- =====================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AIConversationLogs')
 BEGIN
-    CREATE TABLE [AIConversationLogs] (
-        [log_id] int NOT NULL IDENTITY,
-        [session_id] uniqueidentifier NOT NULL,
-        [user_message] nvarchar(max) NOT NULL,
-        [ai_response] nvarchar(max) NOT NULL,
-        [intent_detected] nvarchar(50) NULL,
-        [confidence_score] decimal(18,2) NULL,
-        [was_escalated] bit NOT NULL,
-        [user_rating] int NULL,
-        [created_at] datetime2 NOT NULL,
-        CONSTRAINT [PK_AIConversationLogs] PRIMARY KEY ([log_id])
+    CREATE TABLE AIConversationLogs (
+        log_id INT PRIMARY KEY IDENTITY(1,1),
+        session_id UNIQUEIDENTIFIER NOT NULL,
+        user_message NVARCHAR(MAX) NOT NULL,
+        ai_response NVARCHAR(MAX) NOT NULL,
+        intent_detected NVARCHAR(50) NULL,
+        confidence_score DECIMAL(18,2) NULL,
+        was_escalated BIT NOT NULL DEFAULT 0,
+        user_rating INT NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
     );
     PRINT 'Created AIConversationLogs table';
 END
-ELSE
-    PRINT 'AIConversationLogs table already exists';
 GO
 
--- FAQs Table
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'FAQs')
-BEGIN
-    CREATE TABLE [FAQs] (
-        [faq_id] int NOT NULL IDENTITY,
-        [question] nvarchar(max) NOT NULL,
-        [answer] nvarchar(max) NOT NULL,
-        [category] nvarchar(50) NOT NULL,
-        [keywords] nvarchar(max) NULL,
-        [priority] int NOT NULL,
-        [is_active] bit NOT NULL,
-        [created_at] datetime2 NOT NULL,
-        CONSTRAINT [PK_FAQs] PRIMARY KEY ([faq_id])
-    );
-    PRINT 'Created FAQs table';
-END
-ELSE
-    PRINT 'FAQs table already exists';
-GO
-
--- Knowledge Chunks Table
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'KnowledgeChunks')
-BEGIN
-    CREATE TABLE [KnowledgeChunks] (
-        [chunk_id] int NOT NULL IDENTITY,
-        [source_type] nvarchar(20) NOT NULL,
-        [source_id] int NOT NULL,
-        [chunk_type] nvarchar(30) NOT NULL,
-        [raw_text] nvarchar(max) NOT NULL,
-        [normalized_text] nvarchar(max) NOT NULL,
-        [embedding] nvarchar(max) NOT NULL,
-        [price] decimal(10,2) NULL,
-        [category] nvarchar(100) NULL,
-        [priority] int NOT NULL,
-        [created_at] datetime2 NOT NULL,
-        CONSTRAINT [PK_KnowledgeChunks] PRIMARY KEY ([chunk_id])
-    );
-    PRINT 'Created KnowledgeChunks table';
-END
-ELSE
-    PRINT 'KnowledgeChunks table already exists';
-GO
-
--- ChatSessions Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ChatSessions')
 BEGIN
-    CREATE TABLE [ChatSessions] (
-        [session_id] uniqueidentifier NOT NULL,
-        [account_id] int NULL,
-        [status] nvarchar(20) NOT NULL,
-        [assigned_to] int NULL,
-        [started_at] datetime2 NOT NULL,
-        [ended_at] datetime2 NULL,
-        CONSTRAINT [PK_ChatSessions] PRIMARY KEY ([session_id]),
-        CONSTRAINT [FK_ChatSessions_Accounts_account_id] FOREIGN KEY ([account_id]) REFERENCES [Accounts] ([account_id])
+    CREATE TABLE ChatSessions (
+        session_id UNIQUEIDENTIFIER PRIMARY KEY,
+        account_id INT NULL,
+        status NVARCHAR(20) NOT NULL,
+        assigned_to INT NULL,
+        started_at DATETIME2 NOT NULL,
+        ended_at DATETIME2 NULL,
+        FOREIGN KEY (account_id) REFERENCES Accounts(account_id)
     );
     PRINT 'Created ChatSessions table';
 END
-ELSE
-    PRINT 'ChatSessions table already exists';
 GO
 
--- Notifications Table
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
-BEGIN
-    CREATE TABLE [Notifications] (
-        [notification_id] int NOT NULL IDENTITY,
-        [account_id] int NULL,
-        [type] nvarchar(50) NOT NULL,
-        [message] nvarchar(max) NOT NULL,
-        [is_read] bit NOT NULL,
-        [link] nvarchar(255) NULL,
-        [created_at] datetime2 NOT NULL,
-        CONSTRAINT [PK_Notifications] PRIMARY KEY ([notification_id]),
-        CONSTRAINT [FK_Notifications_Accounts_account_id] FOREIGN KEY ([account_id]) REFERENCES [Accounts] ([account_id])
-    );
-    PRINT 'Created Notifications table';
-END
-ELSE
-    PRINT 'Notifications table already exists';
-GO
-
--- ChatMessages Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ChatMessages')
 BEGIN
-    CREATE TABLE [ChatMessages] (
-        [message_id] int NOT NULL IDENTITY,
-        [session_id] uniqueidentifier NOT NULL,
-        [message] nvarchar(max) NOT NULL,
-        [sender_type] nvarchar(10) NOT NULL,
-        [created_at] datetime2 NOT NULL,
-        [metadata] nvarchar(max) NULL,
-        CONSTRAINT [PK_ChatMessages] PRIMARY KEY ([message_id]),
-        CONSTRAINT [FK_ChatMessages_ChatSessions_session_id] FOREIGN KEY ([session_id]) REFERENCES [ChatSessions] ([session_id]) ON DELETE CASCADE
+    CREATE TABLE ChatMessages (
+        message_id INT PRIMARY KEY IDENTITY(1,1),
+        session_id UNIQUEIDENTIFIER NOT NULL,
+        message NVARCHAR(MAX) NOT NULL,
+        sender_type NVARCHAR(10) NOT NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        metadata NVARCHAR(MAX) NULL,
+        FOREIGN KEY (session_id) REFERENCES ChatSessions(session_id) ON DELETE CASCADE
     );
     PRINT 'Created ChatMessages table';
 END
-ELSE
-    PRINT 'ChatMessages table already exists';
+GO
+
+-- =====================================================
+-- FAQs Table
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'FAQs')
+BEGIN
+    CREATE TABLE FAQs (
+        faq_id INT PRIMARY KEY IDENTITY(1,1),
+        question NVARCHAR(MAX) NOT NULL,
+        answer NVARCHAR(MAX) NOT NULL,
+        category NVARCHAR(50) NOT NULL,
+        keywords NVARCHAR(MAX) NULL,
+        priority INT NOT NULL DEFAULT 0,
+        is_active BIT NOT NULL DEFAULT 1,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+    PRINT 'Created FAQs table';
+END
+GO
+
+-- =====================================================
+-- KnowledgeChunks Table
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'KnowledgeChunks')
+BEGIN
+    CREATE TABLE KnowledgeChunks (
+        chunk_id INT PRIMARY KEY IDENTITY(1,1),
+        source_type NVARCHAR(20) NOT NULL,
+        source_id INT NOT NULL,
+        chunk_type NVARCHAR(30) NOT NULL,
+        raw_text NVARCHAR(MAX) NOT NULL,
+        normalized_text NVARCHAR(MAX) NOT NULL,
+        embedding NVARCHAR(MAX) NOT NULL,
+        price DECIMAL(10,2) NULL,
+        category NVARCHAR(100) NULL,
+        priority INT NOT NULL DEFAULT 0,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+    CREATE NONCLUSTERED INDEX IX_KnowledgeChunks_Source ON KnowledgeChunks(source_type, source_id);
+    CREATE NONCLUSTERED INDEX IX_KnowledgeChunks_Category ON KnowledgeChunks(category);
+    PRINT 'Created KnowledgeChunks table';
+END
+GO
+
+-- =====================================================
+-- Notifications Table
+-- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+BEGIN
+    CREATE TABLE Notifications (
+        notification_id INT PRIMARY KEY IDENTITY(1,1),
+        account_id INT NULL,
+        type NVARCHAR(50) NOT NULL,
+        message NVARCHAR(MAX) NOT NULL,
+        is_read BIT NOT NULL DEFAULT 0,
+        link NVARCHAR(255) NULL,
+        created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        FOREIGN KEY (account_id) REFERENCES Accounts(account_id)
+    );
+    PRINT 'Created Notifications table';
+END
 GO
 
 -- =====================================================
 -- SAMPLE DATA
 -- =====================================================
 
--- Categories (skip if exists)
+-- Categories
 IF NOT EXISTS (SELECT * FROM Categories)
 BEGIN
     INSERT INTO Categories (name) VALUES (N'Điện thoại');
     INSERT INTO Categories (name) VALUES (N'Laptop');
     INSERT INTO Categories (name) VALUES (N'Tablet');
     INSERT INTO Categories (name) VALUES (N'Phụ kiện');
+    INSERT INTO Categories (name) VALUES (N'Đồng hồ thông minh');
     PRINT 'Inserted Categories data';
 END
-ELSE
-    PRINT 'Categories already has data';
 GO
 
--- Suppliers (skip if exists)
+-- Suppliers
 IF NOT EXISTS (SELECT * FROM Suppliers)
 BEGIN
     INSERT INTO Suppliers (name, contact_person, phone, email, address)
     VALUES (N'Samsung Việt Nam', N'Nguyễn Văn A', '0912345678', 'contact@samsung.vn', N'TP. Hồ Chí Minh'),
-           (N'Apple Vietnam', N'Trần Thị B', '0987654321', 'contact@apple.vn', N'Hà Nội');
+           (N'Apple Vietnam', N'Trần Thị B', '0987654321', 'contact@apple.vn', N'Hà Nội'),
+           (N'Xiaomi Việt Nam', N'Lê Văn C', '0977123456', 'contact@xiaomi.vn', N'TP. Đà Nẵng');
     PRINT 'Inserted Suppliers data';
 END
-ELSE
-    PRINT 'Suppliers already has data';
 GO
 
--- Accounts (skip if exists)
+-- Accounts
 IF NOT EXISTS (SELECT * FROM Accounts)
 BEGIN
-    INSERT INTO Accounts (username, password_hash, email, full_name, phone, address, role)
-    VALUES (N'admin', 'admin123', 'admin@techshop.vn', N'Quản trị viên', '0917111111', N'TP. Hồ Chí Minh', 'Admin'),
-           (N'customer1', 'customer123', 'customer@email.com', N'Khách hàng 1', '0919333333', N'TP. Hồ Chí Minh', 'Customer');
+    INSERT INTO Accounts (username, password_hash, email, full_name, phone, address, role, is_active)
+    VALUES (N'admin', 'admin123', 'admin@techshop.vn', N'Quản trị viên', '0917111111', N'TP. Hồ Chí Minh', 'Admin', 1),
+           (N'customer1', 'customer123', 'customer@email.com', N'Khách hàng 1', '0919222222', N'TP. Hồ Chí Minh', 'Customer', 1),
+           (N'customer2', 'customer123', 'customer2@email.com', N'Khách hàng 2', '0919333333', N'Hà Nội', 'Customer', 1);
     PRINT 'Inserted Accounts data';
 END
-ELSE
-    PRINT 'Accounts already has data';
 GO
 
--- Products (skip if exists)
+-- Products
 IF NOT EXISTS (SELECT * FROM Products)
 BEGIN
     INSERT INTO Products (name, description, price, original_price, stock_quantity, rating, is_new, is_hot, discount_percent, specifications, image_url, category_id, supplier_id, is_available)
     VALUES
-    (N'iPhone 15 Pro Max', N'iPhone 15 Pro Max với chip A17 Pro, thiết kế titan cao cấp.', 32990000, 34990000, 100, 4.9, 1, 1, 6, '{"cpu": "A17 Pro", "screen": "6.7 inch"}', '/images/products/iPhone_15_Pro_Max.png', 1, 2, 1),
-    (N'Samsung Galaxy S24 Ultra', N'Samsung Galaxy S24 Ultra với AI tiên tiến và bút S Pen.', 28990000, 31990000, 80, 4.8, 1, 1, 9, '{"cpu": "Snapdragon 8 Gen 3", "screen": "6.8 inch"}', '/images/products/Galaxy_S24_Ultra.png', 1, 1, 1),
-    (N'MacBook Air M3', N'Laptop siêu mỏng nhẹ với chip M3 cực mạnh.', 27990000, 29990000, 50, 4.9, 1, 1, 7, '{"cpu": "Apple M3", "ram": "8GB"}', '/images/products/MacBook_Air_M3.png', 2, 2, 1);
+    (N'iPhone 15 Pro Max', N'iPhone 15 Pro Max với chip A17 Pro, thiết kế titan cao cấp.', 32990000, 34990000, 100, 4.9, 1, 1, 6, '{"cpu": "A17 Pro", "screen": "6.7 inch"}', '/images/products/iphone15promax.png', 1, 2, 1),
+    (N'Samsung Galaxy S24 Ultra', N'Samsung Galaxy S24 Ultra với AI tiên tiến và bút S Pen.', 28990000, 31990000, 80, 4.8, 1, 1, 9, '{"cpu": "Snapdragon 8 Gen 3", "screen": "6.8 inch"}', '/images/products/galaxys24ultra.png', 1, 1, 1),
+    (N'MacBook Air M3', N'Laptop siêu mỏng nhẹ với chip M3 cực mạnh.', 27990000, 29990000, 50, 4.9, 1, 1, 7, '{"cpu": "Apple M3", "ram": "8GB"}', '/images/products/macbookairm3.png', 2, 2, 1);
     PRINT 'Inserted Products data';
 END
-ELSE
-    PRINT 'Products already has data';
 GO
 
--- Product Variants (skip if exists)
+-- Product Variants
 IF NOT EXISTS (SELECT * FROM ProductVariants)
 BEGIN
     INSERT INTO ProductVariants (product_id, color, storage, ram, variant_name, price, original_price, stock_quantity, display_order)
@@ -461,26 +596,22 @@ BEGIN
     (3, N'Space Gray', '512GB', '16GB', N'Space Gray / 512GB / 16GB RAM', 35990000, 38990000, 10, 2);
     PRINT 'Inserted ProductVariants data';
 END
-ELSE
-    PRINT 'ProductVariants table already has data';
 GO
 
 -- =====================================================
--- DATA FIXES (from Fix_Duplicate_Emails.sql)
+-- DATA FIXES
 -- =====================================================
 
--- Normalize all emails to lowercase to prevent duplicate registration errors
-UPDATE [dbo].[Accounts]
-SET [Email] = LOWER(LTRIM(RTRIM([Email])))
-WHERE [Email] IS NOT NULL;
-
+-- Normalize all emails to lowercase
+UPDATE Accounts SET Email = LOWER(LTRIM(RTRIM(Email))) WHERE Email IS NOT NULL;
 PRINT 'Normalized all emails to lowercase';
+GO
 
 -- =====================================================
 -- DONE
 -- =====================================================
 PRINT '';
 PRINT '==========================================';
-PRINT 'Database setup complete!';
+PRINT 'Database TechShopWebsite1 setup complete!';
 PRINT '==========================================';
 PRINT '';

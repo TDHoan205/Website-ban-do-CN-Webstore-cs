@@ -1,257 +1,201 @@
-# 🛒 Webstore - TechShop Management System
+# Webstore - Website Bán Đồ Công Nghệ
 
-[![.NET](https://img.shields.io/badge/.NET-8.0-blue)](https://dotnet.microsoft.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status: Active](https://img.shields.io/badge/Status-Active-success)](README.md)
+Website thương mại điện tử bán đồ công nghệ (điện thoại, laptop, tablet, phụ kiện).
 
-Webstore là một ứng dụng web quản lý cửa hàng bán lẻ công nghệ được xây dựng bằng **ASP.NET Core 8.0**. Hệ thống cung cấp đầy đủ các tính năng quản lý sản phẩm, đơn hàng, kho hàng, nhân viên và khách hàng.
+## 🚀 Quick Start (Cho thành viên mới)
 
-## ✨ Tính Năng Chính
-
-- **👥 Quản Lý Tài Khoản & Xác Thực**
-  - Đăng ký tài khoản người dùng
-  - Đăng nhập / Đăng xuất
-  - Quản lý thông tin tài khoản
-  - Hỗ trợ role-based access control
-
-- **📦 Quản Lý Sản Phẩm**
-  - CRUD hoàn chỉnh cho sản phẩm
-  - Phân loại sản phẩm theo danh mục
-  - Quản lý ảnh sản phẩm
-  - Xem chi tiết sản phẩm
-
-- **📊 Quản Lý Kho Hàng**
-  - Theo dõi tồn kho sản phẩm
-  - Cập nhật số lượng hàng
-  - Quản lý nhà cung cấp
-  - Quản lý lô hàng nhập
-
-- **🛍️ Giỏ Hàng & Đơn Hàng**
-  - Thêm/Xóa sản phẩm vào giỏ hàng
-  - Tạo đơn hàng từ giỏ hàng
-  - Theo dõi trạng thái đơn hàng
-  - Quản lý chi tiết đơn hàng
-
-- **👔 Quản Lý Nhân Viên**
-  - CRUD thông tin nhân viên
-  - Quản lý thông tin cá nhân
-
-- **📈 Báo Cáo & Thống Kê**
-  - Xem thống kê bán hàng
-  - Phân tích dữ liệu bán hàng
-
-## 🛠️ Yêu Cầu Hệ Thống
-
-- **.NET 8.0 SDK** trở lên
-- **SQL Server 2019** trở lên (hoặc SQL Server Express)
-- **Visual Studio 2022** (khuyến nghị) hoặc **VS Code** với C# extension
-- **Windows** (cho SQL Server Express)
-
-## 📥 Cài Đặt
-
-### 1. Clone Repository
+### Bước 1: Clone repo
 ```bash
-git clone https://github.com/yourusername/webstore.git
-cd webstore
+git clone <repo-url>
+cd Website-ban-do-CN-Webstore-cs
 ```
 
-### 2. Cấu Hình Cơ Sở Dữ Liệu
-
-#### Tạo Database
-Mở **SQL Server Management Studio** hoặc **Azure Data Studio** và chạy script:
-
-```sql
--- Tệp: database/create_database.sql
-```
-
-Hoặc sử dụng Package Manager Console:
-```powershell
-Update-Database
-```
-
-#### Cập Nhật Connection String
-Chỉnh sửa `appsettings.json`:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_SERVER;Database=TechShopWebsite1;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-  }
-}
-```
-
-### 3. Khôi Phục Packages
+### Bước 2: Setup nhanh
 ```bash
-dotnet restore
+# Chạy script setup tự động
+setup.bat
 ```
 
-### 4. Chạy Ứng Dụng
+### Bước 3: Cấu hình Database
+1. Mở file `appsettings.json`
+2. Tìm dòng:
+   ```json
+   "Server=YOUR_SERVER_NAME;..."
+   ```
+3. Thay `YOUR_SERVER_NAME` bằng server của bạn:
+   - Nếu dùng SQL Server LocalDB: `Server=(localdb)\mssqllocaldb` hoặc `localhost`
+   - Xem server name: Mở **SQL Server Management Studio (SSMS)** → Server name
+
+### Bước 4: Tạo Database
+1. Mở **SQL Server Management Studio (SSMS)**
+2. Connect đến server của bạn
+3. Mở file `SQL/setup_database.sql`
+4. Nhấn **F5** hoặc **Execute** để chạy script
+5. Database `TechShopWebsite2` sẽ được tạo tự động
+
+### Bước 5: Chạy ứng dụng
 ```bash
 dotnet run
 ```
+Mở trình duyệt: http://localhost:5000
 
-Ứng dụng sẽ khởi động tại: **https://localhost:5001** (hoặc cổng được chỉ định)
-
-## 📁 Cấu Trúc Thư Mục
-
-```
-Webstore/
-├── Controllers/              # Xử lý logic nghiệp vụ
-│   ├── AuthController.cs
-│   ├── ProductsController.cs
-│   ├── OrdersController.cs
-│   └── ...
-├── Models/                   # Entities & ViewModels
-│   ├── Product.cs
-│   ├── Order.cs
-│   ├── Account.cs
-│   └── ...
-├── Views/                    # Razor templates
-│   ├── Auth/
-│   ├── Products/
-│   ├── Orders/
-│   └── ...
-├── Data/
-│   ├── ApplicationDbContext.cs   # EF Core DbContext
-│   └── SeedData.cs              # Dữ liệu mẫu
-├── wwwroot/                  # Static files (CSS, JS, Images)
-├── Properties/
-│   └── launchSettings.json   # Tính năng chạy
-├── appsettings.json          # Cấu hình chính
-└── Program.cs                # Khởi tạo ứng dụng
-```
-
-## 🔑 Công Nghệ Sử Dụng
-
-| Công Nghệ | Phiên Bản | Mục Đích |
-|-----------|----------|---------|
-| ASP.NET Core | 8.0 | Framework web |
-| Entity Framework Core | 8.0 | ORM |
-| SQL Server | 2019+ | Cơ sở dữ liệu |
-| Razor Pages | 8.0 | Giao diện người dùng |
-| Cookie Authentication | 8.0 | Xác thực |
-
-## 🚀 Cách Sử Dụng
-
-### 1. Trang Chủ
-- Truy cập `/Home/Index` để xem trang chủ
-- Truy cập `/Home/Landing` cho trang giới thiệu
-
-### 2. Tài Khoản
-- **Đăng ký**: `/Auth/Register`
-- **Đăng nhập**: `/Auth/Login`
-- **Quản lý tài khoản**: `/Accounts`
-
-### 3. Mua Sắm
-- **Danh sách sản phẩm**: `/Shop`
-- **Danh mục**: `/Categories`
-- **Giỏ hàng**: `/CartItems`
-
-### 4. Quản Lý (Yêu cầu quyền admin)
-- **Sản phẩm**: `/Products`
-- **Đơn hàng**: `/Orders`
-- **Kho hàng**: `/Inventory`
-- **Nhà cung cấp**: `/Suppliers`
-- **Nhân viên**: `/Employees`
-- **Thống kê**: `/Statistics`
-
-## 🔐 Bảo Mật
-
-- ✅ Xác thực dựa trên Cookie
-- ✅ Mã hóa mật khẩu với salt
-- ✅ HttpOnly Cookies
-- ✅ HTTPS support
-- ✅ Session timeout (30 phút)
-- ✅ CSRF protection (ASP.NET Core built-in)
-
-## 📝 Xác Thực
-
-Ứng dụng sử dụng **Cookie-based Authentication**:
-- Session timeout: **30 phút**
-- Cookie expiration: **8 giờ**
-- Sliding expiration: **Enabled**
-
-## 💾 Mô Hình Dữ Liệu
-
-Ứng dụng sử dụng các bảng chính:
-- **Accounts** - Tài khoản người dùng
-- **Categories** - Danh mục sản phẩm
-- **Products** - Sản phẩm
-- **Suppliers** - Nhà cung cấp
-- **Inventory** - Tồn kho
-- **Orders** - Đơn hàng
-- **OrderItems** - Chi tiết đơn hàng
-- **Employees** - Nhân viên
-- **CartItems** - Giỏ hàng
-- **ReceiptShipments** - Lô hàng nhập
-
-## 🐛 Troubleshooting
-
-### Lỗi kết nối Database
-```
-❌ Không thể kết nối tới SQL Server
-```
-**Giải pháp:**
-- Kiểm tra SQL Server đang chạy
-- Xác nhận connection string trong `appsettings.json`
-- Kiểm tra quyền truy cập tài khoản
-
-### Lỗi Port đã sử dụng
-```
-System.Net.HttpListenerException: Access Denied
-```
-**Giải pháp:**
-- Thay đổi port trong `launchSettings.json`
-- Hoặc chạy với: `dotnet run --urls "https://localhost:5002"`
-
-### Database chưa được tạo
-```csharp
-// Chạy trong Package Manager Console:
-Update-Database
-```
-
-## 📋 Roadmap
-
-- [ ] API REST documentation
-- [ ] Unit tests
-- [ ] Payment gateway integration
-- [ ] Email notifications
-- [ ] Multi-language support
-- [ ] Mobile app (Flutter/React Native)
-- [ ] Advanced analytics dashboard
-
-## 🤝 Đóng Góp
-
-Chúng tôi rất hoan nghênh những đóng góp từ cộng đồng!
-
-**Quy trình:**
-1. Fork repository
-2. Tạo branch feature (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Mở Pull Request
-
-## 📄 License
-
-Dự án này được cấp phép dưới **MIT License** - xem file [LICENSE](LICENSE) để chi tiết.
-
-## 📧 Liên Hệ & Hỗ Trợ
-
-- 📧 Email: [your-email@example.com](mailto:your-email@example.com)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/webstore/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/webstore/discussions)
-
-## 👨‍💻 Tác Giả
-
-- **Your Name** - Initial work - [@yourgithub](https://github.com/yourusername)
-
-## 🙏 Acknowledgments
-
-- ASP.NET Core team
-- Entity Framework Core team
-- Bootstrap framework
-- Inspiration từ các dự án quản lý cửa hàng tiêu biểu
+### Tài khoản mặc định
+- **Admin**: username: `admin`, password: `admin123`
+- **Customer**: username: `customer1`, password: `customer123`
 
 ---
 
-**Được phát triển với ❤️ bằng ASP.NET Core 8.0**
-# Website-ban-do-CN-Webstore-cs
+## 🔧 Yêu cầu hệ thống
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads) (hoặc SQL Server Express/LocalDB)
+- [SQL Server Management Studio](https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms) (khuyến nghị)
+
+---
+
+## 📁 Cấu trúc Project
+
+```
+Website-ban-do-CN-Webstore-cs/
+├── Controllers/           # Controllers (API & MVC)
+├── Models/                # Data Models
+├── Views/                 # Razor Views
+├── Services/              # Business Logic
+├── Data/                  # DbContext, Repositories
+├── Helpers/               # Utility classes
+├── wwwroot/               # Static files (CSS, JS, images)
+├── SQL/                   # Database scripts
+├── setup.bat              # Script setup nhanh
+├── appsettings.json       # Configuration
+└── Program.cs             # Entry point
+```
+
+---
+
+## ⚙️ Cấu hình (appsettings.json)
+
+### Database Connection
+```json
+"ConnectionStrings": {
+    "DefaultConnection": "Server=YOUR_SERVER;Database=TechShopWebsite2;..."
+}
+```
+
+### Email Settings (cho chức năng quên mật khẩu)
+```json
+"EmailSettings": {
+    "Username": "your-email@gmail.com",
+    "Password": "your-app-password"
+}
+```
+> Lưu ý: Cần tạo App Password từ Google Account → Security → 2-Step Verification → App Passwords
+
+### AI Chat Settings
+```json
+"Gemini": {
+    "ApiKey": "your-gemini-api-key"
+}
+```
+
+---
+
+## 🐛 Xử lý lỗi thường gặp
+
+### Lỗi "Cannot open database"
+```
+1. Kiểm tra SQL Server đang chạy (Services → SQL Server)
+2. Kiểm tra server name trong appsettings.json
+3. Đảm bảo database TechShopWebsite2 đã được tạo
+```
+
+### Lỗi "Port already in use"
+```bash
+# Tìm và kill process đang dùng port 5000
+netstat -ano | findstr :5000
+taskkill /PID <process_id> /F
+```
+
+### Lỗi CSS/JS không load
+```bash
+# Xóa cache và build lại
+rmdir /s /q obj
+rmdir /s /q bin
+dotnet build
+dotnet run
+```
+
+### Lỗi "Unable to resolve services"
+```bash
+dotnet restore
+dotnet build --no-incremental
+```
+
+---
+
+## 📝 Git Workflow cho Team
+
+### Trước khi bắt đầu làm việc
+```bash
+git checkout main
+git pull origin main
+dotnet restore
+dotnet build
+```
+
+### Khi push code
+```bash
+# KHÔNG BAO GIỜ push các file này:
+# - appsettings.json (chứa secrets)
+# - bin/, obj/ (build outputs)
+# - *.log, *.sqlite
+
+# LUÔN LUÔN commit thay đổi có ý nghĩa:
+git add .
+git commit -m "feat: them chuc nang tim kiem san pham"
+git push origin <branch-name>
+```
+
+### Tạo Pull Request
+1. Tạo branch mới cho feature: `git checkout -b feature/ten-feature`
+2. Code và test kỹ
+3. Push: `git push origin feature/ten-feature`
+4. Tạo Pull Request trên GitHub/GitLab
+5. Đợi review và merge
+
+---
+
+## 🔒 Bảo mật
+
+### KHÔNG BAO GIỜ commit:
+- `appsettings.json` (chứa API keys, passwords)
+- Connection strings thật
+- Database files (*.mdf, *.ldf)
+- Log files
+
+### LUÔN sử dụng:
+- Environment variables cho production
+- `.gitignore` đúng cách
+- API keys giả cho development
+
+---
+
+## 👥 Team Members
+
+| Thành viên | Vai trò |
+|------------|---------|
+| [Tên 1] | Backend, Database |
+| [Tên 2] | Frontend, UI/UX |
+| [Tên 3] | Testing, Documentation |
+
+---
+
+## 📜 License
+
+MIT License - Free to use cho mục đích học tập.
+
+---
+
+## 📞 Liên hệ
+
+- Email nhóm: [team-email@example.com]
+- Slack/Discord: [link channel]

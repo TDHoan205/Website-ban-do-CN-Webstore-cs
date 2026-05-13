@@ -1,0 +1,54 @@
+{
+    "Logging": {
+        "LogLevel": {
+            "Default": "Information",
+            "Microsoft.AspNetCore": "Warning"
+        }
+    },
+    "AllowedHosts": "*",
+    "ConnectionStrings": {
+        "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=TechShopWebsite2;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+    },
+    "PaymentInfo": {
+        "BankName": "MB Bank",
+        "BankBin": "mbbank",
+        "AccountNumber": "0386267692",
+        "AccountName": "WEBSTORE SHOP"
+    },
+    "VnPay": {
+        "TmnCode": "",
+        "HashSecret": "",
+        "BaseUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+        "Version": "2.1.0",
+        "Command": "pay",
+        "CurrCode": "VND",
+        "Locale": "vn",
+        "ReturnUrl": "/Shop/PaymentReturn"
+    },
+    "PaymentSandbox": {
+        "Enabled": true
+    },
+    "Sepay": {
+        "ApiKey": "",
+        "AccountNumber": "0386267692"
+    },
+    "EmailSettings": {
+        "SmtpHost": "smtp.gmail.com",
+        "SmtpPort": "587",
+        "EnableSsl": "true",
+        "FromEmail": "YOUR_EMAIL@gmail.com",
+        "FromName": "Webstore",
+        "Username": "YOUR_EMAIL@gmail.com",
+        "Password": "YOUR_APP_PASSWORD"
+    },
+    "Gemini": {
+        "ApiKey": "YOUR_GEMINI_API_KEY",
+        "ChatModel": "gemini-1.5-flash",
+        "EmbeddingModel": "text-embedding-004"
+    },
+    "OpenAI": {
+        "ApiKey": "",
+        "Model": "gpt-4o",
+        "EmbeddingModel": "text-embedding-3-small"
+    }
+}
