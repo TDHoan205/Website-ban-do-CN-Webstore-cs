@@ -20,7 +20,7 @@
                     <br />Thông minh hơn
                 </h1>
                 <p class="hero-desc-modern">
-                    Hệ thống AI tư vấn thông minh giúp bạn tìm kiếm sản phẩm hoàn hảo. 
+                    Hệ thống AI tư vấn thông minh giúp bạn tìm kiếm sản phẩm hoàn hảo.
                     Cam kết chính hãng với bảo hành đáng tin cậy.
                 </p>
                 <div class="hero-actions-modern">
@@ -137,18 +137,38 @@
                 Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
             </a>
         </div>
-        <div class="categories-grid">
-            @foreach (var category in ((List<Webstore.Models.Category>)ViewBag.Categories).Take(8))
-            {
-                <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
-                   class="category-card-modern">
-                    <div class="category-icon-wrap">
-                        <i class="fas fa-@GetCategoryIcon(category.Name)"></i>
+        @{
+            var categories = ((List<Webstore.Models.Category>)ViewBag.Categories).Take(8).ToList();
+            var chunkSize = 4;
+        }
+        <div id="categoriesCarousel" class="carousel slide categories-carousel" data-bs-ride="false">
+            <div class="carousel-inner">
+                @for (var i = 0; i < categories.Count; i += chunkSize)
+                {
+                    var group = categories.Skip(i).Take(chunkSize);
+                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                        <div class="categories-slide-grid">
+                            @foreach (var category in group)
+                            {
+                                <a asp-controller="Shop" asp-action="Products" asp-route-categoryId="@category.CategoryId"
+                                   class="category-card-modern">
+                                    <div class="category-icon-wrap">
+                                        <i class="fas fa-@GetCategoryIcon(category.Name)"></i>
+                                    </div>
+                                    <span class="category-name-modern">@category.Name</span>
+                                    <div class="category-card-shimmer"></div>
+                                </a>
+                            }
+                        </div>
                     </div>
-                    <span class="category-name-modern">@category.Name</span>
-                    <div class="category-card-shimmer"></div>
-                </a>
-            }
+                }
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#categoriesCarousel" data-bs-slide="prev" aria-label="Danh mục trước">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#categoriesCarousel" data-bs-slide="next" aria-label="Danh mục tiếp theo">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            </button>
         </div>
     </div>
 </section>
@@ -201,7 +221,7 @@
                     @foreach (var product in dealProducts.Take(3))
                     {
                         <div class="deal-mini-card">
-                            <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/products/placeholder.svg" : product.ImageUrl)" 
+                            <img src="@(string.IsNullOrEmpty(product.ImageUrl) ? "/images/products/placeholder.svg" : product.ImageUrl)"
                                  alt="@product.Name" class="deal-mini-img" />
                             <div class="deal-mini-info">
                                 <span class="deal-mini-name">@product.Name</span>
@@ -324,7 +344,7 @@
             <div class="cta-actions-modern">
                 <a href="tel:18006601" class="btn-cta-phone-modern">
                     <i class="fas fa-phone-alt me-2"></i>
-                    <span>1800.6601 (Nhánh 1)</span>
+                    <span>1800.6601</span>
                 </a>
                 <a asp-controller="Shop" asp-action="Support" class="btn-cta-chat-modern">
                     <i class="fas fa-comments me-2"></i>
@@ -392,7 +412,7 @@
         .product-card-title a { color: inherit; text-decoration: none; }
         .product-card-rating { color: #ff9f43; font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
         .product-card-price { font-size: 18px; font-weight: 700; color: #ee4d2d; margin-top: auto; margin-bottom: 15px; }
-        
+
         .btn-add-cart {
             width: 100%; padding: 10px; background: var(--primary);
             color: #fff; border: none; border-radius: 8px; font-weight: 600;
@@ -443,14 +463,14 @@
         function loadNewProducts(page) {
             const container = $('#new-products-container');
             container.css('opacity', '0.5');
-            
+
             $.get('@Url.Action("GetFeaturedProductsPartial", "Shop")', { page: page }, function(data) {
                 container.html(data);
                 container.css('opacity', '1');
-                
+
                 // Scroll to section head smoothly
                 document.getElementById('sanpham-moi').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                
+
                 // Re-init any animations if needed
                 if (typeof initStaggerCards === 'function') initStaggerCards();
             });
@@ -459,14 +479,14 @@
         function loadHotProducts(page) {
             const container = $('#hot-products-container');
             container.css('opacity', '0.5');
-            
+
             $.get('@Url.Action("GetHotProductsPartial", "Shop")', { page: page }, function(data) {
                 container.html(data);
                 container.css('opacity', '1');
-                
+
                 // Scroll to section head smoothly
                 document.getElementById('sanpham-hot').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                
+
                 // Re-init any animations if needed
                 if (typeof initStaggerCards === 'function') initStaggerCards();
             });

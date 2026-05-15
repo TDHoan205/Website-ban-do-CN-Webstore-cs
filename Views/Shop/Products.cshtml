@@ -137,11 +137,11 @@
 
             @if (Model.Any())
             {
-                <div class="row g-4 view-mode-grid" id="productsGrid">
+                <div class="row g-3 view-mode-grid" id="productsGrid">
                     @{ var staggerIndex = 0; }
                     @foreach (var product in Model)
                     {
-                        <div class="product-item-container col-lg-3 col-md-4 col-sm-6 mb-4 js-stagger-card" data-stagger-index="@staggerIndex">
+                        <div class="product-item-container col-lg-3 col-md-4 col-sm-6 mb-3 js-stagger-card" data-stagger-index="@staggerIndex">
                             @await Html.PartialAsync("Partials/_ProductCard", product)
                         </div>
                         staggerIndex++;
@@ -157,7 +157,7 @@
                             {
                                 <li class="page-item">
                                     <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
-                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
+                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice"
                                        asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-filter="@ViewBag.Filter" asp-route-page="@(Model.CurrentPage - 1)">
                                         <i class="fas fa-chevron-left"></i>
                                     </a>
@@ -168,7 +168,7 @@
                             {
                                 <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
                                     <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
-                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
+                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice"
                                        asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-filter="@ViewBag.Filter" asp-route-page="@i">@i</a>
                                 </li>
                             }
@@ -177,7 +177,7 @@
                             {
                                 <li class="page-item">
                                     <a class="page-link" asp-route-search="@ViewBag.Search" asp-route-categoryId="@ViewBag.CategoryId"
-                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice" 
+                                       asp-route-sortBy="@ViewBag.SortBy" asp-route-minPrice="@ViewBag.MinPrice"
                                        asp-route-maxPrice="@ViewBag.MaxPrice" asp-route-filter="@ViewBag.Filter" asp-route-page="@(Model.CurrentPage + 1)">
                                         <i class="fas fa-chevron-right"></i>
                                     </a>
@@ -253,7 +253,7 @@
                     productsGrid.classList.add('view-mode-grid');
                     gridBtn.classList.add('active');
                     listBtn.classList.remove('active');
-                    
+
                     // Update classes for grid mode
                     $('.product-item-container').removeClass('col-12').addClass('col-lg-3 col-md-4 col-sm-6');
                     localStorage.setItem('productViewMode', 'grid');
@@ -264,7 +264,7 @@
                     productsGrid.classList.add('view-mode-list');
                     listBtn.classList.add('active');
                     gridBtn.classList.remove('active');
-                    
+
                     // Update classes for list mode
                     $('.product-item-container').removeClass('col-lg-3 col-md-4 col-sm-6').addClass('col-12');
                     localStorage.setItem('productViewMode', 'list');

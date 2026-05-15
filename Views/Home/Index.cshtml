@@ -84,7 +84,14 @@
                     <h5 class="mb-0 fw-bold">Trạng Thái Đơn Hàng</h5>
                 </div>
                 <div class="card-body-custom d-flex flex-column align-items-center justify-content-center pt-4">
-                    <canvas id="statusChart" style="max-height: 250px;"></canvas>
+                    @{ var totalStatusOrders = Model.NewOrders + Model.ProcessingOrders + Model.DeliveredOrders + Model.CanceledOrders; }
+                    <div class="status-chart-wrap">
+                        <canvas id="statusChart" style="max-height: 250px;"></canvas>
+                        <div class="status-chart-center">
+                            <div class="center-value">@totalStatusOrders</div>
+                            <div class="center-label">Đơn</div>
+                        </div>
+                    </div>
                     <div class="status-legend mt-4 w-100">
                         <div class="d-flex justify-content-between mb-2">
                             <span><i class="fas fa-circle text-primary me-2"></i>Mới</span>
@@ -319,6 +326,39 @@
         border-radius: 12px;
     }
     .btn-glass:hover { background: white; color: var(--primary); }
+
+    .status-chart-wrap {
+        position: relative;
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .status-chart-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        pointer-events: none;
+    }
+
+    .status-chart-center .center-value {
+        font-size: 2.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.1;
+    }
+
+    .status-chart-center .center-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
 
     /* ============ KPI CARDS ============ */
     .kpi-card {

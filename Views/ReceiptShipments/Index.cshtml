@@ -14,99 +14,105 @@
         <div class="row">
             <div class="col-md-8">
                 <form method="get" asp-action="Index" class="d-flex">
-                    <input type="text" name="search" value="@ViewBag.Search" class="form-control me-2" placeholder="Tìm theo ID, sản phẩm, loại, đơn hàng..." />
+                    <input type="text" name="search" value="@ViewBag.Search" class="form-control me-2"
+                           placeholder="Tìm theo ID, sản phẩm, loại, đơn hàng..." />
                     <input type="hidden" name="sortOrder" value="@ViewBag.SortOrder" />
                     <input type="hidden" name="pageSize" value="@ViewBag.PageSize" />
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-search me-1"></i>Tìm</button>
-                </form>
-            </div>
-            <div class="col-md-4 text-end">
-                <a asp-action="Create" class="btn btn-success"><i class="fas fa-plus me-1"></i>Thêm mới</a>
+                    <button type="submit" class="btn btn-primary d-inline-flex align-items-center text-nowrap"><i
+                        class="fas fa-search me-1"></i>Tìm kiếm</button>
+                    </form>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a asp-action="Create" class="btn btn-success"><i class="fas fa-plus me-1"></i>Thêm mới</a>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-<vc:paged-list-pager
-    current-page="@Model.CurrentPage"
-    total-pages="@Model.TotalPages"
-    total-count="@Model.TotalCount"
-    page-size="@Model.PageSize"
-    has-previous="@Model.HasPrevious"
-    has-next="@Model.HasNext"
-    search="@ViewBag.Search"
-    sort-order="@ViewBag.SortOrder"
-    controller-name="ReceiptShipments"
-    action-name="Index">
-</vc:paged-list-pager>
+    <vc:paged-list-pager current-page="@Model.CurrentPage" total-pages="@Model.TotalPages" total-count="@Model.TotalCount"
+                         page-size="@Model.PageSize" has-previous="@Model.HasPrevious" has-next="@Model.HasNext" search="@ViewBag.Search"
+                         sort-order="@ViewBag.SortOrder" controller-name="ReceiptShipments" action-name="Index">
+    </vc:paged-list-pager>
 
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-scroll-container">
-            <table class="table table-hover mb-0 table-zebra">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.MovementIdSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                ID Nhật Ký <i class="fas fa-sort ms-1"></i>
-                            </a>
-                        </th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.ProductSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Sản Phẩm <i class="fas fa-sort ms-1"></i>
-                            </a>
-                        </th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.TypeSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Loại <i class="fas fa-sort ms-1"></i>
-                            </a>
-                        </th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.QuantitySortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Số Lượng <i class="fas fa-sort ms-1"></i>
-                            </a>
-                        </th>
-                        <th>
-                            <a asp-action="Index" asp-route-sortOrder="@ViewBag.DateSortParm" asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize" class="text-white text-decoration-none">
-                                Ngày <i class="fas fa-sort ms-1"></i>
-                            </a>
-                        </th>
-                        <th>Đơn Hàng Liên Quan</th>
-                        <th style="width:180px;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model)
-                    {
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-scroll-container">
+                <table class="table table-hover mb-0 table-zebra">
+                    <thead>
                         <tr>
-                            <td>@item.MovementId</td>
-                            <td>@item.MovementId</td>
-                            <td>@item.Product?.Name</td>
-                            <td>
-                                <span class="badge @(item.MovementType == "IN" ? "bg-success" : "bg-danger")">
-                                    @(item.MovementType == "IN" ? "NHẬP" : "XUẤT")
-                                </span>
-                            </td>
-                            <td>@item.Quantity</td>
-                            <td>@item.MovementDate.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td>@(item.RelatedOrder?.OrderId != null ? "#" + item.RelatedOrder.OrderId : "Không")</td>
-                            <td>
-                                <a asp-action="Edit" asp-route-id="@item.MovementId" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
-                                <a asp-action="Delete" asp-route-id="@item.MovementId" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
-                            </td>
+                            <th>#</th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewBag.MovementIdSortParm"
+                                   asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize"
+                                   class="text-white text-decoration-none">
+                                    ID Nhật Ký <i class="fas fa-sort ms-1"></i>
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewBag.ProductSortParm"
+                                   asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize"
+                                   class="text-white text-decoration-none">
+                                    Sản Phẩm <i class="fas fa-sort ms-1"></i>
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewBag.TypeSortParm"
+                                   asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize"
+                                   class="text-white text-decoration-none">
+                                    Loại <i class="fas fa-sort ms-1"></i>
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewBag.QuantitySortParm"
+                                   asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize"
+                                   class="text-white text-decoration-none">
+                                    Số Lượng <i class="fas fa-sort ms-1"></i>
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewBag.DateSortParm"
+                                   asp-route-search="@ViewBag.Search" asp-route-pageSize="@ViewBag.PageSize"
+                                   class="text-white text-decoration-none">
+                                    Ngày <i class="fas fa-sort ms-1"></i>
+                                </a>
+                            </th>
+                            <th>Đơn Hàng Liên Quan</th>
+                            <th style="width:180px;">Thao tác</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.MovementId</td>
+                                <td>@item.MovementId</td>
+                                <td>@item.Product?.Name</td>
+                                <td>
+                                    <span class="badge @(item.MovementType == "IN" ? "bg-success" : "bg-danger")">
+                                        @(item.MovementType == "IN" ? "NHẬP" : "XUẤT")
+                                    </span>
+                                </td>
+                                <td>@item.Quantity</td>
+                                <td>@item.MovementDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(item.RelatedOrder?.OrderId != null ? "#" + item.RelatedOrder.OrderId : "Không")</td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.MovementId" class="btn btn-sm btn-primary"><i
+                                        class="fas fa-edit"></i></a>
+                                        <a asp-action="Delete" asp-route-id="@item.MovementId" class="btn btn-sm btn-danger"><i
+                                            class="fas fa-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>

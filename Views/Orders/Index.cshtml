@@ -120,7 +120,9 @@
                 <button type="submit" class="btn btn-primary flex-grow-1 text-nowrap">
                     <i class="fas fa-search me-1"></i>Tìm kiếm
                 </button>
-                <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+                <a asp-action="Index" class="btn btn-reset text-nowrap">
+                    <i class="fas fa-rotate-right me-1"></i>Đặt lại
+                </a>
             </div>
         </form>
     </div>
@@ -225,6 +227,26 @@
     .btn-violet { background: #7c3aed; color: white; border: none; }
     .btn-violet:hover { background: #6d28d9; color: white; }
     .bg-violet { background: #7c3aed !important; color: white !important; }
+
+    .btn-reset {
+        background: #f8fafc;
+        border: 1px solid #dbe7f2;
+        color: #0f172a;
+        font-weight: 700;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: var(--transition);
+    }
+    .btn-reset:hover {
+        background: #e2eefb;
+        border-color: #bfd7f3;
+        color: var(--primary);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
 
     /* ===== ACTION BUTTONS - Admin UI Theme ===== */
     .action-btn {
